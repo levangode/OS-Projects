@@ -10,13 +10,18 @@ char* flags[] = {
 	"-c",
 	"-d",
 	"-f",
+	"-i",
 	"-l",
 	"-m",
 	"-n",
+	"-p",
+	"-q",
+	"-r",
 	"-s",
 	"-t",
 	"-u",
 	"-v",
+	"-x",
 	"-H",
 	"-S"
 };
@@ -24,9 +29,6 @@ char* flags[] = {
 
 /* Gets the limit */
 int getlim(int resource, struct rlimit* rlim, char* name, int num, char* type){
-	printf("%s\n", name);
-	printf("%d\n", num);
-	printf("%s\n", type);
 	int res = getrlimit(resource, rlim);
 	if(res == -1){
 		perror("Couldn't get limit");
@@ -41,10 +43,6 @@ int getlim(int resource, struct rlimit* rlim, char* name, int num, char* type){
 		} else if(strcmp(type, "-H") == 0){
 			rlim->rlim_max = num;
 		}
-		printf("%s\n", name);
-		printf("%d\n", num);
-		printf("%s\n", type);
-		printf("%d\n", resource);
 		res = setrlimit(resource, rlim);
 		if(res == -1){
 			perror("Couldn't set limits");
@@ -65,6 +63,11 @@ int getlim(int resource, struct rlimit* rlim, char* name, int num, char* type){
 		if(l == -1){
 			printf("%s\n", "unlimited");
 		} else {
+			if(resource != RLIMIT_NPROC && resource != RLIMIT_CPU){
+				if(l != -1){
+					l/=1024;
+				}
+			}
 			printf("%d\n", l);	
 		}
 	}
@@ -108,21 +111,29 @@ int printAllResources(vector* args, int i, struct rlimit* rlim){
 	if(res == -1) return res;
 	res = getlim(RLIMIT_DATA, rlim, "data seg size", num, type);
 	if(res == -1) return res;
+	res = getlim(RLIMIT_NICE, rlim, "scheduling priority", num, type);
+	if(res == -1) return res;
 	res = getlim(RLIMIT_FSIZE, rlim, "file size", num, type);
 	if(res == -1) return res;
-	res = getlim(RLIMIT_LOCKS, rlim, "max locked memory", num, type);
+	res = getlim(RLIMIT_MEMLOCK, rlim, "max locked memory", num, type);
 	if(res == -1) return res;
 	res = getlim(RLIMIT_RSS, rlim, "max resident set", num, type);
 	if(res == -1) return res;
 	res = getlim(RLIMIT_NOFILE, rlim, "open files", num, type);
 	if(res == -1) return res;
+	res = getlim(RLIMIT_MSGQUEUE, rlim, "POSIX message queue", num, type);
+	if(res == -1) return res;
 	res = getlim(RLIMIT_STACK, rlim, "stack size", num, type);
+	if(res == -1) return res;
+	res = getlim(RLIMIT_RTPRIO, rlim, "real-time priority", num, type);
 	if(res == -1) return res;
 	res = getlim(RLIMIT_CPU, rlim, "cpu time", num, type);
 	if(res == -1) return res;
 	res = getlim(RLIMIT_NPROC, rlim, "max user processes", num, type);
 	if(res == -1) return res;
 	res = getlim(RLIMIT_AS, rlim, "virtual memory", num, type);
+	if(res == -1) return res;
+	res = getlim(RLIMIT_LOCKS, rlim, "file locks", num, type);
 	if(res == -1) return res;
 	return res;
 }
@@ -159,21 +170,33 @@ int get_limit(vector* args){
 		} else if(strcmp(flag, "-d") == 0){
 			name = "data seg size";
 			resource = RLIMIT_DATA;
+		} else if(strcmp(flag, "-e") == 0){
+			name = "scheduling priority";
+			resource = RLIMIT_NICE;
 		} else if(strcmp(flag, "-f") == 0){
 			name = "file size";
 			resource = RLIMIT_FSIZE;
-		} else if(strcmp(flag, "-l") == 0){
+		} else if(strcmp(flag, "-i") == 0){
+			name = "pending signals";
+			resource = RLIMIT_SIGPENDING;
+		}else if(strcmp(flag, "-l") == 0){
 			name = "max locked memory";
-			resource = RLIMIT_LOCKS;
+			resource = RLIMIT_MEMLOCK;
 		} else if(strcmp(flag, "-m") == 0){
 			name = "max resident set";
 			resource = RLIMIT_RSS ;
 		} else if(strcmp(flag, "-n") == 0){
 			name = "open files";
 			resource = RLIMIT_NOFILE;
-		}  else if(strcmp(flag, "-s") == 0){
+		} else if(strcmp(flag, "-q") == 0){
+			name = "POSIX message queues";
+			resource =  RLIMIT_MSGQUEUE;
+		} else if(strcmp(flag, "-s") == 0){
 			name = "stack size";
 			resource = RLIMIT_STACK;
+		} else if(strcmp(flag, "-r") == 0){
+			name = "real-time priority";
+			resource = RLIMIT_RTPRIO;
 		} else if(strcmp(flag, "-t") == 0){
 			name = "cpu time";
 			resource = RLIMIT_CPU;
@@ -183,6 +206,9 @@ int get_limit(vector* args){
 		} else if(strcmp(flag, "-v") == 0){
 			name ="virtual memory";
 			resource = RLIMIT_AS;
+		} else if(strcmp(flag, "-x") == 0){
+ 			name = "file locks";
+ 			resource = RLIMIT_LOCKS;
 		} else {
 			printf("%s\n", "Wrong command");
 			return -1;
