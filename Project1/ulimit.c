@@ -53,7 +53,9 @@ int getlim(int resource, struct rlimit* rlim, char* name, int num, char* type){
 		perror("Couldn't get limit");
 		return res;
 	} else {
-		printf("%s :", name);
+		if(name != NULL){
+			printf("%s :", name);
+		}
 		int l;
 		if(type == NULL || strcmp(type, "-S") == 0){
 			l = (int)rlim->rlim_cur;
@@ -231,7 +233,7 @@ int get_limit(vector* args){
 			type = t;
 		}
 		if(isCommandEnd(args, i+1)){
-			res = getlim(resource, &rlim, name, num, type);
+			res = getlim(resource, &rlim, NULL, num, type);
 		}
 	}
 	return res;
