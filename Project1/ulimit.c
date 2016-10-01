@@ -157,7 +157,6 @@ bool isCommandEnd(vector* args, int i){
 int get_limit(vector* args){
 	struct rlimit rlim;
 	int resource;
-	char* name;
 	int res = 0;
 
 	int i;
@@ -167,49 +166,34 @@ int get_limit(vector* args){
 			res = printAllResources(args, i, &rlim);
 			return res;
 		} else if(strcmp(flag, "-c") == 0){
-			name = "core file size";
 			resource = RLIMIT_CORE;
 		} else if(strcmp(flag, "-d") == 0){
-			name = "data seg size";
 			resource = RLIMIT_DATA;
 		} else if(strcmp(flag, "-e") == 0){
-			name = "scheduling priority";
 			resource = RLIMIT_NICE;
 		} else if(strcmp(flag, "-f") == 0){
-			name = "file size";
 			resource = RLIMIT_FSIZE;
 		} else if(strcmp(flag, "-i") == 0){
-			name = "pending signals";
 			resource = RLIMIT_SIGPENDING;
 		}else if(strcmp(flag, "-l") == 0){
-			name = "max locked memory";
 			resource = RLIMIT_MEMLOCK;
 		} else if(strcmp(flag, "-m") == 0){
-			name = "max resident set";
 			resource = RLIMIT_RSS ;
 		} else if(strcmp(flag, "-n") == 0){
-			name = "open files";
 			resource = RLIMIT_NOFILE;
 		} else if(strcmp(flag, "-q") == 0){
-			name = "POSIX message queues";
 			resource =  RLIMIT_MSGQUEUE;
 		} else if(strcmp(flag, "-s") == 0){
-			name = "stack size";
 			resource = RLIMIT_STACK;
 		} else if(strcmp(flag, "-r") == 0){
-			name = "real-time priority";
 			resource = RLIMIT_RTPRIO;
 		} else if(strcmp(flag, "-t") == 0){
-			name = "cpu time";
 			resource = RLIMIT_CPU;
 		} else if(strcmp(flag, "-u") == 0){
-			name ="max user processes";
 			resource = RLIMIT_NPROC;
 		} else if(strcmp(flag, "-v") == 0){
-			name ="virtual memory";
 			resource = RLIMIT_AS;
 		} else if(strcmp(flag, "-x") == 0){
- 			name = "file locks";
  			resource = RLIMIT_LOCKS;
 		} else {
 			printf("%s\n", "Wrong command");
