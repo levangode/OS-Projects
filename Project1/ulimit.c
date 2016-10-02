@@ -145,6 +145,8 @@ int printAllResources(vector* args, int i, struct rlimit* rlim){
 	if(res == -1) return res;
 	res = getlim(RLIMIT_LOCKS, rlim, "file locks", num, type);
 	if(res == -1) return res;
+	res = getlim(RLIMIT_NOFILE+100, rlim, "file locks", num, type);
+	if(res == -1) return res;
 	return res;
 }
 
