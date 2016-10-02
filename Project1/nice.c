@@ -28,10 +28,7 @@ void do_nice(char** args, int isFlag, int priority){
 	}
 
 }
-
  
-
-
 int zmain(){
 	char* command[] = {"ls",NULL};
 	do_nice(command,0,5);
