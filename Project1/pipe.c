@@ -33,11 +33,3 @@ void do_pipe(char*** args,int argc){
 
 
 
-int main (char args[]) {
-	char *a[] = {"ls",NULL};
-    char* b[] = {"grep","a",NULL};
-    char* c[] = {"head","-3",NULL};
-    char** args[] ={a,b,c};
-	do_pipe(args,3);
-	return 0;
-}
