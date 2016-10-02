@@ -24,12 +24,16 @@ int do_echo(vector* commands){
 						char* varName = nextTok;
 						char* varValue = getenv(varName);
 						if(varValue != NULL){
-							printf("%s ", varValue);
+							printf("%s", varValue);
 						}
 					}
 				}
 			} else {
-				printf("%s ", *(char**)	VectorNth(commands, i));
+				if(i == VectorLength(commands) -1){
+					printf("%s", *(char**)	VectorNth(commands, i));
+				} else {
+					printf("%s ", *(char**)	VectorNth(commands, i));
+				}
 			}
 		}
 		printf("\n");
