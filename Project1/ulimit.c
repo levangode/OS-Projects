@@ -29,6 +29,11 @@ char* flags[] = {
 
 /* Gets the limit */
 int getlim(int resource, struct rlimit* rlim, char* name, int num, char* type){
+	bool pipe = false;
+	if(resource == RLIMIT_NOFILE +100){
+		resource = RLIMIT_NOFILE;
+		pipe = true;
+	}
 	int res = getrlimit(resource, rlim);
 	if(res == -1){
 		perror("Couldn't get limit");
@@ -65,11 +70,14 @@ int getlim(int resource, struct rlimit* rlim, char* name, int num, char* type){
 		if(l == -1){
 			printf("%s\n", "unlimited");
 		} else {
-			if(resource != RLIMIT_NPROC && resource != RLIMIT_CPU){
+			if(resource != RLIMIT_NPROC && resource != RLIMIT_CPU && resource != RLIMIT_NOFILE){
 				if(l != -1){
 					l/=1024;
 				}
 			}
+			if(pipe){
+				l/=128;
+			} 
 			printf("%d\n", l);	
 		}
 	}
@@ -195,7 +203,9 @@ int get_limit(vector* args){
 			resource = RLIMIT_AS;
 		} else if(strcmp(flag, "-x") == 0){
  			resource = RLIMIT_LOCKS;
-		} else {
+		} else if(strcmp(flag, "-p") == 0){
+			resource = RLIMIT_NOFILE+100;
+		}else {
 			printf("%s\n", "Wrong command");
 			return -1;
 		}
