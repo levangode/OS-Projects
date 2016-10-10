@@ -145,6 +145,7 @@ void thread_set_priority (int);
 void thread_donate_priority (struct thread* thread_to_donate, int donated_priority);
 void thread_reset_donated_priority(void);
 int thread_get_other_priority (struct thread* thread);
+bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 int thread_get_nice (void);
 void thread_set_nice (int);

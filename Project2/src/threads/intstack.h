@@ -10,8 +10,6 @@ typedef struct{
 
 void stack_init(stack* st);
 
-void stack_dispose(stack* st UNUSED);
-
 int stack_peek(stack* st);
 
 void stack_pop(stack* st);

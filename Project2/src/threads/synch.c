@@ -105,7 +105,8 @@ sema_try_down (struct semaphore *sema)
 /* Compare function for threads. Compares by priorities */
 bool compareLessFn (const struct list_elem *a,
                              const struct list_elem *b,
-                             void *aux UNUSED){
+                             void *aux){
+  aux = aux;
   struct thread* first = list_entry (a, struct thread, elem);
   struct thread* second = list_entry (b, struct thread, elem);
 
@@ -201,7 +202,7 @@ void
 donateHelper(struct lock* curLock, struct thread* curThread){
   if(curLock->holder != curThread){
     if(curLock->holder != NULL && curLock->holder->priority < curThread->priority){
-      donate_priority(curLock->holder, thread_get_other_priority (curThread));
+      thread_donate_priority(curLock->holder, thread_get_other_priority (curThread));
       struct thread* next = curLock->holder;
       struct lock* nextLock = next->blockedon;
       donateHelper(nextLock, next);
