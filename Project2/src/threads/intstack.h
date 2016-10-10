@@ -68,19 +68,21 @@ int main(){
 
 	stack_push(&st, d);
 
-	printf("last elem is %d\n", stack_peek(&st));
+	printf("last elem is (must be 4) %d\n", stack_peek(&st));
 
 	stack_pop(&st);
-	printf("last elem is %d\n", stack_peek(&st));
+	printf("last elem is (must be 3) %d\n", stack_peek(&st));
 
 	stack_pop(&st);
-	printf("last elem is %d\n", stack_peek(&st));
-
-	stack_pop(&st);
+	printf("last elem is (must be 2) %d\n", stack_peek(&st));
 
 	stack_pop(&st);
 
-	printf("last elem is %d\n", stack_empty(&st));
+	printf("check if stack is empty  (must be 0)%d\n", stack_empty(&st));
+
+	stack_pop(&st);
+
+	printf("check if stack is empty  (must be 1)%d\n", stack_empty(&st));
 
 
 
