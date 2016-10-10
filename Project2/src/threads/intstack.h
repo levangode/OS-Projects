@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 typedef struct{
-	int elems[2000];
+	int elems[20];
 	int size;
 } stack;
 
