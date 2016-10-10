@@ -200,6 +200,9 @@ lock_init (struct lock *lock)
 /* Recursice function for nested donation */
 void
 donateHelper(struct lock* curLock, struct thread* curThread){
+  if(curLock == NULL){
+    return;
+  }
   if(curLock->holder != curThread){
     if(curLock->holder != NULL && curLock->holder->priority < curThread->priority){
       thread_donate_priority(curLock->holder, thread_get_other_priority (curThread));
@@ -227,10 +230,9 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   struct thread* current = thread_current();
-  donateHelper(lock, current);
-
   if(!sema_try_down(&lock->semaphore)){
     current->blockedon = lock;
+    donateHelper(lock, current);
     sema_down (&lock->semaphore);
   } 
   current->blockedon = NULL;
