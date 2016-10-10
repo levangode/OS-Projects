@@ -50,6 +50,8 @@ sema_init (struct semaphore *sema, unsigned value)
   list_init (&sema->waiters);
 }
 
+
+
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
    to become positive and then atomically decrements it.
 
@@ -102,19 +104,6 @@ sema_try_down (struct semaphore *sema)
 }
 
 
-/* Compare function for threads. Compares by priorities */
-bool compareLessFn (const struct list_elem *a,
-                             const struct list_elem *b,
-                             void *aux){
-  aux = aux;
-  struct thread* first = list_entry (a, struct thread, elem);
-  struct thread* second = list_entry (b, struct thread, elem);
-
-  if(first->priority < second->priority){
-    return true;
-  }
-  return false;
-}
 /* Up or "V" operation on a semaphore.  Increments SEMA's value
    and wakes up one thread of those waiting for SEMA, if any.
 

@@ -15,10 +15,14 @@ enum thread_status
     THREAD_DYING        /* About to be destroyed. */
   };
 
+/* Compare function for threads. Compares by priorities */
+bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
+
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
+
 
 /* Thread priorities. */
 #define PRI_MIN 0                       /* Lowest priority. */
@@ -146,6 +150,7 @@ void thread_donate_priority (struct thread* thread_to_donate, int donated_priori
 void thread_reset_donated_priority(void);
 int thread_get_other_priority (struct thread* thread);
 bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
+void check_better_priority(void);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
