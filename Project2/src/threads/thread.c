@@ -340,9 +340,13 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
-  if(thread_current() ->donpriority < new_priority){
-    thread_current() -> donpriority = new_priority;
+  
+  int maxPriority = stack_peek(&(thread_current()->donation_stack))
+
+  if (maxPriority < new_priority){
+    stack_clear(&(thread_current()->donation_stack));
   }
+
 }
 
 /* returns priority of given thread */
@@ -372,6 +376,11 @@ void
 thread_reset_donated_priority(){
   if(! stack_empty( &(thread_current()->donation_stack) )){
     stack_pop( &(thread_current()->donation_stack) );
+
+    if( thread_current ()->priority > stack_peek( &(thread_current()->donation_stack)) ){
+      stack_clear( &(thread_current()->donation_stack) )
+    }
+
   } else {
     // do nothing
   }
