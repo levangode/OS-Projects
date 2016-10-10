@@ -2,41 +2,22 @@
 #define _int_stack_
 
 #include <stdbool.h>
-#include <assert.h>
 
 typedef struct{
 	int elems[2000];
 	int size;
 } stack;
 
-void stack_init(stack* st){
-	st->size = 0;
-}
+void stack_init(stack* st);
+void stack_dispose(stack* st UNUSED);
 
-void stack_dispose(stack* st){
+int stack_peek(stack* st);
 
-}
+void stack_pop(stack* st);
 
-int stack_peek(stack* st){
-	ASSERT(st->size>=0);
+void stack_push(stack* st, int elem);
 
-	return st->elems[st->size-1];
-}
-
-void stack_pop(stack* st){
-	ASSERT(st->size>=0);
-	st->size--;
-}
-
-void stack_push(stack* st, int elem){
-	
-	st->elems[st->size] = elem;
-	st->size++;
-}
-
-bool stack_empty(stack* st){
-	return st->size==0;
-}
+bool stack_empty(stack* st);
 
 #endif
 

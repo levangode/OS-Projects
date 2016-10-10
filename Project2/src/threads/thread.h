@@ -106,7 +106,7 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
-    /* Added preferences
+    /* Added preferences */
     struct lock* blockedon;
   };
 

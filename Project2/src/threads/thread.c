@@ -11,7 +11,6 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
-#include "intstack.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -353,7 +352,11 @@ thread_get_other_priority (struct thread* thread){
   if( stack_empty( &(thread -> donation_stack) )  ){
     return thread -> priority;
   } else {
-    return thread_peek( &(thread -> donation_stack) );
+    if(thread_current()->priority > stack_peek( &(thread -> donation_stack))){
+      return thread->priority;
+    } else {
+      return stack_peek( &(thread -> donation_stack));
+    }
   }
 }
 
@@ -361,7 +364,7 @@ thread_get_other_priority (struct thread* thread){
 void
 thread_donate_priority (struct thread* thread_to_donate, int donated_priority){
   ASSERT(donated_priority >= PRI_MIN);
-  ASSERT(donpriority <=PRI_MAX)
+  ASSERT(donated_priority <= PRI_MAX);
   stack_push( &(thread_to_donate->donation_stack), donated_priority );
 }
 
@@ -382,7 +385,11 @@ thread_get_priority (void)
   if( stack_empty( &(thread_current() -> donation_stack) )  ){
     return thread_current() -> priority;
   } else {
-    return thread_peek( &(thread_current() -> donation_stack) );
+    if(thread_current()->priority > stack_peek( &(thread_current() -> donation_stack))){
+      return thread_current()->priority;
+    } else {
+      return stack_peek( &(thread_current() -> donation_stack));
+    }
   }
 }
 
@@ -509,8 +516,7 @@ init_thread (struct thread *t, const char *name, int priority)
   //t->donpriority = priority;
 
   stack_init(&(t->donation_stack));
-
-  initial_thread->lockedon = NULL;
+  t->blockedon = NULL;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
