@@ -343,10 +343,21 @@ thread_set_priority (int new_priority)
   }
 }
 
+/* returns priority of given thread */
+int
+thread_get_other_priority (struct thread* thread, int new_priority){
+  assert(thread != NULL);
+  if(thread->donpriority > thread->priority){
+    return thread->donpriority;
+  } else {
+    return thread->priority;
+  }
+}
+
 /* get donation from another thread */
 void
-thread_donate_priority (int donated_priority){
-  thread_current ()->priority = donated_priority;
+thread_donate_priority (struct thread* thread_to_donate, int donated_priority){
+  thread_to_donate->priority = donated_priority;
 }
 
 void

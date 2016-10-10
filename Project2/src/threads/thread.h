@@ -134,8 +134,8 @@ void thread_foreach (thread_action_func *, void *);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
-/*added functions*/
-void thread_donate_priority (int donated_priority);
+/*added functions */
+void thread_donate_priority (struct thread* thread_to_donate, int donated_priority);
 void thread_reset_donated_priority(void);
 
 int thread_get_nice (void);
