@@ -20,6 +20,8 @@ void stack_push(stack* st, int elem);
 
 bool stack_empty(stack* st);
 
+void stack_clear(stack* st);
+
 #endif
 
 /*
