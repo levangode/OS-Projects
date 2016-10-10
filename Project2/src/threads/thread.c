@@ -88,7 +88,7 @@ bool compareLessFn (const struct list_elem *a,
 /* Checks if current thread has lower priority than hightest prio thread in ready list(always on top), if so, yields to that thread. */
 void check_better_priority(void){
   struct thread* current = thread_current();
-  struct thread* highest = list_entry (list_pop_front (&ready_list), struct thread, elem);
+  struct thread* highest = list_entry (list_front (&ready_list), struct thread, elem);
   
 }
 
