@@ -196,6 +196,18 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+
+void donateHelper(struct lock* curLock, struct thread* curThread){
+  if(curLock->holder != current){
+    if(curLock->holder != NULL && curLock->holder->priority < current->priority){
+      //donate priority (can also donate donated priority// getprioriy will arrange this)
+    }
+  }
+  struct thread* next = curLock->holder;
+  //struct lock* nextLock = next thread razec aris dablokili
+  donateHelper(nextLock, next);
+
+}
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -210,6 +222,9 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
+
+  struct thread* current = thread_current();
+  donateHelper(lock, current);
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
