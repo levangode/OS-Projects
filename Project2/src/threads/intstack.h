@@ -18,13 +18,13 @@ void stack_dispose(stack* st){
 }
 
 int stack_peek(stack* st){
-	assert(st->size>=0);
+	ASSERT(st->size>=0);
 
 	return st->elems[st->size-1];
 }
 
 void stack_pop(stack* st){
-	assert(st->size>=0);
+	ASSERT(st->size>=0);
 	st->size--;
 }
 

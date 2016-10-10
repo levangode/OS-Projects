@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "intstack.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -347,24 +348,30 @@ thread_set_priority (int new_priority)
 
 /* returns priority of given thread */
 int
-thread_get_other_priority (struct thread* thread, int new_priority){
-  assert(thread != NULL);
-  if(thread->donpriority > thread->priority){
-    return thread->donpriority;
+thread_get_other_priority (struct thread* thread){
+  ASSERT(thread != NULL);
+  if( stack_empty( &(thread -> donation_stack) )  ){
+    return thread -> priority;
   } else {
-    return thread->priority;
+    return thread_peek( &(thread -> donation_stack) );
   }
 }
 
 /* get donation from another thread */
 void
 thread_donate_priority (struct thread* thread_to_donate, int donated_priority){
-  thread_to_donate->priority = donated_priority;
+  ASSERT(donated_priority >= PRI_MIN);
+  ASSERT(donpriority <=PRI_MAX)
+  stack_push( &(thread_to_donate->donation_stack), donated_priority );
 }
 
 void
 thread_reset_donated_priority(){
-  thread_current() ->donpriority = thread_current() ->priority;
+  if(! stack_empty( &(thread_current()->donation_stack) )){
+    stack_pop( &(thread_current()->donation_stack) );
+  } else {
+    // do nothing
+  }
 }
 
 
@@ -372,10 +379,11 @@ thread_reset_donated_priority(){
 int
 thread_get_priority (void) 
 {
-  if (thread_current() -> priority < thread_current() -> donpriority ){
-    thread_current() -> donpriority;
+  if( stack_empty( &(thread_current() -> donation_stack) )  ){
+    return thread_current() -> priority;
+  } else {
+    return thread_peek( &(thread_current() -> donation_stack) );
   }
-  return thread_current() -> priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -498,7 +506,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 
   /* set default donated priority to same as default priority*/
-  t->donpriority = priority;
+  //t->donpriority = priority;
+
+  stack_init(&(t->donation_stack));
+
   initial_thread->lockedon = NULL;
 
   old_level = intr_disable ();
