@@ -196,16 +196,18 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
-
-void donateHelper(struct lock* curLock, struct thread* curThread){
+/* Recursice function for nested donation */
+void
+donateHelper(struct lock* curLock, struct thread* curThread){
   if(curLock->holder != current){
     if(curLock->holder != NULL && curLock->holder->priority < current->priority){
-      //donate priority (can also donate donated priority// getprioriy will arrange this)
+      donate_priority(curLock->holder, thread_get_other_priority (curThread, int new_priority));
+      struct thread* next = curLock->holder;
+      struct lock* nextLock = next->blockedon;
+      donateHelper(nextLock, next);
     }
   }
-  struct thread* next = curLock->holder;
-  //struct lock* nextLock = next thread razec aris dablokili
-  donateHelper(nextLock, next);
+
 
 }
 /* Acquires LOCK, sleeping until it becomes available if
@@ -226,8 +228,13 @@ lock_acquire (struct lock *lock)
   struct thread* current = thread_current();
   donateHelper(lock, current);
 
-  sema_down (&lock->semaphore);
+  if(!sema_try_down(&lock->semaphore)){
+    current->blockedon = lock;
+    sema_down (&lock->semaphore);
+  } 
+  current->blockedon = NULL;
   lock->holder = thread_current ();
+
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
