@@ -54,3 +54,6 @@ Module.symvers
 Mkfile.old
 dkms.conf
 *.swp
+
+# vagrant configuration file
+Vagrantfile

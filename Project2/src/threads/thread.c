@@ -198,6 +198,8 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+  /*set */
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -336,13 +338,31 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  if(thread_current() ->donpriority < new_priority){
+    thread_current() -> donpriority = new_priority;
+  }
 }
+
+/* get donation from another thread */
+void
+thread_donate_priority (int donated_priority){
+  thread_current ()->priority = donated_priority;
+}
+
+void
+thread_reset_donated_priority(){
+  thread_current() ->donpriority = thread_current() ->priority;
+}
+
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  if (thread_current() -> priority < thread_current() -> donpriority ){
+    thread_current() -> donpriority;
+  }
+  return thread_current() -> priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -463,6 +483,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  /* set default donated priority to same as default priority*/
+  t->donpriority = priority;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
