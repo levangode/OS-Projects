@@ -22,7 +22,8 @@ void stack_pop(stack* st){
 
 void stack_push(stack* st, int elem){
 	ASSERT(st != NULL);
-	
+	ASSERT(st -> size >= 20);
+
 	st->elems[st->size] = elem;
 	st->size++;
 }
