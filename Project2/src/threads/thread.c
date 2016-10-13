@@ -71,27 +71,6 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-/* Compare function for threads. Compares by priorities */
-bool compareLessFn (const struct list_elem *a,
-                             const struct list_elem *b,
-                             void *aux){
-  aux = aux;
-  struct thread* first = list_entry (a, struct thread, elem);
-  struct thread* second = list_entry (b, struct thread, elem);
-
-  if(first->priority < second->priority){
-    return false;
-  }
-  return true;
-}
-
-/* Checks if current thread has lower priority than hightest prio thread in ready list(always on top), if so, yields to that thread. */
-void check_better_priority(void){
-  struct thread* current = thread_current();
-  struct thread* highest = list_entry (list_front (&ready_list), struct thread, elem);
-  
-}
-
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -119,8 +98,6 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
-
-  
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -224,8 +201,6 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  
-
   return tid;
 }
 
@@ -242,7 +217,6 @@ thread_block (void)
   ASSERT (intr_get_level () == INTR_OFF);
 
   thread_current ()->status = THREAD_BLOCKED;
-
   schedule ();
 }
 
@@ -263,11 +237,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered(&ready_list, &t->elem, compareLessFn, NULL);
+  list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
-  /* if higher priority thread is ready, lets it take cpu */
-  check_better_priority();  //will be called on each unblock
-
   intr_set_level (old_level);
 }
 
@@ -336,8 +307,8 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread)
-    list_insert_ordered(&ready_list, &cur->elem, compareLessFn, NULL);  //not the same case as unblock
+  if (cur != idle_thread) 
+    list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -365,66 +336,13 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
-  
-  int maxPriority = stack_peek(&(thread_current()->donation_stack));
-
-  if (maxPriority < new_priority){
-    stack_clear(&(thread_current()->donation_stack));
-  }
-
 }
-
-/* returns priority of given thread */
-int
-thread_get_other_priority (struct thread* thread){
-  ASSERT(thread != NULL);
-  if( stack_empty( &(thread -> donation_stack) )  ){
-    return thread -> priority;
-  } else {
-    if(thread_current()->priority > stack_peek( &(thread -> donation_stack))){
-      return thread->priority;
-    } else {
-      return stack_peek( &(thread -> donation_stack));
-    }
-  }
-}
-
-/* get donation from another thread */
-void
-thread_donate_priority (struct thread* thread_to_donate, int donated_priority){
-  ASSERT(donated_priority >= PRI_MIN);
-  ASSERT(donated_priority <= PRI_MAX);
-  stack_push( &(thread_to_donate->donation_stack), donated_priority );
-}
-
-void
-thread_reset_donated_priority(){
-  if(! stack_empty( &(thread_current()->donation_stack) )){
-    stack_pop( &(thread_current()->donation_stack) );
-
-    if( thread_current ()->priority > stack_peek( &(thread_current()->donation_stack)) ){
-      stack_clear( &(thread_current()->donation_stack) );
-    }
-
-  } else {
-    // do nothing
-  }
-}
-
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  if( stack_empty( &(thread_current() -> donation_stack) )  ){
-    return thread_current() -> priority;
-  } else {
-    if(thread_current()->priority > stack_peek( &(thread_current() -> donation_stack))){
-      return thread_current()->priority;
-    } else {
-      return stack_peek( &(thread_current() -> donation_stack));
-    }
-  }
+  return thread_current ()->priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -546,12 +464,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
-  /* set default donated priority to same as default priority*/
-  //t->donpriority = priority;
-
-  stack_init(&(t->donation_stack));
-  t->blockedon = NULL;
-
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -580,9 +492,8 @@ next_thread_to_run (void)
 {
   if (list_empty (&ready_list))
     return idle_thread;
-  else {
+  else
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
-  }
 }
 
 /* Completes a thread switch by activating the new thread's page

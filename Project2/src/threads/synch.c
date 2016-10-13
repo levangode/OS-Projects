@@ -50,8 +50,6 @@ sema_init (struct semaphore *sema, unsigned value)
   list_init (&sema->waiters);
 }
 
-
-
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
    to become positive and then atomically decrements it.
 
@@ -103,7 +101,6 @@ sema_try_down (struct semaphore *sema)
   return success;
 }
 
-
 /* Up or "V" operation on a semaphore.  Increments SEMA's value
    and wakes up one thread of those waiting for SEMA, if any.
 
@@ -116,11 +113,9 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)){
-    list_sort(&sema->waiters, compareLessFn, NULL); 
+  if (!list_empty (&sema->waiters)) 
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
-  }
   sema->value++;
   intr_set_level (old_level);
 }
@@ -186,23 +181,6 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
-/* Recursice function for nested donation */
-void
-donateHelper(struct lock* curLock, struct thread* curThread){
-  if(curLock == NULL){
-    return;
-  }
-  if(curLock->holder != curThread){
-    if(curLock->holder != NULL && curLock->holder->priority < curThread->priority){
-      thread_donate_priority(curLock->holder, thread_get_other_priority (curThread));
-      struct thread* next = curLock->holder;
-      struct lock* nextLock = next->blockedon;
-      donateHelper(nextLock, next);
-    }
-  }
-
-
-}
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -218,15 +196,8 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  struct thread* current = thread_current();
-  if(!sema_try_down(&lock->semaphore)){
-    current->blockedon = lock;
-    donateHelper(lock, current);
-    sema_down (&lock->semaphore);
-  } 
-  current->blockedon = NULL;
+  sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-
 }
 
 /* Tries to acquires LOCK and returns true if successful or false

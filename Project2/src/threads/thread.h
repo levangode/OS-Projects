@@ -4,7 +4,6 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "intstack.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -15,14 +14,10 @@ enum thread_status
     THREAD_DYING        /* About to be destroyed. */
   };
 
-/* Compare function for threads. Compares by priorities */
-bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
-
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
-
 
 /* Thread priorities. */
 #define PRI_MIN 0                       /* Lowest priority. */
@@ -93,10 +88,6 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int donpriority;
-
-    stack donation_stack;
-
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -109,9 +100,6 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
-
-    /* Added preferences */
-    struct lock* blockedon;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -144,13 +132,6 @@ void thread_foreach (thread_action_func *, void *);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
-
-/*added functions */
-void thread_donate_priority (struct thread* thread_to_donate, int donated_priority);
-void thread_reset_donated_priority(void);
-int thread_get_other_priority (struct thread* thread);
-bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
-void check_better_priority(void);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
