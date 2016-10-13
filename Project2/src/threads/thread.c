@@ -219,7 +219,7 @@ thread_create (const char *name, int priority,
   enum intr_level old_level;
   old_level = intr_disable ();
   struct thread* current = thread_current();
-  if(thread_get_priority(t) > thread_get_priority(current)){
+  if(thread_get_other_priority(t) > thread_get_other_priority(current)){
     thread_yield();
   }
   intr_set_level (old_level);
@@ -616,3 +616,8 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+int thread_get_other_priority(struct thread* t){
+  return t->priority;
+}
