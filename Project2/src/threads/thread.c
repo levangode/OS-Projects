@@ -91,9 +91,14 @@ bool compareLessFn (const struct list_elem *a,
   struct thread* first = list_entry (a, struct thread, elem);
   struct thread* second = list_entry (b, struct thread, elem);
 
-  if(first->priority < second->priority){
+  // if(first->priority < second->priority){
+  //   return false;
+  // }
+
+  if (thread_get_other_priority(first) < thread_get_other_priority(second) ){
     return false;
   }
+
   return true;
 }
 
@@ -657,5 +662,7 @@ int thread_donate_priority(struct thread* t, int priority){
   struct list* donations = &t->donation_list;
 
   list_insert_ordered(donations, &t->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
+
+  //list_sort
 }
 
