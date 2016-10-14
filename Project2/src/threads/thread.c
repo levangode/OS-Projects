@@ -649,7 +649,7 @@ int thread_get_other_priority(struct thread* t){
   struct list* donations = &t->donation_list;
   if (!list_empty(donations)){
     struct priority_entry* donation = list_entry(list_front(donations), struct priority_entry, priority_elem);
-    return list_size(donations);
+    //return list_size(donations);
     return donation->donated_priority;
   }
   return t->priority;
