@@ -667,3 +667,7 @@ int thread_donate_priority(struct thread* t, int priority){
   thread_yield();
 }
 
+bool thread_on_donation(struct thread* t){
+  return list_empty(&t->donation_list);
+}
+
