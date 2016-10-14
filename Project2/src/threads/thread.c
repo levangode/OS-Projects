@@ -498,6 +498,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
+  
+  /*added code for initialization of donation list*/
+  list_init(&t->donation_list);
   t->blockedOn = NULL; //////////////////
 
   old_level = intr_disable ();
