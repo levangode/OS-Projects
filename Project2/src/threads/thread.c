@@ -235,6 +235,7 @@ thread_create (const char *name, int priority,
   enum intr_level old_level;
   old_level = intr_disable ();
   struct thread* current = thread_current();
+
   if(thread_get_other_priority(t) > thread_get_other_priority(current)){
     thread_yield();
   }
@@ -392,7 +393,7 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  return thread_get_other_priority(thread_current ());
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -650,7 +651,7 @@ int thread_get_other_priority(struct thread* t){
     struct priority_entry* donation = list_entry(list_front(donations), struct priority_entry, priority_elem);
     return donation->donated_priority;
   }
-    
+  
   return t->priority;
 }
 
@@ -660,10 +661,10 @@ void thread_revert_priority(struct thread* t){
   }
 }
 
-int thread_donate_priority(struct thread* t, int priority){
+int thread_donate_priority(struct thread* t, struct thread* donator){
   struct list* donations = &t->donation_list;
 
-  list_insert_ordered(donations, &t->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
+  list_insert_ordered(donations, &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
 
   list_sort(&ready_list, compareLessFn, NULL);
   thread_yield();

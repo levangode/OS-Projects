@@ -155,9 +155,10 @@ int thread_get_load_avg (void);
 /*added helper functions*/
 
 int thread_get_other_priority(struct thread* t);
-int thread_donate_priority(struct thread* t, int priority);
+int thread_donate_priority(struct thread* t, struct thread* donator);
 void thread_revert_priority(struct thread* t);
 bool thread_on_donation(struct thread* t);
+bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 //todo
 // set_priority chains locked threads
