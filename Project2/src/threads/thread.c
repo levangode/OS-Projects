@@ -507,11 +507,15 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
+  
   /*added code for initialization of donation list*/
   list_init(&t->donation_list);
+
   /*for priority entry*/
   t->priority_entry->priority_donator = t;
   t->priority_entry->donated_priority = priority;
+
+  t->blockedOn = NULL; //////////////////
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

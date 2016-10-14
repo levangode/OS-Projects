@@ -196,7 +196,11 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  sema_down (&lock->semaphore);
+  if(!sema_try_down(&lock->semaphore)){
+    thread_current()->blockedOn = lock;
+    sema_down(&lock->semaphore);
+  }
+  thread_current()->blockedOn = NULL;
   lock->holder = thread_current ();
 }
 

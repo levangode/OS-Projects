@@ -104,6 +104,9 @@ struct thread
 
     struct list donation_list;
 
+    struct lock* blockedOn;
+
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
