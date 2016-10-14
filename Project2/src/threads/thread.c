@@ -74,10 +74,12 @@ static tid_t allocate_tid (void);
 bool compareLessFn_priority_entry (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux){
-  struct donation_entry* first = list_entry(a, struct donation_entry, priority_elem);
-  struct donation_entry* second = list_entry(b, struct donation_entry, priority_elem);
+  aux = aux;
 
-  return firts->donated_priority < second->donated_priority;
+  struct priority_entry* first = list_entry(a, struct priority_entry, priority_elem);
+  struct priority_entry* second = list_entry(b, struct priority_entry, priority_elem);
+
+  return first->donated_priority < second->donated_priority;
 
 }
 
@@ -512,8 +514,8 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t->donation_list);
 
   /*for priority entry*/
-  t->priority_entry->priority_donator = t;
-  t->priority_entry->donated_priority = priority;
+  (t->donation_entry).priority_donator = t;
+  (t->donation_entry).donated_priority = priority;
 
   t->blockedOn = NULL; //////////////////
 
@@ -640,7 +642,7 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 int thread_get_other_priority(struct thread* t){
   struct list* donations = &t->donation_list;
   if (list_empty(donations)){
-    struct donation_entry* donation = list_entry(list_front(donations), donation_entry, donated_priority,NULL);
+    struct priority_entry* donation = list_entry(list_front(donations), struct priority_entry, priority_elem);
     return donation->donated_priority;
   }
     
@@ -648,12 +650,12 @@ int thread_get_other_priority(struct thread* t){
 }
 
 void thread_revert_priority(struct thread* t){
-  list_pop_front(t->donation_list);
+  list_pop_front(&t->donation_list);
 }
 
-int thread_donate_piority(struct thread* t, int priority){
-  list* donations = &t->donation_list;
+int thread_donate_priority(struct thread* t, int priority){
+  struct list* donations = &t->donation_list;
 
-  list_insert_ordered(donations, t->donation_entry->priority_elem, ,NULL);
+  list_insert_ordered(donations, &t->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
 }
 
