@@ -29,7 +29,7 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
-
+static struct list sleeping_threads;
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -37,6 +37,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init(&sleeping_threads);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -84,16 +85,37 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
+/*comparing thread ticks*/
+bool sleep_time_cmp(const struct list_elem* a,const struct list_elem *b, void* data){
+  struct thread* first = list_entry(a,struct thread,elem);
+  struct thread* second = list_entry(b,struct thread,elem);
+  return second->wake_up_time > first->wake_up_time;
+}
+
+
+
+
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
+    //int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  /*while (timer_elapsed (start) < ticks) 
+    thread_yield ();*/
+  if(ticks > 0){
+  
+    enum intr_level old_level = intr_disable (); //disabling interrupts
+    struct thread * curThread = thread_current();
+    curThread->wake_up_time = ticks + timer_ticks();
+    list_insert_ordered(&sleeping_threads,&curThread->elem,(list_less_func*)&sleep_time_cmp,NULL);
+    thread_block();
+    intr_set_level(old_level);
+
+  }
+  return;
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -165,6 +187,20 @@ timer_print_stats (void)
 {
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
+
+void sleeping_list_check(void){
+  struct list_elem * firstThread = list_begin(&sleeping_threads);
+  if( firstThread == list_end(&sleeping_threads) || list_entry(firstThread, struct thread, elem)->wake_up_time > ticks){
+    return;
+  }
+  struct thread* curThread = list_entry(firstThread, struct thread, elem);
+  list_remove(firstThread);
+  thread_unblock(curThread);
+  sleeping_list_check();
+}
+
+
+
 
 /* Timer interrupt handler. */
 static void
@@ -172,6 +208,12 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  //if(!thread_mlfqs){ to be added after advanced scheduler is up
+    sleeping_list_check();  
+  //}else{
+  //  advanced_scheduler();
+  //}
+
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
