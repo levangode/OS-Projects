@@ -635,15 +635,11 @@ allocate_tid (void)
 
   lock_acquire (&tid_lock);
   tid = next_tid++;
+  //printf("%s\n", "allocatetid");
   lock_release (&tid_lock);
 
   return tid;
 }
-
-/* Offset of `stack' member within `struct thread'.
-   Used by switch.S, which can't figure it out on its own. */
-uint32_t thread_stack_ofs = offsetof (struct thread, stack);
-
 
 int thread_get_other_priority(struct thread* t){
   struct list* donations = &t->donation_list;
@@ -661,16 +657,18 @@ void thread_revert_priority(struct thread* t){
   intr_set_level (old_level);
   if (!list_empty(&t->donation_list)){
     list_pop_front(&t->donation_list);
+    //printf("%s\n", "dacarielda");
   }
   intr_set_level (old_level);
   check_for_higher_thread();
 }
 
-int thread_donate_priority(struct thread* t, struct thread* donator){
+void thread_donate_priority(struct thread* t, struct thread* donator){
   enum intr_level old_level = intr_disable ();
   struct list* donations = &t->donation_list;
 
   list_insert_ordered(donations, &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
+  //printf("donaciis shemdeg amdenia %d\n", list_size(donations));
   list_sort(&ready_list, compareLessFn, NULL);
   intr_set_level (old_level);
   check_for_higher_thread();
@@ -679,4 +677,10 @@ int thread_donate_priority(struct thread* t, struct thread* donator){
 bool thread_on_donation(struct thread* t){
   return !list_empty(&t->donation_list);
 }
+
+/* Offset of `stack' member within `struct thread'.
+   Used by switch.S, which can't figure it out on its own. */
+uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
 
