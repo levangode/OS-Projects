@@ -663,6 +663,7 @@ int thread_donate_priority(struct thread* t, int priority){
 
   list_insert_ordered(donations, &t->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
 
-  //list_sort
+  list_sort(&ready_list, compareLessFn, NULL);
+  thread_yield();
 }
 
