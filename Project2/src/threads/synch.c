@@ -181,6 +181,22 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+void
+donate_helper(struct lock* lock, struct thread* curThread){
+  if(lock == NULL){
+    return;
+  }
+  if(lock->holder != curThread){
+    if(lock->holder != NULL && thread_get_other_priority(lock->holder) < thread_get_other_priority(curThread)){
+      thread_donate_priority(lock->holder, thread_get_other_priority(curThread));
+      if(lock->holder->blockedOn != NULL){
+        struct lock* nextLock = lock->holder->blockedOn;
+        struct thread* nextThread = lock->holder;
+        donate_helper(nextLock, nextThread);
+      }
+    }
+  }
+}
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -196,12 +212,18 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  enum intr_level old_level;
+  old_level = intr_disable ();
+
   if(!sema_try_down(&lock->semaphore)){
     thread_current()->blockedOn = lock;
+    donate_helper(lock, thread_current());
     sema_down(&lock->semaphore);
   }
   thread_current()->blockedOn = NULL;
   lock->holder = thread_current ();
+
+  intr_set_level (old_level);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
