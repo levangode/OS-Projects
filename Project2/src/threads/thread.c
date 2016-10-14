@@ -646,7 +646,7 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 int thread_get_other_priority(struct thread* t){
   struct list* donations = &t->donation_list;
-  if (list_empty(donations)){
+  if (!list_empty(donations)){
     struct priority_entry* donation = list_entry(list_front(donations), struct priority_entry, priority_elem);
     return donation->donated_priority;
   }
