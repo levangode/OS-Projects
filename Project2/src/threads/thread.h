@@ -159,6 +159,7 @@ int thread_donate_priority(struct thread* t, struct thread* donator);
 void thread_revert_priority(struct thread* t);
 bool thread_on_donation(struct thread* t);
 bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
+void check_for_higher_thread(void);
 
 //todo
 // set_priority chains locked threads

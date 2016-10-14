@@ -119,6 +119,7 @@ sema_up (struct semaphore *sema)
                                 struct thread, elem));
   sema->value++;
   intr_set_level (old_level);
+  check_for_higher_thread();
 }
 
 static void sema_test_helper (void *sema_);
@@ -190,11 +191,11 @@ donate_helper(struct lock* lock, struct thread* curThread){
   if(lock->holder != curThread){
     if(lock->holder != NULL && thread_get_other_priority(lock->holder) < thread_get_other_priority(curThread)){
       thread_donate_priority(lock->holder, curThread);
-      if(lock->holder->blockedOn != NULL){
+      /*if(lock->holder->blockedOn != NULL){
         struct lock* nextLock = lock->holder->blockedOn;
         struct thread* nextThread = lock->holder;
         donate_helper(nextLock, nextThread);
-      }
+      }*/
     }
   }
 }
@@ -258,9 +259,11 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
-  thread_revert_priority(thread_current());
   sema_up (&lock->semaphore);
-  thread_yield();
+  if(!thread_mlfqs){
+    thread_revert_priority(thread_current());
+  }
+  
 }
 
 /* Returns true if the current thread holds LOCK, false
