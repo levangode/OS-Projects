@@ -104,7 +104,6 @@ void check_for_higher_thread(void){
     return;
   enum intr_level old_level;
   old_level = intr_disable ();
-  struct thread* current = thread_current();
 
   if(thread_get_other_priority(thread_current()) < thread_get_other_priority(list_entry (list_front (&ready_list), struct thread, elem))){
     thread_yield();
@@ -384,11 +383,7 @@ thread_set_priority (int new_priority)
     thread_current ()->priority = new_priority;
     enum intr_level old_level;
     old_level = intr_disable ();
-    struct thread* current = thread_current();
-    struct thread* t = list_entry (list_front (&ready_list), struct thread, elem);
-    if(t->priority > current->priority){
-      thread_yield();
-    }
+    check_for_higher_thread();
     intr_set_level (old_level);
   }
 }
@@ -523,6 +518,7 @@ init_thread (struct thread *t, const char *name, int priority)
   /*added code for initialization of donation list*/
   list_init(&t->donation_list);
 
+
   /*for priority entry*/
   (t->donation_entry).priority_donator = t;
   (t->donation_entry).donated_priority = priority;
@@ -653,6 +649,7 @@ int thread_get_other_priority(struct thread* t){
   struct list* donations = &t->donation_list;
   if (!list_empty(donations)){
     struct priority_entry* donation = list_entry(list_front(donations), struct priority_entry, priority_elem);
+    return list_size(donations);
     return donation->donated_priority;
   }
   return t->priority;
@@ -670,11 +667,12 @@ void thread_revert_priority(struct thread* t){
 }
 
 int thread_donate_priority(struct thread* t, struct thread* donator){
+  enum intr_level old_level = intr_disable ();
   struct list* donations = &t->donation_list;
 
   list_insert_ordered(donations, &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
-
   list_sort(&ready_list, compareLessFn, NULL);
+  intr_set_level (old_level);
   check_for_higher_thread();
 }
 
