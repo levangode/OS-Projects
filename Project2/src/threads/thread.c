@@ -655,7 +655,9 @@ int thread_get_other_priority(struct thread* t){
 }
 
 void thread_revert_priority(struct thread* t){
-  list_pop_front(&t->donation_list);
+  if (!list_empty(&t->donation_list)){
+    list_pop_front(&t->donation_list);
+  }
 }
 
 int thread_donate_priority(struct thread* t, int priority){
@@ -668,6 +670,6 @@ int thread_donate_priority(struct thread* t, int priority){
 }
 
 bool thread_on_donation(struct thread* t){
-  return list_empty(&t->donation_list);
+  return !list_empty(&t->donation_list);
 }
 
