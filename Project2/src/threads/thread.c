@@ -71,6 +71,15 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+bool compareLessFn_priority_entry (const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux){
+  struct donation_entry* first = list_entry(a, struct donation_entry, priority_elem);
+  struct donation_entry* second = list_entry(b, struct donation_entry, priority_elem);
+
+  return firts->donated_priority < second->donated_priority;
+
+}
 
 /* Compare function for threads. Compares by priorities */
 bool compareLessFn (const struct list_elem *a,
@@ -500,6 +509,9 @@ init_thread (struct thread *t, const char *name, int priority)
 
   /*added code for initialization of donation list*/
   list_init(&t->donation_list);
+  /*for priority entry*/
+  t->priority_entry->priority_donator = t;
+  t->priority_entry->donated_priority = priority;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -622,5 +634,22 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
 int thread_get_other_priority(struct thread* t){
+  struct list* donations = &t->donation_list;
+  if (list_empty(donations)){
+    struct donation_entry* donation = list_entry(list_front(donations), donation_entry, donated_priority,NULL);
+    return donation->donated_priority;
+  }
+    
   return t->priority;
 }
+
+void thread_revert_priority(struct thread* t){
+  list_pop_front(t->donation_list);
+}
+
+int thread_donate_piority(struct thread* t, int priority){
+  list* donations = &t->donation_list;
+
+  list_insert_ordered(donations, t->donation_entry->priority_elem, ,NULL);
+}
+
