@@ -658,10 +658,23 @@ void thread_revert_priority(struct thread* t, struct lock* lock){
   enum intr_level old_level = intr_disable ();
   intr_set_level (old_level);
   if (!list_empty(&t->donation_list)){
-    struct priority_entry* donation = list_entry(list_front(&t->donation_list), struct priority_entry, priority_elem);
+    struct list_elem* cur = list_begin(&t->donation_list);
+    while(cur != list_end(&t->donation_list)){
+      
+      struct priority_entry* donation = list_entry(cur, struct priority_entry, priority_elem);
+      if(donation->donated_for_lock == lock){
+        list_remove(cur);
+        //break;
+      }
+      cur=list_next(cur);
+    }
+
+
+
+    /*struct priority_entry* donation = list_entry(list_front(&t->donation_list), struct priority_entry, priority_elem);
     if(donation->donated_for_lock == lock){
       list_pop_front(&t->donation_list);
-    }
+    }*/
     //printf("%s\n", "dacarielda");
   }
   intr_set_level (old_level);
