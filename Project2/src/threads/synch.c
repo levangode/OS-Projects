@@ -48,7 +48,7 @@ bool compareLessFn_semphore_elem (const struct list_elem *a, const struct list_e
   struct semaphore_elem* second = list_entry(b, struct semaphore_elem, elem);
   struct thread* thread_with_highest_priority1 = list_entry(list_front(&first->semaphore.waiters), struct thread, elem); // thread on first sema
   struct thread* thread_with_highest_priority2 = list_entry(list_front(&second->semaphore.waiters), struct thread, elem); // thread on seoncd sema
-  if(thread_get_other_priority(thread_with_highest_priority1) < thread_get_other_priority(thread_with_highest_priority2)){
+  if(thread_get_other_priority(thread_with_highest_priority1) <= thread_get_other_priority(thread_with_highest_priority2)){
     return false;
   }
   return true;

@@ -92,7 +92,7 @@ bool compareLessFn (const struct list_elem *a,
   struct thread* first = list_entry (a, struct thread, elem);
   struct thread* second = list_entry (b, struct thread, elem);
 
-  if (thread_get_other_priority(first) < thread_get_other_priority(second) ){
+  if (thread_get_other_priority(first) <= thread_get_other_priority(second) ){
     return false;
   }
 
@@ -106,7 +106,7 @@ void check_for_higher_thread(void){
   enum intr_level old_level;
   old_level = intr_disable ();
 
-  if(thread_get_other_priority(thread_current()) < thread_get_other_priority(list_entry (list_front (&ready_list), struct thread, elem))){
+  if(thread_get_other_priority(thread_current()) <= thread_get_other_priority(list_entry (list_front (&ready_list), struct thread, elem))){
     thread_yield();
   }
   intr_set_level (old_level);
@@ -654,7 +654,6 @@ int thread_get_other_priority(struct thread* t){
 }
 
 void thread_revert_priority(struct thread* t, struct lock* lock){
-
   enum intr_level old_level = intr_disable ();
   intr_set_level (old_level);
   if (!list_empty(&t->donation_list)){
@@ -668,14 +667,6 @@ void thread_revert_priority(struct thread* t, struct lock* lock){
       }
       cur=list_next(cur);
     }
-
-
-
-    /*struct priority_entry* donation = list_entry(list_front(&t->donation_list), struct priority_entry, priority_elem);
-    if(donation->donated_for_lock == lock){
-      list_pop_front(&t->donation_list);
-    }*/
-    //printf("%s\n", "dacarielda");
   }
   intr_set_level (old_level);
   check_for_higher_thread();
