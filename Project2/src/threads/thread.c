@@ -80,7 +80,7 @@ bool compareLessFn_priority_entry (const struct list_elem *a,
   struct priority_entry* first = list_entry(a, struct priority_entry, priority_elem);
   struct priority_entry* second = list_entry(b, struct priority_entry, priority_elem);
 
-  return first->donated_priority > second->donated_priority;
+  return thread_get_other_priority(first->priority_donator) > thread_get_other_priority(second->priority_donator);
 
 }
 
@@ -648,7 +648,7 @@ int thread_get_other_priority(struct thread* t){
   if (!list_empty(donations)){
     struct priority_entry* donation = list_entry(list_front(donations), struct priority_entry, priority_elem);
     //return list_size(donations);
-    return donation->donated_priority;
+    return thread_get_other_priority(donation->priority_donator);
   }
   return t->priority;
 }
@@ -686,7 +686,7 @@ void thread_revert_priority(struct thread* t, struct lock* lock){
   priority than the firsst time. lower donation is removed from dontion list.
 */
 void thread_fix_redonation(struct thread* t, struct thread* donator, struct lock* lock){
-  
+ /* 
   int cur_donation_priority = thread_get_other_priority(donator);
 
   if (!list_empty(&t->donation_list)){
@@ -706,7 +706,7 @@ void thread_fix_redonation(struct thread* t, struct thread* donator, struct lock
       cur=list_next(cur);
     }
   }
-
+*/
 }
 
 void thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock){
