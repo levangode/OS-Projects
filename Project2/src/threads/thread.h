@@ -83,6 +83,7 @@ typedef int tid_t;
 struct priority_entry{
   struct thread* priority_donator;
   int donated_priority;
+  struct lock* donated_for_lock;
 
   struct list_elem priority_elem; 
 };
@@ -156,10 +157,13 @@ int thread_get_load_avg (void);
 /*added helper functions*/
 
 int thread_get_other_priority(struct thread* t);
-void thread_donate_priority(struct thread* t, struct thread* donator);
-void thread_revert_priority(struct thread* t);
+void thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock);
+void thread_revert_priority(struct thread* t, struct lock* lock);
 bool thread_on_donation(struct thread* t);
 bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compareLessFn_priority_entry (const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux);
 void check_for_higher_thread(void);
 
 //todo

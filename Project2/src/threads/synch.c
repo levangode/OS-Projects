@@ -191,12 +191,12 @@ donate_helper(struct lock* lock, struct thread* curThread){
   }
   if(lock->holder != curThread){
     if(lock->holder != NULL && thread_get_other_priority(lock->holder) < thread_get_other_priority(curThread)){
-      thread_donate_priority(lock->holder, curThread);
-      /*if(lock->holder->blockedOn != NULL){
-        struct lock* nextLock = lock->holder->blockedOn;
+      thread_donate_priority(lock->holder, curThread, lock);
+      if(lock->holder->blockedOn != NULL){
+        /*struct lock* nextLock = lock->holder->blockedOn;
         struct thread* nextThread = lock->holder;
-        donate_helper(nextLock, nextThread);
-      }*/
+        donate_helper(nextLock, nextThread);*/
+      }
     }
   }
 }
@@ -262,7 +262,7 @@ lock_release (struct lock *lock)
   lock->holder = NULL;
   sema_up (&lock->semaphore);
   if(!thread_mlfqs){
-    thread_revert_priority(thread_current());
+    thread_revert_priority(thread_current(), lock);
   }
   
 }

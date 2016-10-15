@@ -24,6 +24,9 @@ struct lock
     struct semaphore semaphore; /* Binary semaphore controlling access. */
   };
 
+/* Added methods */
+void donate_helper(struct lock* lock, struct thread* curThread);
+
 void lock_init (struct lock *);
 void lock_acquire (struct lock *);
 bool lock_try_acquire (struct lock *);

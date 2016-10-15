@@ -71,6 +71,7 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+
 bool compareLessFn_priority_entry (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux){
@@ -522,6 +523,7 @@ init_thread (struct thread *t, const char *name, int priority)
   /*for priority entry*/
   (t->donation_entry).priority_donator = t;
   (t->donation_entry).donated_priority = priority;
+  (t->donation_entry).donated_for_lock = NULL;
 
   t->blockedOn = NULL; //////////////////
 
@@ -651,23 +653,28 @@ int thread_get_other_priority(struct thread* t){
   return t->priority;
 }
 
-void thread_revert_priority(struct thread* t){
+void thread_revert_priority(struct thread* t, struct lock* lock){
 
   enum intr_level old_level = intr_disable ();
   intr_set_level (old_level);
   if (!list_empty(&t->donation_list)){
-    list_pop_front(&t->donation_list);
+    struct priority_entry* donation = list_entry(list_front(&t->donation_list), struct priority_entry, priority_elem);
+    if(donation->donated_for_lock == lock){
+      list_pop_front(&t->donation_list);
+    }
     //printf("%s\n", "dacarielda");
   }
   intr_set_level (old_level);
   check_for_higher_thread();
 }
 
-void thread_donate_priority(struct thread* t, struct thread* donator){
+void thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock){
   enum intr_level old_level = intr_disable ();
   struct list* donations = &t->donation_list;
 
-  list_insert_ordered(donations, &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
+  
+  donator->donation_entry.donated_for_lock = lock;
+  list_insert_ordered(donations,  &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
   //printf("donaciis shemdeg amdenia %d\n", list_size(donations));
   list_sort(&ready_list, compareLessFn, NULL);
   intr_set_level (old_level);
