@@ -166,8 +166,6 @@ bool compareLessFn_priority_entry (const struct list_elem *a,
                              void *aux);
 void check_for_higher_thread(void);
 
-//todo
-// set_priority chains locked threads
-// 
+
 
 #endif /* threads/thread.h */
