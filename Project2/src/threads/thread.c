@@ -713,7 +713,7 @@ void thread_donate_priority(struct thread* t, struct thread* donator, struct loc
   enum intr_level old_level = intr_disable ();
   struct list* donations = &t->donation_list;
 
- // thread_fix_redonation(t, donator, lock);
+  thread_fix_redonation(t, donator, lock);
   
   donator->donation_entry.donated_for_lock = lock;
   list_insert_ordered(donations,  &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
