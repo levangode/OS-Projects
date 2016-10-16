@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fixed_point_arithmetic.c"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -70,7 +71,10 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-
+int load_avg;
+void calculate_priority(struct thread *thrd);
+void calculate_recent_cpu(struct thread *thrd);
+void calculate_load_avg(void);
 
 bool compareLessFn_priority_entry (const struct list_elem *a,
                              const struct list_elem *b,
@@ -139,6 +143,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  load_avg = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -156,6 +161,7 @@ thread_start (void)
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
+
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -415,16 +421,19 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  int multiplied = multiply_fixedpoint_integer(load_avg,100);
+  int nearest = fixedpoint_to_integer_nearest(multiplied);
+  return nearest;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  struct thread* current = thread_current();
+  int multiplied = multiply_fixedpoint_integer(current->recent_cpu,100);
+  int nearest = fixedpoint_to_integer_nearest(multiplied);
+  return nearest;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -514,7 +523,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-
+  //added by me for scheduler
+  t->nice = 0;
+  t->recent_cpu = 0;
   
   /*added code for initialization of donation list*/
   list_init(&t->donation_list);
@@ -722,5 +733,20 @@ bool thread_on_donation(struct thread* t){
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
+//calculate priority by the given formula
+void calculate_priority(struct thread *thrd){
 
+  printf("%s\n","priority"); 
+  if(thrd != idle_thread){
+    thrd->priority = fixedpoint_to_integer_towardzero(integer_to_fixedpoint(PRI_MAX) - divide_fixedpoint_integer(thrd->recent_cpu,4) - thrd->nice * 2);
+    thrd->priority = thrd->priority < PRI_MIN ? PRI_MIN : thrd->priority > PRI_MAX ? PRI_MAX : thrd->priority;
+  }
+}
 
+void calculate_recent_cpu(struct thread *thrd){
+  printf("%s\n","recent_cpu"); 
+  if(thrd != idle_thread){
+    int multiplied = multiply_fixedpoint_integer(load_avg,2);
+    thrd->recent_cpu = add_fixedpoint_integer(multiply_fixedpoints(thrd->recent_cpu,divide_fixedpoints(multiplied,add_fixedpoint_integer(multiplied,1))),thrd->nice);
+  }
+}
