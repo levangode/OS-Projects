@@ -427,7 +427,26 @@ thread_get_nice (void)
   return nice;
 }
 
+void refresh_thread(struct thread* curThread){
+	calculate_recent_cpu(curThread);
+	calculate_priority(curThread);
+}
 
+void refresh_all_mlfqs(void){
+	struct list_elem * element = list_begin(&all_list);
+	while(true){
+		if(element == list_end(&all_list)){
+			break;
+		}
+		refresh_thread(list_entry(element,struct thread,allelem));
+		element = list_next(element);
+	}
+}
+
+void refresh_everything(void){
+	refresh_all_mlfqs();
+	calculate_load_avg();
+}
 
 
 void calculate_load_avg(void){
@@ -441,8 +460,8 @@ void calculate_load_avg(void){
 	int div = divide_fixedpoint_integer(first,60);
 	int mult = multiply_fixedpoints(div,load_avg);
 	int div2 = divide_fixedpoint_integer(ready_list_size,60);
-	load_avg = add_fixedpoints(mult,div);
-	ASSERT(!load_avg < 0);
+	load_avg = add_fixedpoints(mult,div2);
+	ASSERT(!(load_avg < 0));
 }
 
 void increment_mlfqs(void){
@@ -454,13 +473,14 @@ void increment_mlfqs(void){
 	}
 }
 
-
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
+	enum intr_level old_level = intr_disable ();
   int multiplied = multiply_fixedpoint_integer(load_avg,100);
   int nearest = fixedpoint_to_integer_nearest(multiplied);
+  intr_set_level (old_level);
   return nearest;
 }
 
@@ -468,9 +488,11 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void) 
 {
+	enum intr_level old_level = intr_disable ();
   struct thread* current = thread_current();
   int multiplied = multiply_fixedpoint_integer(current->recent_cpu,100);
   int nearest = fixedpoint_to_integer_nearest(multiplied);
+  intr_set_level (old_level);
   return nearest;
 }
 
@@ -776,7 +798,7 @@ void calculate_priority(struct thread *thrd){
 
   //printf("%s\n","priority"); 
   if(thrd != idle_thread){
-    thrd->priority = fixedpoint_to_integer_towardzero(integer_to_fixedpoint(PRI_MAX) - divide_fixedpoint_integer(thrd->recent_cpu,4) - thrd->nice * 2);
+   thrd->priority = fixedpoint_to_integer_towardzero(substract_fixedpoint_integer(substract_fixedpoints(integer_to_fixedpoint(PRI_MAX),divide_fixedpoint_integer(thrd->recent_cpu,4)),thrd->nice * 2));
     thrd->priority = thrd->priority < PRI_MIN ? PRI_MIN : thrd->priority > PRI_MAX ? PRI_MAX : thrd->priority;
   }
 }

@@ -30,6 +30,7 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 static struct list sleeping_threads;
+#define REFRESH_TIME 4
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -199,7 +200,19 @@ void sleeping_list_check(void){
   sleeping_list_check();
 }
 
+bool time_for_refresh(void){
+  if(ticks % TIMER_FREQ == 0){
+    return true;
+  }
+  return false;
+}
 
+bool time_for_pri_refresh(void){
+  if(ticks % REFRESH_TIME == 0){
+    return true;
+  }
+  return false;
+}
 
 
 /* Timer interrupt handler. */
@@ -208,11 +221,16 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-  //if(!thread_mlfqs){ to be added after advanced scheduler is up
-    sleeping_list_check();  
-  //}else{
-  //  advanced_scheduler();
-  //}
+  if(thread_mlfqs){
+    increment_mlfqs();
+    if(time_for_refresh()){
+      refresh_everything();
+    }
+    if(time_for_pri_refresh()){
+      calculate_priority(thread_current());
+    }
+  }
+   sleeping_list_check();
 
 }
 
