@@ -411,8 +411,9 @@ void
 thread_set_nice (int nice UNUSED) 
 {
   enum intr_level old_level = intr_disable ();
-  thread_current()->nice = nice;
-  //priority call
+  struct thread * curThread = thread_current();
+  curThread->nice = nice;
+  calculate_priority(curThread);
   intr_set_level (old_level);
 }
 
@@ -426,10 +427,32 @@ thread_get_nice (void)
   return nice;
 }
 
-void priority_mlfqs(struct thread* curThread){
-	//to implement
+
+
+
+void calculate_load_avg(void){
+	int ready_list_size = 1;
+	if(thread_current() == idle_thread){
+		ready_list_size--;
+	}
+	ready_list_size += list_size(&ready_list);
+	int first = integer_to_fixedpoint(59);
+	ready_list_size = integer_to_fixedpoint(ready_list_size);
+	int div = divide_fixedpoint_integer(first,60);
+	int mult = multiply_fixedpoints(div,load_avg);
+	int div2 = divide_fixedpoint_integer(ready_list_size,60);
+	load_avg = add_fixedpoints(mult,div);
+	ASSERT(!load_avg < 0);
 }
 
+void increment_mlfqs(void){
+	struct thread* curThread = thread_current();
+	if(curThread != idle_thread){
+		int recent_cpu = curThread->recent_cpu;
+		int sum = add_fixedpoint_integer(recent_cpu,1);
+		curThread->recent_cpu = sum;
+	}
+}
 
 
 /* Returns 100 times the system load average. */
