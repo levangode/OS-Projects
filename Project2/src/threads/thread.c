@@ -395,6 +395,10 @@ thread_set_priority (int new_priority)
   }
 }
 
+
+
+
+
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
@@ -406,16 +410,27 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+  enum intr_level old_level = intr_disable ();
+  thread_current()->nice = nice;
+  //priority call
+  intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level old_level = intr_disable ();
+  int nice = thread_current()->nice;
+  intr_set_level (old_level);
+  return nice;
 }
+
+void priority_mlfqs(struct thread* curThread){
+	//to implement
+}
+
+
 
 /* Returns 100 times the system load average. */
 int
@@ -736,7 +751,7 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 //calculate priority by the given formula
 void calculate_priority(struct thread *thrd){
 
-  printf("%s\n","priority"); 
+  //printf("%s\n","priority"); 
   if(thrd != idle_thread){
     thrd->priority = fixedpoint_to_integer_towardzero(integer_to_fixedpoint(PRI_MAX) - divide_fixedpoint_integer(thrd->recent_cpu,4) - thrd->nice * 2);
     thrd->priority = thrd->priority < PRI_MIN ? PRI_MIN : thrd->priority > PRI_MAX ? PRI_MAX : thrd->priority;
@@ -744,7 +759,7 @@ void calculate_priority(struct thread *thrd){
 }
 
 void calculate_recent_cpu(struct thread *thrd){
-  printf("%s\n","recent_cpu"); 
+  //printf("%s\n","recent_cpu"); 
   if(thrd != idle_thread){
     int multiplied = multiply_fixedpoint_integer(load_avg,2);
     thrd->recent_cpu = add_fixedpoint_integer(multiply_fixedpoints(thrd->recent_cpu,divide_fixedpoints(multiplied,add_fixedpoint_integer(multiplied,1))),thrd->nice);
