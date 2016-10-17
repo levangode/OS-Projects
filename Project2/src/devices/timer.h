@@ -20,7 +20,7 @@ void timer_msleep (int64_t milliseconds);
 void timer_usleep (int64_t microseconds);
 void timer_nsleep (int64_t nanoseconds);
 bool sleep_time_cmp(const struct list_elem* a,const struct list_elem *b, void* data);
-void sleeping_list_check(void);
+int sleeping_list_check(int n);
 /* Busy waits. */
 void timer_mdelay (int64_t milliseconds);
 void timer_udelay (int64_t microseconds);

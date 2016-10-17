@@ -189,15 +189,15 @@ timer_print_stats (void)
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
 
-void sleeping_list_check(void){
+int sleeping_list_check(int n){
   struct list_elem * firstThread = list_begin(&sleeping_threads);
   if( firstThread == list_end(&sleeping_threads) || list_entry(firstThread, struct thread, elem)->wake_up_time > ticks){
-    return;
+    return n;
   }
   struct thread* curThread = list_entry(firstThread, struct thread, elem);
   list_remove(firstThread);
   thread_unblock(curThread);
-  sleeping_list_check();
+  sleeping_list_check(n+1);
 }
 
 bool time_for_refresh(void){
@@ -230,7 +230,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
       calculate_priority(thread_current());
     }
   }
-   sleeping_list_check();
+   if(sleeping_list_check(0)>0){
+    intr_yield_on_return();
+   }
 
 }
 

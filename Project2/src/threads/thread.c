@@ -444,8 +444,8 @@ void refresh_all_mlfqs(void){
 }
 
 void refresh_everything(void){
-	refresh_all_mlfqs();
 	calculate_load_avg();
+  refresh_all_mlfqs();
 }
 
 
