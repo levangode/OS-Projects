@@ -248,6 +248,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  //When a new thread is created, running thread should let it run if better priority
   check_for_higher_thread();
 
   return tid;
@@ -287,6 +288,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
+  
   list_insert_ordered (&ready_list, &t->elem, compareLessFn, NULL);
   
   t->status = THREAD_READY;
