@@ -745,39 +745,11 @@ void thread_revert_priority(struct thread* t, struct lock* lock){
   check_for_higher_thread();
 }
 
-/*
-  fixes problem occured when thread gets donated by 2 different threads on same lock but with higher
-  priority than the firsst time. lower donation is removed from dontion list.
-*/
-void thread_fix_redonation(struct thread* t, struct thread* donator, struct lock* lock){
- /* 
-  int cur_donation_priority = thread_get_other_priority(donator);
 
-  if (!list_empty(&t->donation_list)){
-    struct list_elem* cur = list_begin(&t->donation_list);
-    while(cur != list_end(&t->donation_list)){
-      
-      struct priority_entry* donation = list_entry(cur, struct priority_entry, priority_elem);
-      
-      if(
-        donation->donated_priority <= cur_donation_priority//needs checking whether <= is necessary depends on call placement
-        &&
-        donation->donated_for_lock == lock
-        ){
-        list_remove(cur);
-        //break;
-      }
-      cur=list_next(cur);
-    }
-  }
-*/
-}
 
 void thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock){
   enum intr_level old_level = intr_disable ();
   struct list* donations = &t->donation_list;
-
-  thread_fix_redonation(t, donator, lock);
   
   donator->donation_entry.donated_for_lock = lock;
   list_insert_ordered(donations,  &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);

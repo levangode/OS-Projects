@@ -88,6 +88,7 @@ timer_elapsed (int64_t then)
 
 /*comparing thread ticks*/
 bool sleep_time_cmp(const struct list_elem* a,const struct list_elem *b, void* data){
+  data=data;
   struct thread* first = list_entry(a,struct thread,elem);
   struct thread* second = list_entry(b,struct thread,elem);
   return second->wake_up_time > first->wake_up_time;
@@ -197,7 +198,7 @@ int sleeping_list_check(int n){
   struct thread* curThread = list_entry(firstThread, struct thread, elem);
   list_remove(firstThread);
   thread_unblock(curThread);
-  sleeping_list_check(n+1);
+  return sleeping_list_check(n+1);
 }
 
 bool time_for_refresh(void){

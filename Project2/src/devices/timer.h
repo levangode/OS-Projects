@@ -28,4 +28,9 @@ void timer_ndelay (int64_t nanoseconds);
 
 void timer_print_stats (void);
 
+
+/* Added functionc */
+bool time_for_refresh(void);
+bool time_for_pri_refresh(void);
+
 #endif /* devices/timer.h */

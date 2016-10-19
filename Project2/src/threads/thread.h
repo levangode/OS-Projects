@@ -170,5 +170,11 @@ bool compareLessFn_priority_entry (const struct list_elem *a,
 void check_for_higher_thread(void);
 
 
+void refresh_thread(struct thread* curThread);
+void refresh_all_mlfqs(void);
+void increment_mlfqs(void);
+void refresh_everything(void);
+void calculate_priority(struct thread *thrd);
+
 
 #endif /* threads/thread.h */
