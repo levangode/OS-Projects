@@ -429,12 +429,16 @@ thread_get_nice (void)
   return nice;
 }
 
-void refresh_thread(struct thread* curThread){
+void 
+refresh_thread(struct thread* curThread)
+{
 	calculate_recent_cpu(curThread);
 	calculate_priority(curThread);
 }
 
-void refresh_all_mlfqs(void){
+void 
+refresh_all_mlfqs(void)
+{
 	struct list_elem * element = list_begin(&all_list);
 	while(true){
 		if(element == list_end(&all_list)){
@@ -595,7 +599,6 @@ init_thread (struct thread *t, const char *name, int priority)
 
   /*for priority entry*/
   (t->donation_entry).priority_donator = t;
-  (t->donation_entry).donated_priority = priority;
   (t->donation_entry).donated_for_lock = NULL;
 
   t->blockedOn = NULL; //////////////////
@@ -710,23 +713,30 @@ allocate_tid (void)
 
   lock_acquire (&tid_lock);
   tid = next_tid++;
-  //printf("%s\n", "allocatetid");
   lock_release (&tid_lock);
 
   return tid;
 }
 
-int thread_get_other_priority(struct thread* t){
+/* Gets priority of thread which is passed to it. This function works
+ * recursively to get priority of the first ancestor donator */
+int
+thread_get_other_priority(struct thread* t)
+{
   struct list* donations = &t->donation_list;
   if (!list_empty(donations)){
     struct priority_entry* donation = list_entry(list_front(donations), struct priority_entry, priority_elem);
-    //return list_size(donations);
     return thread_get_other_priority(donation->priority_donator);
   }
   return t->priority;
 }
 
-void thread_revert_priority(struct thread* t, struct lock* lock){
+/* Reverts to the previous priority/donation. removes all other donations on the releasing lock
+ * After done, checks if there is higher thread to run.
+ */
+void 
+thread_revert_priority(struct thread* t, struct lock* lock)
+{
   enum intr_level old_level = intr_disable ();
   intr_set_level (old_level);
   if (!list_empty(&t->donation_list)){
@@ -736,7 +746,6 @@ void thread_revert_priority(struct thread* t, struct lock* lock){
       struct priority_entry* donation = list_entry(cur, struct priority_entry, priority_elem);
       if(donation->donated_for_lock == lock){
         list_remove(cur);
-        //break;
       }
       cur=list_next(cur);
     }
@@ -746,20 +755,23 @@ void thread_revert_priority(struct thread* t, struct lock* lock){
 }
 
 
-
-void thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock){
+/* Donates new priority to thread, should happen without interrupts */
+void 
+thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock)
+{
   enum intr_level old_level = intr_disable ();
   struct list* donations = &t->donation_list;
   
   donator->donation_entry.donated_for_lock = lock;
   list_insert_ordered(donations,  &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
-  //printf("donaciis shemdeg amdenia %d\n", list_size(donations));
   list_sort(&ready_list, compareLessFn, NULL);
   intr_set_level (old_level);
   check_for_higher_thread();
 }
-
-bool thread_on_donation(struct thread* t){
+/* Tells if a thread is currently on donation or not */
+bool 
+thread_on_donation(struct thread* t)
+{
   return !list_empty(&t->donation_list);
 }
 
@@ -768,7 +780,9 @@ bool thread_on_donation(struct thread* t){
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 //calculate priority by the given formula
-void calculate_priority(struct thread *thrd){
+void 
+calculate_priority(struct thread *thrd)
+{
 
   //printf("%s\n","priority"); 
   if(thrd != idle_thread){
@@ -777,7 +791,9 @@ void calculate_priority(struct thread *thrd){
   }
 }
 
-void calculate_recent_cpu(struct thread *thrd){
+void 
+calculate_recent_cpu(struct thread *thrd)
+{
   //printf("%s\n","recent_cpu"); 
   if(thrd != idle_thread){
     int multiplied = multiply_fixedpoint_integer(load_avg,2);
