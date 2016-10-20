@@ -124,5 +124,5 @@ the lock for M, then M runs, releases lock for H and finally H runs too.
 ======================
 = Advanced Scheduler =
 ======================
-Added recent_cpu to,nice to thread struct and load average to thread.c. I use given formulas to calculate load average and recent cpu. 
+Added recent_cpu to,nice to thread struct and load average to thread.c. I use given formulas to calculate load average and recent cpu. I refresh all these new values from timer.c/timer_interrupt. TIMER_FREQ is determined by a constant and this controls how frequently every value will be refreshed. Same thing with refresh_everything, REFRESH_TIME determines how frequently this function will be called.
 
