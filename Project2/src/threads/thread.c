@@ -76,6 +76,9 @@ void calculate_priority(struct thread *thrd);
 void calculate_recent_cpu(struct thread *thrd);
 void calculate_load_avg(void);
 
+/* compares priorities of donation list elements.
+   note: donation list is found in thread structure.
+*/
 bool compareLessFn_priority_entry (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux){
@@ -89,7 +92,7 @@ bool compareLessFn_priority_entry (const struct list_elem *a,
 }
 
 /* Compare function for threads. Compares by priorities */
-bool compareLessFn (const struct list_elem *a,
+bool compareLessFn_thread_priority (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux){
   aux = aux;
@@ -289,7 +292,7 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   
-  list_insert_ordered (&ready_list, &t->elem, compareLessFn, NULL);
+  list_insert_ordered (&ready_list, &t->elem, compareLessFn_thread_priority, NULL);
   
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -361,7 +364,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_insert_ordered (&ready_list, &cur->elem, compareLessFn, NULL);
+    list_insert_ordered (&ready_list, &cur->elem, compareLessFn_thread_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -396,10 +399,6 @@ thread_set_priority (int new_priority)
     intr_set_level (old_level);
   }
 }
-
-
-
-
 
 /* Returns the current thread's priority. */
 int
@@ -593,11 +592,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->nice = 0;
   t->recent_cpu = 0;
   
-  /*added code for initialization of donation list*/
+  /*init of donation list*/
   list_init(&t->donation_list);
 
 
-  /*for priority entry*/
+  /*init priority entry*/
   (t->donation_entry).priority_donator = t;
   (t->donation_entry).donated_for_lock = NULL;
 
@@ -719,7 +718,8 @@ allocate_tid (void)
 }
 
 /* Gets priority of thread which is passed to it. This function works
- * recursively to get priority of the first ancestor donator */
+ * recursively to get priority of the first ancestor donator
+ */
 int
 thread_get_other_priority(struct thread* t)
 {
@@ -732,7 +732,7 @@ thread_get_other_priority(struct thread* t)
 }
 
 /* Reverts to the previous priority/donation. removes all other donations on the releasing lock
- * After done, checks if there is higher thread to run.
+ * After done, checks if there is higher thread to run, if so context switches to that thread.
  */
 void 
 thread_revert_priority(struct thread* t, struct lock* lock)
@@ -754,7 +754,6 @@ thread_revert_priority(struct thread* t, struct lock* lock)
   check_for_higher_thread();
 }
 
-
 /* Donates new priority to thread, should happen without interrupts */
 void 
 thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock)
@@ -764,10 +763,11 @@ thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lo
   
   donator->donation_entry.donated_for_lock = lock;
   list_insert_ordered(donations,  &donator->donation_entry.priority_elem, compareLessFn_priority_entry, NULL);
-  list_sort(&ready_list, compareLessFn, NULL);
+  list_sort(&ready_list, compareLessFn_thread_priority, NULL);
   intr_set_level (old_level);
   check_for_higher_thread();
 }
+
 /* Tells if a thread is currently on donation or not */
 bool 
 thread_on_donation(struct thread* t)

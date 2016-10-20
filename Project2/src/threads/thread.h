@@ -166,7 +166,7 @@ int thread_get_other_priority(struct thread* t);
 void thread_donate_priority(struct thread* t, struct thread* donator, struct lock* lock);
 void thread_revert_priority(struct thread* t, struct lock* lock);
 bool thread_on_donation(struct thread* t);
-bool compareLessFn (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compareLessFn_thread_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 bool compareLessFn_priority_entry (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux);

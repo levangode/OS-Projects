@@ -138,7 +138,7 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)){ 
-    struct list_elem* maxPri = list_min(&sema->waiters, compareLessFn, NULL);
+    struct list_elem* maxPri = list_min(&sema->waiters, compareLessFn_thread_priority, NULL);
     list_remove(maxPri);
     thread_unblock (list_entry (maxPri, struct thread, elem));
   }
