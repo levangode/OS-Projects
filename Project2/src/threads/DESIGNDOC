@@ -62,6 +62,15 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+/* This struct is made for donations and donations only. */
+struct priority_entry
+{
+  struct thread* priority_donator;
+  struct lock* donated_for_lock;
+
+  struct list_elem priority_elem; 
+};
   
 We added some data structures and variables to thread struct in order to maintain synchronization and implement priority scheduling.
 
@@ -82,9 +91,8 @@ yield the processor to the new thread.
 so when a scheduler is called to launch a new waiting thread, the one with the highest priority will always run first.
 
 *** When threads are waiting for a lock, semaphore, or condition variable, the highest priority waiting thread should be awakened first.
-+++ What we did for semaphores and locks, we simply reconstructed their structures similiarly as the ready list (mentioned above).
-For condition variables, which maintain the list of semaphores, we go through all such lists, search for maximum prioritized thread, and awaken
-it on the condition signal.
++++ What we did for semaphores and locks, we simply pop the thread with the highest priority waiting.
+For condition variables, which maintain the list of semaphores, we go through all such lists, search for maximum prioritized thread, and awaken it on the condition signal.
 
 *** Priority donation
 +++ We implemented priority donation for locks. 
@@ -103,7 +111,15 @@ If a thread had multiple donations on one lock, when it finally executes and has
 +++ As I already said, we didn't have to write the recursive algorithm to make nested donations. They are updated automatically because of
 pointers to donator threads.
 
-
+### Small Donation Scheme ###
+H, M, S
+high, medium and small priority threads.
+let S be running
+M is launched and wants a lock from S.
+M donates its priority to S, making it able to run.
+meanwhile there comes H thread which wants the lock from M.
+H donates it's priority to M, M can run but it still needs lock from S. So S inherits priority from H too. S runs, releases
+the lock for M, then M runs, releases lock for H and finally H runs too.
 
 ======================
 = Advanced Scheduler =
