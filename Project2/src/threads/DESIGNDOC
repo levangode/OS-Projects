@@ -14,13 +14,14 @@ Team A =
 <amagh13@freeuni.edu.ge>
 <mmetr14@freeuni.edu.ge>
 
+
 ===============
 = Alarm Clock =
 ===============
 Added sleeping_threads in timer.c to save threads that I put to sleep. Also added wake_up_time in thread struct. 
 I calculate wake_up_time by adding current ticks os system to the ticks inputted by the user. After I put this thread in the sleep list(ordered) and block it.
 To wake up the thread I get the first one in the list and check if it is time to wake up. If it is then I unblock the thread and remove it from the list.
-
+Using interrupts in timer_sleep.
 
 
 =======================
@@ -107,3 +108,5 @@ pointers to donator threads.
 ======================
 = Advanced Scheduler =
 ======================
+Added recent_cpu to,nice to thread struct and load average to thread.c. I use given formulas to calculate load average and recent cpu. 
+
