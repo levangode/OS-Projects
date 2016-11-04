@@ -21,6 +21,8 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static int initial_alloc_size = 4;
+static int max_alloc_size = 100;
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -208,7 +210,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, const char* file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -315,7 +317,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, file_name))
     goto done;
 
   /* Start address. */
@@ -437,10 +439,18 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
+void push_to_stack(char** argv, int argc, void** esp){
+  char* next;
+  for(int i=argc, i>=0; i--){
+    next = argv[i];
+  }
+  //whole bunch of things to do
+  free(argv);
+}
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, const char* file_name) 
 {
   uint8_t *kpage;
   bool success = false;
@@ -455,6 +465,25 @@ setup_stack (void **esp)
         palloc_free_page (kpage);
     }
   return success;
+
+  //set up stack with arguments
+  int argc = 0;
+  char** argv = malloc(initial_alloc_size*sizeof(char*));
+  int cur_size = initial_alloc_size;
+
+  char* string_to_parse = file_name;
+  char* token, *save_ptr;
+  token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.
+  token = strtok_r(NULL, " ", &save_ptr); //procceeds to next argument
+  while(token != NULL){
+    if(argc > cur_size){  //max size?
+      cur_size = cur_size*2;
+      realloc(argv, cur_size*sizeof(char*));
+    }
+    argv[argc] = token;
+    argc++;
+    token = strtok_r(NULL, " ", &save_ptr);
+  }
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
