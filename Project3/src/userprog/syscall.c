@@ -26,7 +26,7 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
 	if(!isValid(f)){
-		exit(ERROR);
+		exit(-1);
 	}   
 	int syscall_num = *(int*)f->esp;
 	switch(syscall_num){
@@ -49,8 +49,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_READ:
 			break;
 		case SYS_WRITE:
-			int fd = *((int*)f->esp+1);
-			void* buffer = *(void*)(int*)f->esp+2;
+			//int fd = *((int*)f->esp+1);
+			//void* buffer = *(void*)(int*)f->esp+2;
 			break;
 		case SYS_SEEK:
 			break;

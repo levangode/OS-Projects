@@ -442,6 +442,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
+/*
 void push_to_stack(char** argv, int argc, void** esp){
   char* next;
   int i;
@@ -468,7 +469,7 @@ void push_to_stack(char** argv, int argc, void** esp){
   *esp -= sizeof(int); //argc
   memcpy(*esp, &argc, sizeof(int));
   free(argv);
-}
+}*/
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
@@ -489,7 +490,7 @@ setup_stack (void **esp, const char* file_name)
   return success;
 
   //set up stack with arguments
-  int argc = 0;
+  /*int argc = 0;
   char** argv = malloc(initial_alloc_size*sizeof(char*));
   int cur_size = initial_alloc_size;
 
@@ -505,7 +506,7 @@ setup_stack (void **esp, const char* file_name)
     argv[argc] = token;
     argc++;
     token = strtok_r(NULL, " ", &save_ptr);
-  }
+  }*/
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
