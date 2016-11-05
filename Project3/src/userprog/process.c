@@ -444,10 +444,27 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 void push_to_stack(char** argv, int argc, void** esp){
   char* next;
-  for(int i=argc, i>=0; i--){
+  int i;
+  for(i=0; i<argc; i++){
     next = argv[i];
+    *esp-=strlen(next)+1;
+    memcpy(*esp, next, strlen(next)+1);
+    argv[i] = *esp;
   }
-  //whole bunch of things to do
+  //word align
+  char* sentinel = 0;
+  memcpy(*esp, &sentinel, sizeof(char*));
+  for(i=argc-1; i>=0; i--){
+    next = argv[i]; //points to start of the actual word
+    *esp -= sizeof(char*);
+    memcpy(*esp, &next, sizeof(char*));
+  } //argument pushing done
+
+  *esp -= sizeof(char**); //argv
+  memcpy(*esp, *esp+sizeof(char**), sizeof(char**));
+
+  *esp -= sizeof(int); //argc
+  memcpy(*esp, &argc, sizeof(int));
   free(argv);
 }
 /* Create a minimal stack by mapping a zeroed page at the top of
