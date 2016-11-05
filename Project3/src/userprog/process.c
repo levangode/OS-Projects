@@ -452,6 +452,8 @@ void push_to_stack(char** argv, int argc, void** esp){
     argv[i] = *esp;
   }
   //word align
+  //int remainder = *esp % 4;
+  
   char* sentinel = 0;
   memcpy(*esp, &sentinel, sizeof(char*));
   for(i=argc-1; i>=0; i--){
