@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -110,10 +111,10 @@ struct thread
 
   };
 
-struct child_inf{
-  struct list_elem list;
+struct child_info{
+  struct list_elem elem_list_stat;
   bool is_exit;
-  int child_status;
+  int exit_status;
   tid_t child_id;
   bool waited;
 };
@@ -150,7 +151,7 @@ void thread_foreach (thread_action_func *, void *);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
-
+struct thread* thread_get(tid_t);
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);

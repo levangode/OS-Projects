@@ -268,6 +268,7 @@ thread_current (void)
   return t;
 }
 
+
 /* Returns the running thread's tid. */
 tid_t
 thread_tid (void) 
@@ -337,6 +338,21 @@ thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
 }
+
+struct thread* thread_get(tid_t thread_id){
+  ASSERT(thread_id != TID_ERROR);
+  struct list_elem* elem = list_head(&all_list);
+  for(;elem != list_tail(&all_list);elem = list_next(elem)){
+    struct thread* curThread = list_entry(elem,struct thread,allelem);
+    if(curThread->tid == thread_id){
+      if(curThread->status==THREAD_DYING)
+        return NULL;
+      return curThread;
+    }
+  }
+  return NULL;
+}
+
 
 /* Returns the current thread's priority. */
 int

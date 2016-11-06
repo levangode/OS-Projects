@@ -50,8 +50,27 @@ syscall_init (void)
 }
 
 
+void change_child_from_parent(int status_code, struct thread* cur_thread,struct thread* parent_thread){
+	struct list_elem* elem = list_head(&parent_thread->child_list);
+	for(; elem != list_tail(&parent_thread->child_list); elem = list_next(elem)){
+		struct child_info* child = list_entry(elem,struct child_info,elem_list_stat);
+		if(child->child_id == cur_thread->tid){
+			lock_acquire(&parent_thread->child_lock);
+			child->exit_status = status_code;
+			child->is_exit = true;
+			lock_release(&parent_thread->child_lock);
+			return;
+		}
+	}
+}
+
+
 void exit(int status_code){
-	//todo return code to parent
+	struct thread *cur_thread = thread_current();
+	struct thread *parent_thread = thread_get(cur_thread->parent_id);		
+	if(parent_thread!=NULL){
+		change_child_from_parent(status_code,cur_thread,parent_thread);	
+	}
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	thread_exit();
 }
