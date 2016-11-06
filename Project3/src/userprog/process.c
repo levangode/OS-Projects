@@ -41,7 +41,8 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  char* string_to_parse = file_name;
+  char string_to_parse[150];
+  strlcpy(string_to_parse, file_name, 150);
   char* token, *save_ptr;
 
   token = strtok_r(string_to_parse, " ", &save_ptr);
@@ -99,7 +100,7 @@ process_wait (tid_t child_tid UNUSED)
 {
   int i;
   int j;
-  for(i=0; i<100000000; i++){
+  for(i=0; i<1000000000; i++){
     
   }
   return -1;
@@ -111,7 +112,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
+  
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -235,8 +236,14 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  char string_to_parse[150];
+  strlcpy(string_to_parse, file_name, 150);
+  char* token, *save_ptr;
+
+  token = strtok_r(string_to_parse, " ", &save_ptr);
+
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (token);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -494,9 +501,8 @@ setup_stack (void **esp, const char* file_name)
         int argc_p = 0;
         char** argv_p = malloc(20*sizeof(char*));//to be made constant size
 
-        char* string_to_parse = malloc(strlen(file_name)+1);
-        memcpy(string_to_parse, file_name, strlen(file_name)+1);
-
+        char string_to_parse[150];
+        strlcpy(string_to_parse, file_name, 150);
         char* token, *save_ptr;
         
         token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.

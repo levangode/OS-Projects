@@ -19,18 +19,16 @@ struct list files_opened;
 
 
 void is_valid(void* addr);
-static void exit(int status_code);
-static int write(int fd, const void *buffer, unsigned size);	
+void exit(int status_code);
+int write(int fd, const void *buffer, unsigned size);	
 void is_valid_buff(void* buff, int size);
 
 
-static int write(int fd, const void *buffer, unsigned size){
-	lock_acquire (&system_global_lock); 
-	if (fd == STDOUT_FILENO){
-    putbuf((char*)buffer, (size_t)size);
-  }
-  lock_release (&system_global_lock);
-  return size;
+int write(int fd, const void *buffer, unsigned size){
+	if (fd == STDOUT_FILENO) {
+      putbuf(buffer, size);
+      return size;
+    }
 }
 
 void is_valid(void* addr){
@@ -53,7 +51,7 @@ syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   lock_init(&system_global_lock);
-  list_init(&files_opened);
+  //list_init(&files_opened);
 }
 	//todo return code to parent
 void change_child_from_parent(int status_code, struct thread* cur_thread,struct thread* parent_thread){
@@ -71,12 +69,12 @@ void change_child_from_parent(int status_code, struct thread* cur_thread,struct 
 }
 
 
-void exit(int status_code){
-	struct thread *cur_thread = thread_current();
-	struct thread *parent_thread = thread_get(cur_thread->parent_id);		
-	if(parent_thread!=NULL){
-		change_child_from_parent(status_code,cur_thread,parent_thread);	
-	}
+exit(int status_code){
+	//struct thread *cur_thread = thread_current();
+	//struct thread *parent_thread = thread_get(cur_thread->parent_id);		
+	//if(parent_thread!=NULL){
+	//	change_child_from_parent(status_code,cur_thread,parent_thread);	
+	//}
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	thread_exit();
 }
@@ -90,7 +88,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 	int syscall_num = *(int*)f->esp;
 	switch(syscall_num){
 		case SYS_HALT:
-			halt();
+			//halt();
 			break;
 		case SYS_EXIT:
 			;
@@ -105,10 +103,10 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CREATE:
 			break;
 		case SYS_REMOVE:
-			f->eax = remove((char*) *((int*)f->esp+1));
+			//f->eax = remove((char*) *((int*)f->esp+1));
 			break;
 		case SYS_OPEN:
-			f->eax = open( (char*)*((int*)f->esp+1));
+			//f->eax = open( (char*)*((int*)f->esp+1));
 			break;
 		case SYS_FILESIZE:
 			break;
@@ -122,8 +120,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 			next = next+1;
 			next = next+1;
 			is_valid(next);
-			int size = *(int*)(f->esp+3);
-
+			int size = *(int*)((int*)f->esp+3);
 			void* buf = *(char**)((int*)f->esp+2);
 			is_valid_buff(buf, size);
 			f->eax = write(fd, buf, size);
@@ -135,8 +132,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CLOSE:
 			break;
 	}
-  printf ("system call!\n");
-  thread_exit ();
+  //printf ("system call!\n");
+  //thread_exit ();
 }
 
 static void halt(void){
