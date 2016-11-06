@@ -96,12 +96,29 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    int child_load;
+    tid_t parent_id;
+    struct list child_list;
+    struct file *exe_file;
+    struct condition child_cond;
+    struct lock child_lock;
+
 #endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
   };
+
+struct child_inf{
+  struct list_elem list;
+  bool is_exit;
+  int child_status;
+  tid_t child_id;
+  bool waited;
+};
+
+
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
