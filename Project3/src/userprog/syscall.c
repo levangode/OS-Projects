@@ -1,6 +1,7 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include "syscall.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
@@ -11,8 +12,10 @@
 static void syscall_handler (struct intr_frame *);
 static void halt(void);
 static bool remove(const char*);
+static int open(const char*);
+static int file_descriptor_number = 1;
 struct lock system_global_lock;
-
+struct list files_opened;
 
 
 void is_valid(void* addr);
@@ -50,6 +53,7 @@ syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   lock_init(&system_global_lock);
+  list_init(&files_opened);
 }
 	//todo return code to parent
 void change_child_from_parent(int status_code, struct thread* cur_thread,struct thread* parent_thread){
@@ -101,9 +105,10 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CREATE:
 			break;
 		case SYS_REMOVE:
-			f->eax = remove((char*) ((int*)f->esp+1));
+			f->eax = remove((char*) *((int*)f->esp+1));
 			break;
 		case SYS_OPEN:
+			f->eax = open( (char*)*((int*)f->esp+1));
 			break;
 		case SYS_FILESIZE:
 			break;
@@ -146,4 +151,25 @@ static bool remove(const char* name){
 	lock_release(&system_global_lock);
 	return res;	
 }
+
+static int open(const char* name){
+	is_valid(name);
+	lock_acquire(&system_global_lock);
+	struct file * my_file = filesys_open(name); 
+	if(my_file != NULL){
+		struct fd * file_descriptor = calloc(1,sizeof(*file_descriptor));
+		file_descriptor->id = file_descriptor_number;
+		file_descriptor_number++;
+		file_descriptor->master = thread_current()->tid;
+		file_descriptor->f = my_file;
+		list_push_back(&files_opened,&file_descriptor->elem);
+		lock_release(&system_global_lock);
+		return file_descriptor->id;
+	}
+	lock_release(&system_global_lock);
+	return -1;
+}
+
+
+
 
