@@ -15,16 +15,18 @@ struct lock system_global_lock;
 
 
 void is_valid(void* addr);
-void exit(int status_code);
-int write(int fd, const void *buffer, unsigned size);	
+static void exit(int status_code);
+static int write(int fd, const void *buffer, unsigned size);	
 void is_valid_buff(void* buff, int size);
 
-int write(int fd, const void *buffer, unsigned size){
+
+static int write(int fd, const void *buffer, unsigned size){
+	lock_acquire (&system_global_lock); 
 	if (fd == STDOUT_FILENO){
     putbuf(buffer, size);
-    return size;
   }
-  return 0;
+  lock_release (&system_global_lock);
+  return size;
 }
 
 void is_valid(void* addr){
@@ -50,7 +52,7 @@ syscall_init (void)
 }
 
 
-void exit(int status_code){
+static void exit(int status_code){
 	//todo return code to parent
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	thread_exit();
@@ -58,10 +60,22 @@ void exit(int status_code){
 
 
 
+int user_to_kernel_ptr(const void *vaddr)
+{
+  // TO DO: Need to check if all bytes within range are correct
+  // for strings + buffers
+  void *ptr = pagedir_get_page(thread_current()->pagedir, vaddr);
+  if (!ptr)
+    {
+      exit(-1);
+    }
+  return (int) ptr;
+}
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
+
 	is_valid(f->esp);
 	int syscall_num = *(int*)f->esp;
 	switch(syscall_num){
@@ -70,6 +84,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_EXIT:
 			;
 			void* next = (int*)f->esp+1;
+
 			is_valid(next);
 			int arg = *(int*)next;
 			exit(arg);
@@ -91,13 +106,14 @@ syscall_handler (struct intr_frame *f UNUSED)
 			next = (int*)f->esp+1;
 			is_valid(next);
 			int fd = *(int*)next;
-			next = (int*)next+1;
-			next = (void*)next+1;
+			next = next+1;
+			next = next+1;
 			is_valid(next);
-			int size = *(int*)next;
-			next = (int*)next-1;
-			is_valid_buff(next, size);
-			f->eax = write(fd, next, size);
+			int size = *(int*)(f->esp+3);
+
+			char* buf = *(char**)((int*)f->esp+2);
+			is_valid_buff(buf, size);
+			f->eax = write(fd, buf, size);
 			break;
 		case SYS_SEEK:
 			break;
