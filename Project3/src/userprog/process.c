@@ -490,8 +490,28 @@ setup_stack (void **esp, const char* file_name)
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE - 12;
+      if (success){
+        *esp = PHYS_BASE;
+        //set up stack with arguments
+        int argc = 0;
+        char** argv = malloc(initial_alloc_size*sizeof(char*));
+        int cur_size = initial_alloc_size;
+
+        char* string_to_parse = file_name;
+        char* token, *save_ptr;
+        token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.
+        token = strtok_r(NULL, " ", &save_ptr); //procceeds to next argument
+        while(token != NULL){
+          if(argc > cur_size){  //max size?
+            cur_size = cur_size*2;
+            realloc(argv, cur_size*sizeof(char*));
+          }
+          argv[argc] = token;
+          argc++;
+          token = strtok_r(NULL, " ", &save_ptr);
+        }
+        push_to_stack(argv, argc, esp);
+      }
       else
         palloc_free_page (kpage);
     }
