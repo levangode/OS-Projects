@@ -10,7 +10,7 @@
 
 static void syscall_handler (struct intr_frame *);
 static void halt(void);
-
+static bool remove(const char*);
 struct lock system_global_lock;
 
 
@@ -100,6 +100,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CREATE:
 			break;
 		case SYS_REMOVE:
+			f->eax = remove((char*) ((int*)f->esp+1));
 			break;
 		case SYS_OPEN:
 			break;
@@ -132,6 +133,16 @@ syscall_handler (struct intr_frame *f UNUSED)
 }
 
 
-void halt(void){
+static void halt(void){
 	shutdown_power_off();
 }
+
+static bool remove(const char* name){
+	is_valid(name);
+	bool res;
+	lock_acquire(&system_global_lock);
+	res = filesys_remove(name);
+	lock_release(&system_global_lock);
+	return res;	
+}
+
