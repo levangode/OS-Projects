@@ -63,12 +63,6 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
-  char* string_to_parse = file_name;
-  char* token, *save_ptr;
-
-  token = strtok_r(string_to_parse, " ", &save_ptr);
-  file_name = token;
-
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
