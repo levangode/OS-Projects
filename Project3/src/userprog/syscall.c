@@ -9,7 +9,8 @@
 
 
 static void syscall_handler (struct intr_frame *);
-
+static void halt(void);
+static bool remove(const char*);
 struct lock system_global_lock;
 
 
@@ -51,9 +52,29 @@ syscall_init (void)
   lock_init(&system_global_lock);
 }
 
-
 static void exit(int status_code){
 	//todo return code to parent
+void change_child_from_parent(int status_code, struct thread* cur_thread,struct thread* parent_thread){
+	struct list_elem* elem = list_head(&parent_thread->child_list);
+	for(; elem != list_tail(&parent_thread->child_list); elem = list_next(elem)){
+		struct child_info* child = list_entry(elem,struct child_info,elem_list_stat);
+		if(child->child_id == cur_thread->tid){
+			lock_acquire(&parent_thread->child_lock);
+			child->exit_status = status_code;
+			child->is_exit = true;
+			lock_release(&parent_thread->child_lock);
+			return;
+		}
+	}
+}
+
+
+void exit(int status_code){
+	struct thread *cur_thread = thread_current();
+	struct thread *parent_thread = thread_get(cur_thread->parent_id);		
+	if(parent_thread!=NULL){
+		change_child_from_parent(status_code,cur_thread,parent_thread);	
+	}
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	thread_exit();
 }
@@ -80,6 +101,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 	int syscall_num = *(int*)f->esp;
 	switch(syscall_num){
 		case SYS_HALT:
+			halt();
 			break;
 		case SYS_EXIT:
 			;
@@ -94,6 +116,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CREATE:
 			break;
 		case SYS_REMOVE:
+			f->eax = remove((char*) ((int*)f->esp+1));
 			break;
 		case SYS_OPEN:
 			break;
@@ -125,3 +148,18 @@ syscall_handler (struct intr_frame *f UNUSED)
   printf ("system call!\n");
   thread_exit ();
 }
+
+
+static void halt(void){
+	shutdown_power_off();
+}
+
+static bool remove(const char* name){
+	is_valid(name);
+	bool res;
+	lock_acquire(&system_global_lock);
+	res = filesys_remove(name);
+	lock_release(&system_global_lock);
+	return res;	
+}
+
