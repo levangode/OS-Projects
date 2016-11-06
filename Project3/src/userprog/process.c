@@ -105,7 +105,7 @@ process_wait (tid_t child_tid UNUSED)
 {
   int i;
   int j;
-  for(i=0; i<1000000000; i++){
+  for(i=0; i<100000000; i++){
     
   }
   return -1;
@@ -452,6 +452,7 @@ void push_to_stack(char** argv, int argc, void** esp){
     next = argv[i];
     *esp-=strlen(next)+1;
     memcpy(*esp, next, strlen(next)+1);
+
     argv[i] = *esp;
   }
   //word align
@@ -459,16 +460,18 @@ void push_to_stack(char** argv, int argc, void** esp){
   *esp =  (char*)*esp+remainder; 
   
   *esp-=sizeof(char*);
-  char* sentinel = 0;
-  memcpy(*esp, &sentinel, sizeof(char*));
+  *(int *)(*esp) = 0; //sentinel
   for(i=argc-1; i>=0; i--){
     next = argv[i]; //points to start of the actual word
+
     *esp -= sizeof(char*);
+    
     memcpy(*esp, &next, sizeof(char*));
   } //argument pushing done
 
+  void* ptr_argv =  *esp;
   *esp -= sizeof(char**); //argv
-  memcpy(*esp, *esp+sizeof(char**), sizeof(char**));
+  memcpy(*esp, &ptr_argv, sizeof(char**));
 
   *esp -= sizeof(int); //argc
   memcpy(*esp, &argc, sizeof(int));
@@ -476,6 +479,7 @@ void push_to_stack(char** argv, int argc, void** esp){
   void* fake = NULL;
   *esp -= sizeof(void*);
   memcpy(*esp, &fake, sizeof(void*));
+        
   free(argv);
 }
 /* Create a minimal stack by mapping a zeroed page at the top of
@@ -493,24 +497,22 @@ setup_stack (void **esp, const char* file_name)
       if (success){
         *esp = PHYS_BASE;
         //set up stack with arguments
-        int argc = 0;
-        char** argv = malloc(initial_alloc_size*sizeof(char*));
-        int cur_size = initial_alloc_size;
+        int argc_p = 0;
+        char** argv_p = malloc(20*sizeof(char*));//to be made constant size
 
-        char* string_to_parse = file_name;
+        char* string_to_parse = malloc(strlen(file_name)+1);
+        memcpy(string_to_parse, file_name, strlen(file_name)+1);
+
         char* token, *save_ptr;
+        
         token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.
-        token = strtok_r(NULL, " ", &save_ptr); //procceeds to next argument
+        //token = strtok_r(NULL, " ", &save_ptr); //procceeds to next argument
         while(token != NULL){
-          if(argc > cur_size){  //max size?
-            cur_size = cur_size*2;
-            realloc(argv, cur_size*sizeof(char*));
-          }
-          argv[argc] = token;
-          argc++;
+          argv_p[argc_p] = token;
+          argc_p++;
           token = strtok_r(NULL, " ", &save_ptr);
         }
-        push_to_stack(argv, argc, esp);
+        push_to_stack(argv_p, argc_p, esp);
       }
       else
         palloc_free_page (kpage);
