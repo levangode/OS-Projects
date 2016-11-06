@@ -27,7 +27,7 @@ void is_valid_buff(void* buff, int size);
 static int write(int fd, const void *buffer, unsigned size){
 	lock_acquire (&system_global_lock); 
 	if (fd == STDOUT_FILENO){
-    putbuf(buffer, size);
+    putbuf((char*)buffer, (size_t)size);
   }
   lock_release (&system_global_lock);
   return size;
@@ -124,7 +124,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 			is_valid(next);
 			int size = *(int*)(f->esp+3);
 
-			char* buf = *(char**)((int*)f->esp+2);
+			void* buf = *(char**)((int*)f->esp+2);
 			is_valid_buff(buf, size);
 			f->eax = write(fd, buf, size);
 			break;

@@ -444,7 +444,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
-/*
+
 void push_to_stack(char** argv, int argc, void** esp){
   char* next;
   int i;
@@ -455,8 +455,10 @@ void push_to_stack(char** argv, int argc, void** esp){
     argv[i] = *esp;
   }
   //word align
-  //int remainder = *esp % 4;
+  int remainder = (int)*esp % 4;
+  *esp =  (char*)*esp+remainder; 
   
+  *esp-=sizeof(char*);
   char* sentinel = 0;
   memcpy(*esp, &sentinel, sizeof(char*));
   for(i=argc-1; i>=0; i--){
@@ -470,8 +472,12 @@ void push_to_stack(char** argv, int argc, void** esp){
 
   *esp -= sizeof(int); //argc
   memcpy(*esp, &argc, sizeof(int));
+
+  void* fake = NULL;
+  *esp -= sizeof(void*);
+  memcpy(*esp, &fake, sizeof(void*));
   free(argv);
-}*/
+}
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
@@ -491,24 +497,8 @@ setup_stack (void **esp, const char* file_name)
     }
   return success;
 
-  //set up stack with arguments
-  /*int argc = 0;
-  char** argv = malloc(initial_alloc_size*sizeof(char*));
-  int cur_size = initial_alloc_size;
+  
 
-  char* string_to_parse = file_name;
-  char* token, *save_ptr;
-  token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.
-  token = strtok_r(NULL, " ", &save_ptr); //procceeds to next argument
-  while(token != NULL){
-    if(argc > cur_size){  //max size?
-      cur_size = cur_size*2;
-      realloc(argv, cur_size*sizeof(char*));
-    }
-    argv[argc] = token;
-    argc++;
-    token = strtok_r(NULL, " ", &save_ptr);
-  }*/
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
