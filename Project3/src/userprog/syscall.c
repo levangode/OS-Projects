@@ -9,6 +9,7 @@
 
 
 static void syscall_handler (struct intr_frame *);
+static void halt(void);
 
 struct lock system_global_lock;
 
@@ -85,6 +86,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 	int syscall_num = *(int*)f->esp;
 	switch(syscall_num){
 		case SYS_HALT:
+			halt();
 			break;
 		case SYS_EXIT:
 			;
@@ -127,4 +129,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 	}
   printf ("system call!\n");
   thread_exit ();
+}
+
+
+void halt(void){
+	shutdown_power_off();
 }
