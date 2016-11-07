@@ -109,7 +109,21 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
+    /*
+      structure for saved return values of child processes.
+    */
+    struct list child_rv_list;
+    struct lock child_rv_list_lock;
+
   };
+
+struct rv_list_elem{
+  int thread_pid; // thread pid
+  int thread_rv;  // thread exit status
+  int thread_lock; // lock for waiting in process_wait(in process.c)
+
+  struct list_elem elem;
+};
 
 struct child_info{
   struct list_elem elem_list_stat;

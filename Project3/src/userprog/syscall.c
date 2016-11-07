@@ -39,8 +39,8 @@ void is_valid(void* addr){
 	if(!is_user_vaddr(addr)){
 		exit(-1);
 	} else if (pagedir_get_page(thread_current()->pagedir, addr) == NULL){
-    exit(-1);
-  }
+		exit(-1);
+	}
 }
 
 void is_valid_buff(void* buff, int size){
