@@ -32,9 +32,15 @@ int write(int fd, const void *buffer, unsigned size){
 }
 
 void is_valid(void* addr){
+	if(addr == NULL){
+		exit(-1);
+	}
 	if(!is_user_vaddr(addr)){
 		exit(-1);
 	}
+    else if (pagedir_get_page(thread_current()->pagedir, addr) == NULL){
+    	exit(-1);
+    }
 }
 
 void is_valid_buff(void* buff, int size){
@@ -85,10 +91,11 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
 
 	is_valid(f->esp);
+	is_valid_buff(f->esp, sizeof(int));
 	int syscall_num = *(int*)f->esp;
 	switch(syscall_num){
 		case SYS_HALT:
-			//halt();
+			halt();
 			break;
 		case SYS_EXIT:
 			;
@@ -131,6 +138,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 			break;
 		case SYS_CLOSE:
 			break;
+		default:
+			exit(-1);
 	}
   //printf ("system call!\n");
   //thread_exit ();
