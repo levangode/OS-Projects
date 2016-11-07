@@ -37,10 +37,9 @@ void is_valid(void* addr){
 	}
 	if(!is_user_vaddr(addr)){
 		exit(-1);
-	}
-    else if (pagedir_get_page(thread_current()->pagedir, addr) == NULL){
-    	exit(-1);
-    }
+	} else if (pagedir_get_page(thread_current()->pagedir, addr) == NULL){
+    exit(-1);
+  }
 }
 
 void is_valid_buff(void* buff, int size){
@@ -85,64 +84,129 @@ exit(int status_code){
 	thread_exit();
 }
 
-
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-
 	is_valid(f->esp);
 	is_valid_buff(f->esp, sizeof(int));
 	int syscall_num = *(int*)f->esp;
+	void* next;
 	switch(syscall_num){
 		case SYS_HALT:
-			halt();
-			break;
+			{
+				halt();
+				break;
+			}
 		case SYS_EXIT:
-			;
-			void* next = (int*)f->esp+1;
+			{
+				next = (int*)f->esp+1;
 
-			is_valid(next);
-			int arg = *(int*)next;
-			exit(arg);
-			break;
+				is_valid(next);
+				int arg = *(int*)next;
+				exit(arg);
+				break;
+			}
+		case SYS_EXEC:
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				char *cmd_line = *(char*)next;
+				break;
+			}
 		case SYS_WAIT:
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int pid = *(int*)next;
+				break;
+			}
 		case SYS_CREATE:
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				char* file = *(char*)next;
+				next = (char**)f->esp+1;
+				is_valid(next);
+				unsigned initial_size = *(unsigned*)next;
+				break;
+			}
 		case SYS_REMOVE:
-			//f->eax = remove((char*) *((int*)f->esp+1));
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				char *file = *(char*)next;
+				//f->eax = remove((char*) *((int*)f->esp+1));
+				break;
+			}
 		case SYS_OPEN:
-			//f->eax = open( (char*)*((int*)f->esp+1));
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				char *file = *(char*)next;
+				//f->eax = open( (char*)*((int*)f->esp+1));
+				break;
+			}
 		case SYS_FILESIZE:
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				break;
+			}
 		case SYS_READ:
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				next = next+1;
+				next = next+1;
+				is_valid(next);
+				int size = *(int*)((int*)f->esp+3);
+				void* buf = *(char**)((int*)f->esp+2);
+				is_valid_buff(buf, size);
+				break;
+			}
 		case SYS_WRITE:
-			;
-			next = (int*)f->esp+1;
-			is_valid(next);
-			int fd = *(int*)next;
-			next = next+1;
-			next = next+1;
-			is_valid(next);
-			int size = *(int*)((int*)f->esp+3);
-			void* buf = *(char**)((int*)f->esp+2);
-			is_valid_buff(buf, size);
-			f->eax = write(fd, buf, size);
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				next = next+1;
+				next = next+1;
+				is_valid(next);
+				int size = *(int*)((int*)f->esp+3);
+				void* buf = *(char**)((int*)f->esp+2);
+				is_valid_buff(buf, size);
+				f->eax = write(fd, buf, size);
+				break;
+			}
 		case SYS_SEEK:
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				next = (int*)f->esp+1;
+				is_valid(next);
+				unsigned position = *(unsigned*)next;
+				break;
+			}
 		case SYS_TELL:
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				break;
+			}
 		case SYS_CLOSE:
-			break;
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				break;
+			}
 		default:
 			exit(-1);
 	}
-  //printf ("system call!\n");
-  //thread_exit ();
 }
 
 static void halt(void){

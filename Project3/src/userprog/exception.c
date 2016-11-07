@@ -4,9 +4,23 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
+#include "userprog/pagedir.h"
+
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
+
+void is_valid_ptr(void* addr){
+  if(addr == NULL){
+    exit(-1);
+  }
+  if(!is_user_vaddr(addr)){
+    exit(-1);
+  } else if (pagedir_get_page(thread_current()->pagedir, addr) == NULL){
+    exit(-1);
+  }
+}
 
 static void kill (struct intr_frame *);
 static void page_fault (struct intr_frame *);
@@ -126,6 +140,8 @@ page_fault (struct intr_frame *f)
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
+
+  is_valid_ptr(fault_addr);
 
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
