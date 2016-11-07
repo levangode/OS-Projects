@@ -115,14 +115,15 @@ struct thread
     struct list child_rv_list;
     struct lock child_rv_list_lock;
 
+    struct list_elem rv_elem;
   };
 
 struct rv_list_elem{
-  int thread_pid; // thread pid
+  int thread_tid; // thread tid
   int thread_rv;  // thread exit status
-  int thread_lock; // lock for waiting in process_wait(in process.c)
+  struct semaphore thread_sema; // semaphore for waiting in process_wait(in process.c)
 
-  struct list_elem elem;
+  struct list_elem elem; //element for storing in list
 };
 
 struct child_info{
