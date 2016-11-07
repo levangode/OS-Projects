@@ -15,6 +15,7 @@ static void halt(void);
 static bool remove(const char*);
 static int open(const char*);
 static int file_descriptor_number = 1;
+static void close(int fd);
 struct lock system_global_lock;
 struct list files_opened;
 
@@ -57,7 +58,7 @@ syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   lock_init(&system_global_lock);
-  //list_init(&files_opened);
+  list_init(&files_opened);
 }
 	//todo return code to parent
 void change_child_from_parent(int status_code, struct thread* cur_thread,struct thread* parent_thread){
@@ -126,7 +127,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CREATE:
 			{
 
-				char* file = (char *) *((int**)f->esp + 1);
+				char* file = (char *) *((int*)f->esp + 1);
 				int initial_size = *((int*)f->esp + 2);
 				is_valid(file);
 				bool res;
@@ -146,10 +147,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 			}
 		case SYS_OPEN:
 			{
-				next = (int*)f->esp+1;
-				is_valid(next);
-				char *file = *(char*)next;
-				//f->eax = open( (char*)*((int*)f->esp+1));
+				//uint32_t * esp = f->esp;
+				//char * file = ((char *) *((int**)f->esp + 1));
+				//f->eax = open(file);
 				break;
 			}
 		case SYS_FILESIZE:
@@ -206,14 +206,18 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CLOSE:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				
 				int fd = *(int*)next;
+				//close(fd);
 				break;
 			}
 		default:
 			exit(-1);
 	}
 }
+
+
+
 
 static void halt(void){
 	shutdown_power_off();
@@ -233,7 +237,7 @@ static int open(const char* name){
 	lock_acquire(&system_global_lock);
 	struct file * my_file = filesys_open(name); 
 	if(my_file != NULL){
-		struct fd * file_descriptor = calloc(1,sizeof(*file_descriptor));
+		struct fd * file_descriptor = calloc(1,sizeof(struct fd));
 		file_descriptor->id = file_descriptor_number;
 		file_descriptor_number++;
 		file_descriptor->master = thread_current()->tid;
