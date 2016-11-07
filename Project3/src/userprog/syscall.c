@@ -85,6 +85,7 @@ exit(int status_code){
 	thread_exit();
 }
 
+
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
@@ -124,12 +125,15 @@ syscall_handler (struct intr_frame *f UNUSED)
 			}
 		case SYS_CREATE:
 			{
-				next = (int*)f->esp+1;
-				is_valid(next);
-				char* file = *(char*)next;
-				next = (char**)f->esp+1;
-				is_valid(next);
-				unsigned initial_size = *(unsigned*)next;
+
+				char* file = (char *) *((int**)f->esp + 1);
+				int initial_size = *((int*)f->esp + 2);
+				is_valid(file);
+				bool res;
+				lock_acquire(&system_global_lock);
+				res = filesys_create(file,initial_size);
+				lock_release(&system_global_lock);
+				f->eax = res;
 				break;
 			}
 		case SYS_REMOVE:
@@ -137,7 +141,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				char *file = *(char*)next;
-				//f->eax = remove((char*) *((int*)f->esp+1));
+				f->eax = remove((char*) *((int*)f->esp+1));
 				break;
 			}
 		case SYS_OPEN:
