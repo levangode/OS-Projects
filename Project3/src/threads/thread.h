@@ -121,15 +121,6 @@ struct rv_list_elem{
   struct list_elem elem; //element for storing in list
 };
 
-struct child_info{
-  struct list_elem elem_list_stat;
-  bool is_exit;
-  int exit_status;
-  tid_t child_id;
-  bool waited;
-};
-
-
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

@@ -4,7 +4,7 @@
 #include "threads/thread.h"
 
 void syscall_init (void);
-struct fd{
+struct file_descriptor{
 	int id;
 	struct file * f;
 	tid_t master;

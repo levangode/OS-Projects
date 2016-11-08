@@ -74,28 +74,8 @@ syscall_init (void)
   lock_init(&system_global_lock);
   list_init(&files_opened);
 }
-	//todo return code to parent
-void change_child_from_parent(int status_code, struct thread* cur_thread,struct thread* parent_thread){
-	struct list_elem* elem = list_head(&parent_thread->child_list);
-	for(; elem != list_tail(&parent_thread->child_list); elem = list_next(elem)){
-		struct child_info* child = list_entry(elem,struct child_info,elem_list_stat);
-		if(child->child_id == cur_thread->tid){
-			lock_acquire(&parent_thread->child_lock);
-			child->exit_status = status_code;
-			child->is_exit = true;
-			lock_release(&parent_thread->child_lock);
-			return;
-		}
-	}
-}
-
 
 exit(int status_code){
-	//struct thread *cur_thread = thread_current();
-	//struct thread *parent_thread = thread_get(cur_thread->parent_id);		
-	//if(parent_thread!=NULL){
-	//	change_child_from_parent(status_code,cur_thread,parent_thread);	
-	//}
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	thread_exit();
 }
@@ -164,9 +144,11 @@ syscall_handler (struct intr_frame *f UNUSED)
 			}
 		case SYS_OPEN:
 			{
+				printf("%s\n", "shshsh");
 				//uint32_t * esp = f->esp;
-				//char * file = ((char *) *((int**)f->esp + 1));
-				//f->eax = open(file);
+				char * file = ((char *) *((int**)f->esp + 1));
+				f->eax = open(file);
+				printf("%s\n", "jjjj");
 				break;
 			}
 		case SYS_FILESIZE:
@@ -211,6 +193,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				unsigned position = *(unsigned*)next;
+
 				break;
 			}
 		case SYS_TELL:
@@ -218,6 +201,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				int fd = *(int*)next;
+				f->eax = tell(fd);
 				break;
 			}
 		case SYS_CLOSE:
@@ -248,11 +232,10 @@ static bool remove(const char* name){
 }
 
 static int open(const char* name){
-	is_valid(name);
 	lock_acquire(&system_global_lock);
 	struct file * my_file = filesys_open(name); 
 	if(my_file != NULL){
-		struct fd * file_descriptor = calloc(1,sizeof(struct fd));
+		struct file_descriptor * file_descriptor = calloc(1,sizeof(struct file_descriptor));
 		file_descriptor->id = file_descriptor_number;
 		file_descriptor_number++;
 		file_descriptor->master = thread_current()->tid;
@@ -260,6 +243,30 @@ static int open(const char* name){
 		list_push_back(&files_opened,&file_descriptor->elem);
 		lock_release(&system_global_lock);
 		return file_descriptor->id;
+	}
+	lock_release(&system_global_lock);
+	return -1;
+}
+
+
+struct file_descriptor* find_my_descriptor(int fd){
+	struct file_descriptor* res;
+	//get descriptor owned by this process
+}
+
+
+int tell(int fd){
+	if(fd < 0){
+		exit(-1);
+		return -1;
+	}
+	lock_acquire(&system_global_lock);
+	struct file_descriptor* open_desc = find_my_descriptor(fd);
+	if(open_desc != NULL){
+		struct file* open_file = open_desc->f;
+		int res = file_tell(open_file);
+		lock_release(&system_global_lock);
+		return res;
 	}
 	lock_release(&system_global_lock);
 	return -1;
