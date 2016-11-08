@@ -193,7 +193,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				unsigned position = *(unsigned*)next;
-
+				seek(fd, position);
 				break;
 			}
 		case SYS_TELL:
@@ -273,6 +273,22 @@ int tell(int fd){
 	lock_release(&system_global_lock);
 	return -1;
 }
+
+int seek(int fd, unsigned position){
+	if(fd < 0){
+		exit(-1);
+	}
+	lock_acquire(&system_global_lock);
+	struct file_descriptor* open_desc = find_my_descriptor(fd);
+	if(open_desc != NULL){
+		struct file* open_file = open_desc->f;
+		file_seek(open_file, position);
+	}
+	lock_release(&system_global_lock);
+}
+
+
+
 
 
 
