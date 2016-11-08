@@ -173,6 +173,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				int size = *(int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
 				is_valid_buff(buf, size);
+				f->eax=read(fd, buf, size);
 				break;
 			}
 		case SYS_WRITE:
@@ -281,8 +282,8 @@ struct file_descriptor* find_my_descriptor(int fd){
 	struct file_descriptor* res;
 	struct thread* cur_thread = thread_current();
 	struct list* fd_list = &cur_thread->fd_list;
-	struct list_elem* next;
-	while(next != list_end(fd_list)){
+	struct list_elem* next = list_head(fd_list);
+	while(next != list_tail(fd_list)){
 		struct file_descriptor* desc = list_entry(next, struct file_descriptor, elem);
 		if(desc->id == fd){
 			return desc;
@@ -336,8 +337,18 @@ int filesize(int fd){
 	return -1;
 }
 
+
 int read(int fd, void* buffer, unsigned size){
-	
+	lock_acquire(&system_global_lock);
+	struct file_descriptor* desc = find_my_descriptor(fd);
+	if(desc != NULL){
+		struct file* file_of_fd = desc->f;
+		int res = file_read(file_of_fd, buffer, size);
+		lock_release(&system_global_lock);
+		return res;
+	}
+	lock_release(&system_global_lock);
+	return -1;	
 }
 
 bool remove(const char* file_name){
