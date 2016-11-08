@@ -26,6 +26,8 @@ int write(int fd, const void *buffer, unsigned size);
 void is_valid_buff(void* buff, int size);
 int seek(int fd, unsigned position);
 int tell(int fd);
+int read(int fd, void* buffer, unsigned size);
+bool remove(const char* file_name);
 
 
 int write(int fd, const void *buffer, unsigned size){
@@ -141,7 +143,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				char *file = *(char*)next;
-				f->eax = remove((char*) *((int*)f->esp+1));
+				f->eax = remove(file);
 				break;
 			}
 		case SYS_OPEN:
@@ -224,14 +226,6 @@ static void halt(void){
 	shutdown_power_off();
 }
 
-static bool remove(const char* name){
-	is_valid(name);
-	bool res;
-	lock_acquire(&system_global_lock);
-	res = filesys_remove(name);
-	lock_release(&system_global_lock);
-	return res;	
-}
 
 int open(const char* name){
 	is_valid(name);
@@ -293,18 +287,29 @@ int filesize(int fd){
 	if(fd < 0){
 		exit(-1);
 	}
-	lock_acquire(&system_global_lock);
 	struct file_descriptor* open_desc = find_my_descriptor(fd);
 	if(open_desc != NULL){
 		struct file* open_file = open_desc->f;
 		int res = file_length(open_file);
+		return res;
+	}
+	return -1;
+}
+
+int read(int fd, void* buffer, unsigned size){
+	
+}
+
+bool remove(const char* file_name){
+	lock_acquire(&system_global_lock);
+	if(file_name != NULL){
+		bool res = filesys_remove(file_name);
 		lock_release(&system_global_lock);
 		return res;
 	}
 	lock_release(&system_global_lock);
-	return -1;
+	exit(-1);
 }
-
 
 
 
