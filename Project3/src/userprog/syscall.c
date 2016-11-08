@@ -119,14 +119,13 @@ syscall_handler (struct intr_frame *f UNUSED)
 			}
 		case SYS_WAIT:
 			{
-				
 				next = (int*)f->esp+1;
 				is_valid(next);
 				int pid = *(int*)next;
 				break;
 			}
 		case SYS_CREATE:
-			{  
+			{
 				is_valid((int*)f->esp + 1);
 				is_valid((int*)f->esp + 2);
 				if(*(int*)((int*)f->esp+1) == NULL){
