@@ -126,10 +126,13 @@ syscall_handler (struct intr_frame *f UNUSED)
 			}
 		case SYS_CREATE:
 			{
-
+				is_valid((int*)f->esp + 1);
+				is_valid((int*)f->esp + 2);
+				if(*(int*)((int*)f->esp+1) == NULL){
+					exit(-1);
+				}
 				char* file = (char *) *((int*)f->esp + 1);
 				int initial_size = *((int*)f->esp + 2);
-				is_valid(file);
 				bool res;
 				lock_acquire(&system_global_lock);
 				res = filesys_create(file,initial_size);
@@ -215,8 +218,6 @@ syscall_handler (struct intr_frame *f UNUSED)
 			exit(-1);
 	}
 }
-
-
 
 
 static void halt(void){
