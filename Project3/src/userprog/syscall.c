@@ -144,11 +144,11 @@ syscall_handler (struct intr_frame *f UNUSED)
 			}
 		case SYS_OPEN:
 			{
-				printf("%s\n", "shshsh");
+				//printf("%s\n", "shshsh");
 				//uint32_t * esp = f->esp;
 				char * file = ((char *) *((int**)f->esp + 1));
 				f->eax = open(file);
-				printf("%s\n", "jjjj");
+				//printf("%s\n", "jjjj");
 				break;
 			}
 		case SYS_FILESIZE:
@@ -231,18 +231,20 @@ static bool remove(const char* name){
 	return res;	
 }
 
-static int open(const char* name){
+int open(const char* name){
+	is_valid(name);
 	lock_acquire(&system_global_lock);
 	struct file * my_file = filesys_open(name); 
 	if(my_file != NULL){
-		struct file_descriptor * file_descriptor = calloc(1,sizeof(struct file_descriptor));
-		file_descriptor->id = file_descriptor_number;
-		file_descriptor_number++;
-		file_descriptor->master = thread_current()->tid;
-		file_descriptor->f = my_file;
-		list_push_back(&files_opened,&file_descriptor->elem);
+		struct thread* curThread = thread_current();
+		struct file_descriptor * my_fd = malloc(sizeof(struct file_descriptor));
+		my_fd->f = my_file;
+		my_fd->id = curThread->fd_num;
+		curThread->fd_num++;
+		list_push_back(&files_opened,&my_fd->elem);
+		list_push_back(&curThread->fd_list,&my_fd->elem);
 		lock_release(&system_global_lock);
-		return file_descriptor->id;
+		return my_fd->id;
 	}
 	lock_release(&system_global_lock);
 	return -1;

@@ -101,9 +101,10 @@ struct thread
     tid_t parent_id;
     struct list child_list;
     struct file *exe_file;
+    int fd_num;
     struct condition child_cond;
     struct lock child_lock;
-
+    struct list fd_list;
 
 #endif
 
