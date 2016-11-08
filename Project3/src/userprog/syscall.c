@@ -280,7 +280,7 @@ int open(const char* name){
 struct file_descriptor* find_my_descriptor(int fd){
 	struct file_descriptor* res;
 	struct thread* cur_thread = thread_current();
-	struct list fd_list = cur_thread->fd_list;
+	struct list* fd_list = &cur_thread->fd_list;
 	struct list_elem* next;
 	while(next != list_end(fd_list)){
 		struct file_descriptor* desc = list_entry(next, struct file_descriptor, elem);
@@ -289,6 +289,7 @@ struct file_descriptor* find_my_descriptor(int fd){
 		} 
 		next = list_next(next);
 	}
+	return NULL;
 }
 
 //needs to setup structure in thread file descriptors
