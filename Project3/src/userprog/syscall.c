@@ -236,12 +236,12 @@ struct file_descriptor * findFile(int file_descriptor_id, bool should_remove){
 	return NULL;
 }
 
-
+//closing file
 void close(int file_descriptor_id){
 	lock_acquire(&system_global_lock);	
 	if(file_descriptor_id>=0){
 		struct file_descriptor * fd = findFile(file_descriptor_id,true);
-		if(fd != NULL && fd->f != NULL){
+		if(fd != NULL && fd->f != NULL ){
 			file_close(fd->f);
 			lock_release(&system_global_lock);
 			return;
