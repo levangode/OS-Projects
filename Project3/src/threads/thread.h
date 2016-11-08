@@ -104,11 +104,7 @@ struct thread
     struct condition child_cond;
     struct lock child_lock;
 
-     /*
-      structure for saved return values of child processes.
-    */
-    struct list child_rv_list;
-    struct rv_list_elem* rv_elem;
+
 #endif
 
     /* Owned by thread.c. */
@@ -147,7 +143,7 @@ void thread_tick (void);
 void thread_print_stats (void);
 
 typedef void thread_func (void *aux);
-tid_t thread_create (const char *name, int priority, thread_func *, void *, struct rv_list_elem*);
+tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
 void thread_block (void);
 void thread_unblock (struct thread *);

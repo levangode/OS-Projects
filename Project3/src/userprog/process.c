@@ -23,19 +23,6 @@ static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 static int initial_alloc_size = 4;
 static int max_alloc_size = 100;
-struct rv_list_elem* create_elem(void);
-
-struct rv_list_elem* create_rv_elem(){
-  struct rv_list_elem* rv_elem = calloc(0, sizeof(struct rv_list_elem));
-
-  rv_elem->thread_tid = thread_current();
-  rv_elem->thread_rv = -1;
-
-  sema_init( &(rv_elem->thread_sema) );
-
-  return rv_list_elem;
-}
-
 
 
 /* Starts a new thread running a user program loaded from
@@ -63,7 +50,7 @@ process_execute (const char *file_name)
   
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy, create_rv_elem());
+  tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
