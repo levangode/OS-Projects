@@ -27,10 +27,24 @@ void is_valid_buff(void* buff, int size);
 
 
 int write(int fd, const void *buffer, unsigned size){
+	lock_acquire(&system_global_lock);
 	if (fd == STDOUT_FILENO) {
-      putbuf(buffer, size);
-      return size;
-    }
+    putbuf(buffer, size);
+    lock_release(&system_global_lock);
+    return size;
+  } else if(fd == STDIN_FILENO){
+  	lock_release(&system_global_lock);
+  	return -1;
+  } else {
+  	//struct file* open_file = //find open file by process
+  	//if (open_file == NULL){
+  		lock_release(&system_global_lock);
+  		return -1;
+  	//}
+  	//int res = file_write(open_file, buffer, size);
+  	lock_release(&system_global_lock);
+  	//return res;
+  }
 }
 
 void is_valid(void* addr){
