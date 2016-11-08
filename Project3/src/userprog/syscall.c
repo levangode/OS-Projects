@@ -24,7 +24,7 @@ void is_valid(void* addr);
 void exit(int status_code);
 int write(int fd, const void *buffer, unsigned size);	
 void is_valid_buff(void* buff, int size);
-int seek(int fd, unsigned position);
+void seek(int fd, unsigned position);
 int tell(int fd);
 int read(int fd, void* buffer, unsigned size);
 bool remove(const char* file_name);
@@ -252,7 +252,7 @@ struct file_descriptor* find_my_descriptor(int fd){
 	//get descriptor owned by this process
 }
 
-
+//needs to setup structure in thread file descriptors
 int tell(int fd){
 	if(fd < 0){
 		exit(-1);
@@ -270,7 +270,7 @@ int tell(int fd){
 	return -1;
 }
 
-int seek(int fd, unsigned position){
+void seek(int fd, unsigned position){
 	if(fd < 0){
 		exit(-1);
 	}
