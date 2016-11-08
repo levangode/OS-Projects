@@ -24,6 +24,8 @@ void is_valid(void* addr);
 void exit(int status_code);
 int write(int fd, const void *buffer, unsigned size);	
 void is_valid_buff(void* buff, int size);
+int seek(int fd, unsigned position);
+int tell(int fd);
 
 
 int write(int fd, const void *buffer, unsigned size){
