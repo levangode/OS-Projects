@@ -224,9 +224,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 struct file_descriptor * findFile(int file_descriptor_id, bool should_remove){
 	struct thread* curThread = thread_current();
-	struct list_elem * e = list_begin(&curThread->fd_list);
-	for(;e != list_tail(&curThread->fd_list); e = list_next(e)){
-		struct file_descriptor * fd = list_entry(e,struct file_descriptor,elem);
+	struct list_elem * elem = list_begin(&curThread->fd_list);
+	for(;elem != list_tail(&curThread->fd_list); elem = list_next(elem)){
+		struct file_descriptor * fd = list_entry(elem,struct file_descriptor,elem);
 		if(fd->id == file_descriptor_id){
 			if(should_remove){
 				list_remove(&fd->elem);
