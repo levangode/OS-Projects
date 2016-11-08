@@ -289,6 +289,22 @@ int seek(int fd, unsigned position){
 	lock_release(&system_global_lock);
 }
 
+int filesize(int fd){
+	if(fd < 0){
+		exit(-1);
+	}
+	lock_acquire(&system_global_lock);
+	struct file_descriptor* open_desc = find_my_descriptor(fd);
+	if(open_desc != NULL){
+		struct file* open_file = open_desc->f;
+		int res = file_length(open_file);
+		lock_release(&system_global_lock);
+		return res;
+	}
+	lock_release(&system_global_lock);
+	return -1;
+}
+
 
 
 
