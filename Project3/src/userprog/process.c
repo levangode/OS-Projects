@@ -101,7 +101,7 @@ process_wait (tid_t child_tid UNUSED)
 {
   int i;
   int j;
-  for(i=0; i<2000000000; i++){
+  for(i=0; i<3000000000; i++){
     
   }
   return -1;

@@ -213,12 +213,42 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				
 				int fd = *(int*)next;
-				//close(fd);
+				close(fd);
 				break;
 			}
 		default:
 			exit(-1);
 	}
+}
+
+struct file_descriptor * findFile(int file_descriptor_id, bool should_remove){
+	struct thread* curThread = thread_current();
+	struct list_elem * e = list_begin(&curThread->fd_list);
+	for(;e != list_tail(&curThread->fd_list); e = list_next(e)){
+		struct file_descriptor * fd = list_entry(e,struct file_descriptor,elem);
+		if(fd->id == file_descriptor_id){
+			if(should_remove){
+				list_remove(&fd->elem);
+			}
+			return fd;
+		}
+	}
+	return NULL;
+}
+
+
+void close(int file_descriptor_id){
+	lock_acquire(&system_global_lock);	
+	if(file_descriptor_id>=0){
+		struct file_descriptor * fd = findFile(file_descriptor_id,true);
+		if(fd != NULL && fd->f != NULL){
+			file_close(fd->f);
+			lock_release(&system_global_lock);
+			return;
+		}
+	}
+	lock_release(&system_global_lock);
+	exit(-1);
 }
 
 
