@@ -106,6 +106,10 @@ struct thread
     struct lock child_lock;
     struct list fd_list;
 
+    struct thread* parent;
+    struct list child_stat_code_list;
+    struct child_stat_code* stat_code_elem;
+    
 #endif
 
     /* Owned by thread.c. */
@@ -113,15 +117,15 @@ struct thread
 
   };
 
+struct child_status_code{
+  tid_t child_tid;
+  int status_code;
 
-struct rv_list_elem{
-  int thread_tid; // thread tid
-  int thread_rv;  // thread exit status
-  struct semaphore thread_sema; // semaphore for waiting in process_wait(in process.c)
+  struct semaphore wait_sema;
 
-  struct list_elem elem; //element for storing in list
+  struct list_elem child_status_code_list_elem;
+
 };
-
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
