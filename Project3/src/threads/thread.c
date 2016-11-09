@@ -148,7 +148,8 @@ thread_print_stats (void)
           idle_ticks, kernel_ticks, user_ticks);
 }
 
-void creat_and_add_child_status(tid_t tid, struct thread * t){
+void 
+creat_and_add_child_status(tid_t tid, struct thread * t){
   struct thread* cur_t = thread_current();
   struct thread* child_t = t;
 
