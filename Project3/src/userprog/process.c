@@ -458,8 +458,8 @@ void push_to_stack(char** argv, int argc, void** esp){
     argv[i] = *esp;
   }
   //word align
-  int remainder = (int)*esp % 4;
-  *esp =  (char*)*esp+remainder; 
+  int remainder = (size_t) *esp % 4;
+  *esp-=remainder;
   
   *esp-=sizeof(char*);
   *(int *)(*esp) = 0; //sentinel

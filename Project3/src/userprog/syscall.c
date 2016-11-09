@@ -160,6 +160,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				int fd = *(int*)next;
+				f->eax = filesize(fd);
 				break;
 			}
 		case SYS_READ:
@@ -170,7 +171,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = next+1;
 				next = next+1;
 				is_valid(next);
-				int size = *(int*)((int*)f->esp+3);
+				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
 				is_valid_buff(buf, size);
 				f->eax=read(fd, buf, size);
@@ -328,12 +329,15 @@ int filesize(int fd){
 	if(fd < 0){
 		exit(-1);
 	}
+	lock_acquire(&system_global_lock);
 	struct file_descriptor* open_desc = find_my_descriptor(fd);
 	if(open_desc != NULL){
 		struct file* open_file = open_desc->f;
 		int res = file_length(open_file);
+		lock_release(&system_global_lock);
 		return res;
 	}
+	lock_release(&system_global_lock);
 	return -1;
 }
 

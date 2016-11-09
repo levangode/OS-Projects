@@ -198,6 +198,8 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+
+  
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -479,6 +481,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
   list_init(&t->fd_list);
   t->fd_num = 2;//in.out
   old_level = intr_disable ();
