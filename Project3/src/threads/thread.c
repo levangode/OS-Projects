@@ -159,8 +159,11 @@ creat_and_add_child_status(tid_t tid, struct thread * t){
   ASSERT(stat_code_elem != NULL);
 
   // add stat_code_elem to parent's list
+  ASSERT( &(cur_t->child_stat_code_list) != NULL );
+  
   list_push_back( &(cur_t->child_stat_code_list), &( stat_code_elem -> child_status_code_list_elem) );
 
+  ASSERT( ! list_empty(&(cur_t->child_stat_code_list)) );
 
   return;
 }
@@ -218,6 +221,7 @@ thread_create (const char *name, int priority,
 
   #ifdef USERPROG
   creat_and_add_child_status(tid, t);
+  t->parent = thread_current();
   #endif
 
   /* Add to run queue. */
@@ -507,7 +511,7 @@ init_thread (struct thread *t, const char *name, int priority)
   #ifdef USERPROG
 
   list_init(&t->child_stat_code_list);
-
+  ASSERT(true && "asdasdasd");
   #endif
 
   old_level = intr_disable ();
