@@ -30,26 +30,7 @@ int read(int fd, void* buffer, unsigned size);
 bool remove(const char* file_name);
 
 
-int write(int fd, const void *buffer, unsigned size){
-	lock_acquire(&system_global_lock);
-	if (fd == STDOUT_FILENO) {
-    putbuf(buffer, size);
-    lock_release(&system_global_lock);
-    return size;
-  } else if(fd == STDIN_FILENO){
-  	lock_release(&system_global_lock);
-  	return -1;
-  } else {
-  	//struct file* open_file = //find open file by process
-  	//if (open_file == NULL){
-  		lock_release(&system_global_lock);
-  		return -1;
-  	//}
-  	//int res = file_write(open_file, buffer, size);
-  	lock_release(&system_global_lock);
-  	//return res;
-  }
-}
+
 
 void is_valid(void* addr){
 	if(addr == NULL){
@@ -185,7 +166,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = next+1;
 				next = next+1;
 				is_valid(next);
-				int size = *(int*)((int*)f->esp+3);
+				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
 				is_valid_buff(buf, size);
 				f->eax = write(fd, buf, size);
@@ -366,6 +347,26 @@ bool remove(const char* file_name){
 	exit(-1);
 }
 
+int write(int fd, const void *buffer, unsigned size){
+	if (fd == STDOUT_FILENO) {
+    putbuf(buffer, size);
+    return size;
+  } else if(fd == STDIN_FILENO){
+  	return -1;
+  } else {
+  	lock_acquire(&system_global_lock);
+  	struct file_descriptor* open_desc = find_my_descriptor(fd);
+		if(open_desc != NULL){
+			struct file* open_file = open_desc->f;
+			int res = file_write(fd, buffer, size);
+			lock_release(&system_global_lock);
+			return res;
+		} else {
+			lock_release(&system_global_lock);
+			return -1;
+		}
+	}
+}
 
 
 
