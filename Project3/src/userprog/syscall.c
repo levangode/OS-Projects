@@ -107,10 +107,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 			{
 				is_valid((int*)f->esp + 1);
 				is_valid((int*)f->esp + 2);
-				if(*(int*)((int*)f->esp+1) == NULL){
-					exit(-1);
-				}
-				char* file = (char *) *((int*)f->esp + 1);
+				char* file = *(char **)((int*)f->esp + 1);
 				int initial_size = *((int*)f->esp + 2);
 				bool res;
 				lock_acquire(&system_global_lock);
@@ -358,7 +355,7 @@ int write(int fd, const void *buffer, unsigned size){
   	struct file_descriptor* open_desc = find_my_descriptor(fd);
 		if(open_desc != NULL){
 			struct file* open_file = open_desc->f;
-			int res = file_write(fd, buffer, size);
+			int res = file_write(open_file, buffer, size);
 			lock_release(&system_global_lock);
 			return res;
 		} else {
