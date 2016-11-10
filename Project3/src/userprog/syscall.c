@@ -101,7 +101,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 			{
 				next = (int*)f->esp+1;
 				is_valid(next);
-				char *cmd_line = *(char*)next;
+				char *cmd_line = *(char**)next;
 				f->eax = process_execute(cmd_line);
 				break;
 			}
