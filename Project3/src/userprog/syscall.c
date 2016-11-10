@@ -23,11 +23,17 @@ struct list files_opened;
 void is_valid(void* addr);
 void exit(int status_code);
 int write(int fd, const void *buffer, unsigned size);	
+void close(int file_descriptor_id);
 void is_valid_buff(void* buff, int size);
 void seek(int fd, unsigned position);
 int tell(int fd);
 int read(int fd, void* buffer, unsigned size);
 bool remove(const char* file_name);
+bool create(char* file, unsigned initial_size);
+int open(const char* name);
+static void halt(void);
+struct file_descriptor* find_my_descriptor(int fd);
+int filesize(int fd);
 
 
 
@@ -109,11 +115,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				is_valid((int*)f->esp + 2);
 				char* file = *(char **)((int*)f->esp + 1);
 				int initial_size = *((int*)f->esp + 2);
-				bool res;
-				lock_acquire(&system_global_lock);
-				res = filesys_create(file,initial_size);
-				lock_release(&system_global_lock);
-				f->eax = res;
+				f->eax = create(file, initial_size);
 				break;
 			}
 		case SYS_REMOVE:
@@ -229,6 +231,17 @@ void close(int file_descriptor_id){
 	}
 	lock_release(&system_global_lock);
 	exit(-1);
+}
+
+bool create(char* file, unsigned initial_size){
+	bool res = false;
+	if(file==NULL){
+		exit(-1);
+	}
+	lock_acquire(&system_global_lock);
+	res = filesys_create(file,initial_size);
+	lock_release(&system_global_lock);
+	return res;
 }
 
 
