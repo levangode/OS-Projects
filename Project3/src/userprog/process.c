@@ -107,12 +107,24 @@ process_wait (tid_t child_tid UNUSED)
   return -1;
 }
 
+void up_wait_sema(){
+  struct thread* parent_t = thread_current()->parent;
+  ASSERT(parent_t != NULL);
+  struct list* child_status_code_list = &(parent_t->child_stat_code_list);
+  ASSERT(child_status_code_list != NULL);
+  ASSERT(!list_empty(child_status_code_list));
+
+}
+
 /* Free the current process's resources. */
 void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  //increase semaphore value so that process_wait() can go ahead and read status code.
+  up_wait_sema();
   
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */

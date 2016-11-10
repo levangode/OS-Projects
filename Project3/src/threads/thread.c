@@ -70,6 +70,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+void creat_and_add_child_status(tid_t tid, struct thread* t);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -147,6 +148,26 @@ thread_print_stats (void)
           idle_ticks, kernel_ticks, user_ticks);
 }
 
+void 
+creat_and_add_child_status(tid_t tid, struct thread * t){
+  struct thread* cur_t = thread_current();
+  struct thread* child_t = t;
+
+  // init stat_code_elem
+  struct child_status_code* stat_code_elem = malloc(sizeof(struct child_status_code));
+  child_t -> stat_code_elem = stat_code_elem;
+  ASSERT(stat_code_elem != NULL);
+
+  // add stat_code_elem to parent's list
+  ASSERT( &(cur_t->child_stat_code_list) != NULL );
+  
+  list_push_back( &(cur_t->child_stat_code_list), &( stat_code_elem -> child_status_code_list_elem) );
+
+  ASSERT( ! list_empty(&(cur_t->child_stat_code_list)) );
+
+  return;
+}
+
 /* Creates a new kernel thread named NAME with the given initial
    PRIORITY, which executes FUNCTION passing AUX as the argument,
    and adds it to the ready queue.  Returns the thread identifier
@@ -198,8 +219,16 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+<<<<<<< HEAD
 
   
+=======
+  #ifdef USERPROG
+  creat_and_add_child_status(tid, t);
+  t->parent = thread_current();
+  #endif
+
+>>>>>>> origin/master
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -484,6 +513,13 @@ init_thread (struct thread *t, const char *name, int priority)
 
   list_init(&t->fd_list);
   t->fd_num = 2;//in.out
+
+  #ifdef USERPROG
+
+  list_init(&t->child_stat_code_list);
+  ASSERT(true && "asdasdasd");
+  #endif
+
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);

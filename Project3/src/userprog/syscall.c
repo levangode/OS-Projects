@@ -67,6 +67,7 @@ syscall_init (void)
 }
 
 exit(int status_code){
+	
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	thread_exit();
 }
