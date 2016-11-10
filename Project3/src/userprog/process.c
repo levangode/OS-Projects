@@ -25,7 +25,8 @@ static int initial_alloc_size = 4;
 static int max_alloc_size = 100;
 void up_wait_sema(void);
 void down_child_sema(struct child_status_code*);
-struct child_status_code* get_child_elem(tid_t);
+struct child_status_code* pop_child_elem(tid_t);
+void set_status_code(int);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -93,7 +94,22 @@ void down_child_sema(struct child_status_code* child_code_elem){
   sema_down(&child_code_elem->wait_sema);
 }
 
-struct child_status_code* get_child_elem(tid_t child_tid){
+void set_status_code(int status_code){
+  struct thread* cur_t = thread_current();
+
+  struct child_status_code* stat_elem = cur_t->stat_code_elem;
+
+  ASSERT(stat_elem != NULL);
+
+  stat_elem->status_code = status_code;
+
+}
+
+/*
+  look up child element in children list, if it is present remove
+  and return the element, if not return NULL;
+*/
+struct child_status_code* pop_child_elem(tid_t child_tid){
   struct thread* cur_t = thread_current();
   ASSERT(cur_t!=NULL);
 
@@ -117,6 +133,7 @@ struct child_status_code* get_child_elem(tid_t child_tid){
     //printf("%d____%d\n", tmp_elem->child_tid, tmp_elem->status_code);
     if(tmp_elem->child_tid == child_tid){
       res = tmp_elem;
+      list_remove(cur_elem);
       break;
     }
   }
@@ -134,11 +151,11 @@ struct child_status_code* get_child_elem(tid_t child_tid){
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
   // get element which contains status code and semaphore for waiting.
   struct child_status_code* child_elem;
-  child_elem = get_child_elem(child_tid);
+  child_elem = pop_child_elem(child_tid);
 
   /*
     when element does'n occure in list always return -1 this happens

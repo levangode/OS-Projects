@@ -69,6 +69,8 @@ syscall_init (void)
 exit(int status_code){
 	
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
+	set_status_code(status_code);
+
 	thread_exit();
 }
 
@@ -108,6 +110,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				int pid = *(int*)next;
+				process_wait(pid);
 				break;
 			}
 		case SYS_CREATE:
