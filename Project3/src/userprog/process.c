@@ -54,8 +54,12 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
+  if (tid == TID_ERROR){
     palloc_free_page (fn_copy); 
+    return -1;
+  }
+
+
   return tid;
 }
 
@@ -73,12 +77,18 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+
   success = load (file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
-    thread_exit ();
+
+  if (!success){
+    exit(-1);
+  } else{
+    //ASSERT(false);
+    //thread_exit ();
+  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -103,6 +113,7 @@ void set_status_code(int status_code){
 
   stat_elem->status_code = status_code;
 
+
 }
 
 /*
@@ -126,15 +137,15 @@ struct child_status_code* pop_child_elem(tid_t child_tid){
   struct child_status_code* tmp_elem = NULL;
 
   //debug code
-  // printf("trying to wait:%d____to%d\n", thread_tid(), child_tid);
+  // //printf("trying to wait:%d____to%d\n", thread_tid(), child_tid);
 
 
   for(; cur_elem != list_end(child_list); cur_elem = list_next(cur_elem)){
     tmp_elem = list_entry(cur_elem, struct child_status_code, child_status_code_list_elem);
     
     //debug code
-    // printf("iterating through elems\n");
-    // printf("%d____%d\n", tmp_elem->child_tid, tmp_elem->status_code);
+    // //printf("iterating through elems\n");
+    // //printf("%d____%d\n", tmp_elem->child_tid, tmp_elem->status_code);
     
 
     if(tmp_elem->child_tid == child_tid){
@@ -144,7 +155,7 @@ struct child_status_code* pop_child_elem(tid_t child_tid){
     }
   }
 
-  // printf("iteration finished\n");
+  // //printf("iteration finished\n");
 
   return res;
 }
@@ -165,6 +176,8 @@ process_wait (tid_t child_tid)
   struct child_status_code* child_elem;
   child_elem = pop_child_elem(child_tid);
 
+  //printf("waiting by:%s >>> to: %d\n", thread_current()->name, child_tid);
+
   /*
     when element does'n occure in list always return -1 this happens
     when tid doesn't belong to child or tid has already been waited
@@ -172,9 +185,12 @@ process_wait (tid_t child_tid)
   if(child_elem == NULL){
     return -1;
   } else {
+    //printf("pre_wait >>>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
     down_child_sema(child_elem);
+    //printf("post_wait >>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
+
     //debug code
-    // printf("overcome_sema. status code is: %d\n", child_elem->status_code);
+    // //printf("overcome_sema. status code is: %d\n", child_elem->status_code);
     //end
     return child_elem->status_code;
   }
@@ -251,7 +267,7 @@ process_activate (void)
 typedef uint32_t Elf32_Word, Elf32_Addr, Elf32_Off;
 typedef uint16_t Elf32_Half;
 
-/* For use with ELF types in printf(). */
+/* For use with ELF types in //printf(). */
 #define PE32Wx PRIx32   /* Print Elf32_Word in hexadecimal. */
 #define PE32Ax PRIx32   /* Print Elf32_Addr in hexadecimal. */
 #define PE32Ox PRIx32   /* Print Elf32_Off in hexadecimal. */
@@ -431,6 +447,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
+  /*if( success == false ){
+    thread_current() -> parent -> process_start_status = -1;
+    
+    sema_up(&thread_current() -> parent -> process_starting_sema );
+  } else {
+    thread_current() -> parent -> process_start_status = 0;
+    
+    sema_up(&thread_current() -> parent -> process_starting_sema );
+  }*/
   return success;
 }
 
