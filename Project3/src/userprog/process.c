@@ -24,6 +24,8 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 static int initial_alloc_size = 4;
 static int max_alloc_size = 100;
 void up_wait_sema(void);
+void down_child_sema(struct child_status_code*);
+struct child_status_code* get_child_elem(tid_t);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -87,6 +89,41 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
+void down_child_sema(struct child_status_code* child_code_elem){
+  sema_down(&child_code_elem->wait_sema);
+}
+
+struct child_status_code* get_child_elem(tid_t child_tid){
+  struct thread* cur_t = thread_current();
+  ASSERT(cur_t!=NULL);
+
+  struct list* child_list = &cur_t -> child_stat_code_list;
+  // ASSERT(!list_empty(child_list)); //assert is ony for debugging.
+
+  struct list_elem* cur_elem = list_begin(child_list);
+  ASSERT(cur_elem != NULL);
+
+  //ASSERT(list_size(child_list) < 3);
+
+  struct child_status_code* res = NULL; 
+
+  struct child_status_code* tmp_elem = NULL;
+
+  //printf("%d____%d\n", child_tid, thread_tid());
+
+
+  for(; cur_elem != list_end(child_list); cur_elem = list_next(cur_elem)){
+    tmp_elem = list_entry(cur_elem, struct child_status_code, child_status_code_list_elem);
+    //printf("%d____%d\n", tmp_elem->child_tid, tmp_elem->status_code);
+    if(tmp_elem->child_tid == child_tid){
+      res = tmp_elem;
+      break;
+    }
+  }
+
+  return res;
+}
+
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
    exception), returns -1.  If TID is invalid or if it was not a
@@ -99,11 +136,28 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  int i;
+  // get element which contains status code and semaphore for waiting.
+  struct child_status_code* child_elem;
+  child_elem = get_child_elem(child_tid);
+
+  /*
+    when element does'n occure in list always return -1 this happens
+    when tid doesn't belong to child or tid has already been waited
+  */
+  if(child_elem == NULL){
+    return -1;
+  } else {
+    down_child_sema(child_elem);
+    return child_elem->status_code;
+  }
+
+  /*int i;
   int j;
   for(i=0; i<2000000000; i++){
     
-  }
+  }*/
+
+
   return -1;
 }
 
@@ -114,7 +168,7 @@ void up_wait_sema(){
   struct child_status_code* status_code_elem = cur_t->stat_code_elem;
   ASSERT (status_code_elem != NULL);
 
-  //sema_up(&status_code_elem->wait_sema);
+  sema_up(&status_code_elem->wait_sema);
 
 }
 
