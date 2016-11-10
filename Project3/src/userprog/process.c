@@ -59,7 +59,10 @@ process_execute (const char *file_name)
     return -1;
   }
 
+  //sema_init(&thread_current()->process_starting_sema, 0);
+  //sema_down(&thread_current()->process_starting_sema);
 
+  //printf("process execute returned tid: %d\n", tid);
   return tid;
 }
 
@@ -113,6 +116,7 @@ void set_status_code(int status_code){
 
   stat_elem->status_code = status_code;
 
+  //printf("status_code_set by:%s, to :%d\n", thread_current()->name, status_code);
 
 }
 
