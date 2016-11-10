@@ -125,18 +125,26 @@ struct child_status_code* pop_child_elem(tid_t child_tid){
 
   struct child_status_code* tmp_elem = NULL;
 
-  //printf("%d____%d\n", child_tid, thread_tid());
+  //debug code
+  // printf("trying to wait:%d____to%d\n", thread_tid(), child_tid);
 
 
   for(; cur_elem != list_end(child_list); cur_elem = list_next(cur_elem)){
     tmp_elem = list_entry(cur_elem, struct child_status_code, child_status_code_list_elem);
-    //printf("%d____%d\n", tmp_elem->child_tid, tmp_elem->status_code);
+    
+    //debug code
+    // printf("iterating through elems\n");
+    // printf("%d____%d\n", tmp_elem->child_tid, tmp_elem->status_code);
+    
+
     if(tmp_elem->child_tid == child_tid){
       res = tmp_elem;
       list_remove(cur_elem);
       break;
     }
   }
+
+  // printf("iteration finished\n");
 
   return res;
 }
@@ -165,6 +173,9 @@ process_wait (tid_t child_tid)
     return -1;
   } else {
     down_child_sema(child_elem);
+    //debug code
+    // printf("overcome_sema. status code is: %d\n", child_elem->status_code);
+    //end
     return child_elem->status_code;
   }
 
