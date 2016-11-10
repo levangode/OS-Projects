@@ -110,7 +110,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				int pid = *(int*)next;
-				process_wait(pid);
+				f->eax = process_wait(pid);
 				break;
 			}
 		case SYS_CREATE:
