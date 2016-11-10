@@ -228,6 +228,8 @@ thread_create (const char *name, int priority,
   #ifdef USERPROG
   creat_and_add_child_status(tid, t);
   t->parent = thread_current();
+  sema_init(&t->process_starting_sema, 0);
+  t->process_start_status = 0;
   #endif
 
   /* Add to run queue. */

@@ -106,9 +106,14 @@ struct thread
     struct lock child_lock;
     struct list fd_list;
 
+    // for returnin status value
     struct thread* parent;
     struct list child_stat_code_list;
     struct child_stat_code* stat_code_elem;
+
+    //for catching errors during thread creation
+    struct semaphore process_starting_sema;
+    int process_start_status;
     
 #endif
 
