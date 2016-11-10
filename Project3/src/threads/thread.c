@@ -219,16 +219,12 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
-<<<<<<< HEAD
 
-  
-=======
   #ifdef USERPROG
   creat_and_add_child_status(tid, t);
   t->parent = thread_current();
   #endif
 
->>>>>>> origin/master
   /* Add to run queue. */
   thread_unblock (t);
 
