@@ -158,6 +158,11 @@ creat_and_add_child_status(tid_t tid, struct thread * t){
   child_t -> stat_code_elem = stat_code_elem;
   ASSERT(stat_code_elem != NULL);
 
+  stat_code_elem -> child_tid = tid;
+  stat_code_elem -> status_code = 0;
+  sema_init(&stat_code_elem -> wait_sema, 0);
+
+
   // add stat_code_elem to parent's list
   ASSERT( &(cur_t->child_stat_code_list) != NULL );
   

@@ -23,7 +23,7 @@ static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 static int initial_alloc_size = 4;
 static int max_alloc_size = 100;
-
+void up_wait_sema(void);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -101,18 +101,20 @@ process_wait (tid_t child_tid UNUSED)
 {
   int i;
   int j;
-  for(i=0; i<3000000000; i++){
+  for(i=0; i<2000000000; i++){
     
   }
   return -1;
 }
 
 void up_wait_sema(){
-  struct thread* parent_t = thread_current()->parent;
-  ASSERT(parent_t != NULL);
-  struct list* child_status_code_list = &(parent_t->child_stat_code_list);
-  ASSERT(child_status_code_list != NULL);
-  ASSERT(!list_empty(child_status_code_list));
+  struct thread* cur_t = thread_current();
+  ASSERT(cur_t != NULL);
+
+  struct child_status_code* status_code_elem = cur_t->stat_code_elem;
+  ASSERT (status_code_elem != NULL);
+
+  //sema_up(&status_code_elem->wait_sema);
 
 }
 
