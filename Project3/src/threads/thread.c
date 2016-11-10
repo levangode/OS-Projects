@@ -228,8 +228,6 @@ thread_create (const char *name, int priority,
   #ifdef USERPROG
   creat_and_add_child_status(tid, t);
   t->parent = thread_current();
-  sema_init(&t->process_starting_sema, 0);
-  t->process_start_status = 0;
   #endif
 
   /* Add to run queue. */
@@ -514,13 +512,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
-  list_init(&t->fd_list);
-  t->fd_num = 2;//in.out
+  
 
   #ifdef USERPROG
-
+  list_init(&t->fd_list);
+  t->fd_num = 2;//in.out
   list_init(&t->child_stat_code_list);
-  ASSERT(true && "asdasdasd");
+  sema_init(&t->process_starting_sema, 0);
+  t->process_start_status = 0;
   #endif
 
   old_level = intr_disable ();

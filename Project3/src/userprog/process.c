@@ -58,11 +58,19 @@ process_execute (const char *file_name)
     palloc_free_page (fn_copy); 
     return -1;
   }
-
-  //sema_init(&thread_current()->process_starting_sema, 0);
-  //sema_down(&thread_current()->process_starting_sema);
-
-  //printf("process execute returned tid: %d\n", tid);
+  #ifdef USERPROG
+  //printf("mshobeli igebs = %s\n", thread_current()->name);
+  //if(strcmp(thread_current()->name, "main") != 0){
+    sema_down(&thread_current()->process_starting_sema);
+    //printf("threadi romelmac sema aigo = %s\n", thread_current()->name);
+    //printf("am threadi status = %d\n", thread_current()->process_start_status);
+    
+  //}
+  if(thread_current()->process_start_status == -1){
+    return -1;
+  }
+  #endif
+  
   return tid;
 }
 
@@ -87,11 +95,8 @@ start_process (void *file_name_)
   palloc_free_page (file_name);
 
   if (!success){
-    exit(-1);
-  } else{
-    //ASSERT(false);
-    //thread_exit ();
-  }
+    thread_exit();
+  } 
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -451,15 +456,14 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
-  /*if( success == false ){
+  if( success == false ){
     thread_current() -> parent -> process_start_status = -1;
+    //printf("threadi romelsac status davusete = %s\n", thread_current()->parent->name);
+    //printf("shvili = %s\n", thread_current()->name);
+    //printf("mshobeli awia = %s\n", thread_current()->parent->name);
     
-    sema_up(&thread_current() -> parent -> process_starting_sema );
-  } else {
-    thread_current() -> parent -> process_start_status = 0;
-    
-    sema_up(&thread_current() -> parent -> process_starting_sema );
-  }*/
+  }
+  sema_up(&thread_current() -> parent -> process_starting_sema );
   return success;
 }
 
