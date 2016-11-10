@@ -126,7 +126,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 			{
 				next = (int*)f->esp+1;
 				is_valid(next);
-				char *file = *(char*)next;
+				char *file = *(char**)next;
 				f->eax = remove(file);
 				break;
 			}
@@ -362,13 +362,15 @@ bool remove(const char* file_name){
 }
 
 int write(int fd, const void *buffer, unsigned size){
+	lock_acquire(&system_global_lock);
 	if (fd == STDOUT_FILENO) {
     putbuf(buffer, size);
+    lock_release(&system_global_lock);
     return size;
   } else if(fd == STDIN_FILENO){
+  	lock_release(&system_global_lock);
   	return -1;
   } else {
-  	lock_acquire(&system_global_lock);
   	struct file_descriptor* open_desc = find_my_descriptor(fd);
 		if(open_desc != NULL){
 			struct file* open_file = open_desc->f;
