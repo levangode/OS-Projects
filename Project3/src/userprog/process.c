@@ -610,8 +610,6 @@ void push_to_stack(char** argv, int argc, void** esp){
   void* fake = NULL;
   *esp -= sizeof(void*);
   memcpy(*esp, &fake, sizeof(void*));
-        
-  free(argv);
 }
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
@@ -629,7 +627,7 @@ setup_stack (void **esp, const char* file_name)
         *esp = PHYS_BASE;
         //set up stack with arguments
         int argc_p = 0;
-        char** argv_p = malloc(20*sizeof(char*));//to be made constant size
+        char* argv_p[20*sizeof(char*)];//to be made constant size
 
         char string_to_parse[150];
         strlcpy(string_to_parse, file_name, 150);
