@@ -180,7 +180,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				int fd = *(int*)next;
-				next = (int*)f->esp+1;
+				next = (int*)f->esp+2;
 				is_valid(next);
 				unsigned position = *(unsigned*)next;
 				seek(fd, position);
