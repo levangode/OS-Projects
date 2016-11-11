@@ -91,7 +91,6 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_EXIT:
 			{
 				next = (int*)f->esp+1;
-
 				is_valid(next);
 				int arg = *(int*)next;
 				exit(arg);
@@ -134,7 +133,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 			{
 				//printf("%s\n", "shshsh");
 				//uint32_t * esp = f->esp;
-				char * file = ((char *) *((int**)f->esp + 1));
+				is_valid((int*)f->esp+1);
+				char * file = *(char**)((int*)f->esp + 1);
 				f->eax = open(file);
 				//printf("%s\n", "jjjj");
 				break;
@@ -197,7 +197,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CLOSE:
 			{
 				next = (int*)f->esp+1;
-				
+				is_valid(next);
 				int fd = *(int*)next;
 				close(fd);
 				break;
@@ -255,7 +255,9 @@ static void halt(void){
 
 
 int open(const char* name){
-	is_valid(name);
+	if(name == NULL){
+		exit(-1);
+	}
 	lock_acquire(&system_global_lock);
 	struct file * my_file = filesys_open(name); 
 	if(my_file != NULL){
