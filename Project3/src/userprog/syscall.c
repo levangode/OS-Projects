@@ -66,15 +66,11 @@ syscall_init (void)
   list_init(&files_opened);
 }
 
-void dealocate_my_mmry(){
-	struct thread* cur = thread_current();
-}
-
 exit(int status_code){
 	
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	set_status_code(status_code);
-	dealocate_my_mmry();
+
 	thread_exit();
 }
 

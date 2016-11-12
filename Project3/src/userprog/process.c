@@ -196,12 +196,18 @@ process_wait (tid_t child_tid)
   } else {
     //printf("pre_wait >>>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
     down_child_sema(child_elem);
+
     //printf("post_wait >>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
 
     //debug code
     // //printf("overcome_sema. status code is: %d\n", child_elem->status_code);
     //end
-    return child_elem->status_code;
+
+    int status_code = child_elem->status_code;
+
+    free(child_elem);
+
+    return status_code;
   }
 
   /*int i;
@@ -231,6 +237,11 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  if(thread_current()->executable_file != NULL){
+    file_allow_write(thread_current()->executable_file);
+    printf("file_lock_raised\n");
+  }
 
   //increase semaphore value so that process_wait() can go ahead and read status code.
   up_wait_sema();
@@ -455,13 +466,20 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
   if( success == false ){
     thread_current() -> parent -> process_start_status = -1;
+    if(file!=NULL){
+      thread_current()->executable_file = file;
+      printf("file_locked\n");
+      file_deny_write(file);
+    }
     //printf("threadi romelsac status davusete = %s\n", thread_current()->parent->name);
     //printf("shvili = %s\n", thread_current()->name);
     //printf("mshobeli awia = %s\n", thread_current()->parent->name);
     
+  } else {
+    file_close (file);
+
   }
   sema_up(&thread_current() -> parent -> process_starting_sema );
   return success;
@@ -610,6 +628,8 @@ void push_to_stack(char** argv, int argc, void** esp){
   void* fake = NULL;
   *esp -= sizeof(void*);
   memcpy(*esp, &fake, sizeof(void*));
+        
+  free(argv);
 }
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
@@ -627,7 +647,7 @@ setup_stack (void **esp, const char* file_name)
         *esp = PHYS_BASE;
         //set up stack with arguments
         int argc_p = 0;
-        char* argv_p[20*sizeof(char*)];//to be made constant size
+        char** argv_p = malloc(20*sizeof(char*));//to be made constant size
 
         char string_to_parse[150];
         strlcpy(string_to_parse, file_name, 150);
