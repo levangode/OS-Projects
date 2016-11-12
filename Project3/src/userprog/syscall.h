@@ -11,5 +11,7 @@ struct file_descriptor{
 	struct list_elem elem;
 };
 
+void exit(int status_code);
+
 
 #endif /* userprog/syscall.h */

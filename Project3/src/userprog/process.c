@@ -21,8 +21,6 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static int initial_alloc_size = 4;
-static int max_alloc_size = 100;
 void up_wait_sema(void);
 void down_child_sema(struct child_status_code*);
 struct child_status_code* pop_child_elem(tid_t);
@@ -646,7 +644,7 @@ setup_stack (void **esp, const char* file_name)
         *esp = PHYS_BASE;
         //set up stack with arguments
         int argc_p = 0;
-        char** argv_p[20*sizeof(char*)];//to be made constant size
+        char* argv_p[20*sizeof(char*)];//to be made constant size
 
         char string_to_parse[150];
         strlcpy(string_to_parse, file_name, 150);

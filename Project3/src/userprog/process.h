@@ -9,5 +9,6 @@ void process_exit (void);
 void process_activate (void);
 
 void push_to_stack(char** argv, int argc, void** esp);
+void set_status_code(int status_code);
 
 #endif /* userprog/process.h */
