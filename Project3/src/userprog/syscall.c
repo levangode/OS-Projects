@@ -340,6 +340,14 @@ int filesize(int fd){
 
 
 int read(int fd, void* buffer, unsigned size){
+	if (fd == STDIN_FILENO){
+    uint8_t* buff = (uint8_t *) buffer;
+    int i;
+    for (i = 0; i < size; i++){
+	  	uff[i] = input_getc();	//getchar returns uint8_t
+		}
+     return size;
+  }
 	lock_acquire(&system_global_lock);
 	struct file_descriptor* desc = find_my_descriptor(fd);
 	if(desc != NULL){
