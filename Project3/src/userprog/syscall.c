@@ -344,7 +344,7 @@ int read(int fd, void* buffer, unsigned size){
     uint8_t* buff = (uint8_t *) buffer;
     int i;
     for (i = 0; i < size; i++){
-	  	uff[i] = input_getc();	//getchar returns uint8_t
+	  	buff[i] = input_getc();	//getchar returns uint8_t
 		}
      return size;
   }
