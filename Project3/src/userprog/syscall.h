@@ -4,6 +4,8 @@
 #include "threads/thread.h"
 
 void syscall_init (void);
+
+
 struct file_descriptor{
 	int id;
 	struct file * f;

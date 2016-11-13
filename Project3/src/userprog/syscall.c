@@ -6,6 +6,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "threads/malloc.h"
 #include "pagedir.h"
 #include "userprog/process.h"
 #include "devices/shutdown.h"
@@ -13,18 +14,13 @@
 
 
 static void syscall_handler (struct intr_frame *);
-static void halt(void);
-static bool remove(const char*);
-static int open(const char*);
-static void close(int fd);
+void halt(void);
+int open(const char* file_name);
+void close(int fd);
 struct lock system_global_lock;
-
-
-
 void is_valid(void* addr);
 void exit(int status_code);
 int write(int fd, const void *buffer, unsigned size);	
-void close(int file_descriptor_id);
 void is_valid_buff(void* buff, int size);
 void seek(int fd, unsigned position);
 int tell(int fd);
@@ -32,7 +28,7 @@ int read(int fd, void* buffer, unsigned size);
 bool remove(const char* file_name);
 bool create(char* file, unsigned initial_size);
 int open(const char* name);
-static void halt(void);
+void halt(void);
 struct file_descriptor* find_my_descriptor(int fd);
 int filesize(int fd);
 struct file_descriptor * findFile(int file_descriptor_id, bool should_remove);
@@ -40,6 +36,18 @@ struct file_descriptor * findFile(int file_descriptor_id, bool should_remove);
 
 
 
+
+void
+syscall_init (void) 
+{
+  intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&system_global_lock);
+}
+
+/* Checks if the passed pointer is valid.
+ * invalid if - null pointer, a pointer to unmapped virtual memory, or a pointer to kernel virtual
+ * address space
+ */
 void is_valid(void* addr){
 	if(addr == NULL){
 		exit(-1);
@@ -51,6 +59,7 @@ void is_valid(void* addr){
 	}
 }
 
+/* Also validates the pointer, iterating through the whole buffer */
 void is_valid_buff(void* buff, int size){
   char* iterator = (char*) buff;
   int i;
@@ -60,21 +69,15 @@ void is_valid_buff(void* buff, int size){
 }
 
 
-void
-syscall_init (void) 
-{
-  intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
-  lock_init(&system_global_lock);
-}
-
+/* Exits from current thread. On exit prints his name and status code.
+ * Frees(makes available) the file that is currently being used by this thread.
+ */
 void exit(int status_code){
-	
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	set_status_code(status_code);
-	if (thread_current()->gj != NULL) {
-    file_allow_write(thread_current()->gj);
-  }
-  
+	if (thread_current()->current_file != NULL) {
+    	file_allow_write(thread_current()->current_file);
+  	}
 	thread_exit();
 }
 
@@ -84,7 +87,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
 	is_valid(f->esp);
 	is_valid_buff(f->esp, sizeof(int));
-	int syscall_num = *(int*)f->esp;
+	int syscall_num = *(int*)f->esp;	//loads syscall number.
 	void* next;
 	switch(syscall_num){
 		case SYS_HALT:
@@ -135,12 +138,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 			}
 		case SYS_OPEN:
 			{
-				//printf("%s\n", "shshsh");
-				//uint32_t * esp = f->esp;
 				is_valid((int*)f->esp+1);
 				char * file = *(char**)((int*)f->esp + 1);
 				f->eax = open(file);
-				//printf("%s\n", "jjjj");
 				break;
 			}
 		case SYS_FILESIZE:
@@ -226,10 +226,11 @@ struct file_descriptor * findFile(int file_descriptor_id, bool should_remove){
 	return NULL;
 }
 
-//closing file
+/* Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open
+file descriptors, as if by calling this function for each one. */
 void close(int file_descriptor_id){
 	lock_acquire(&system_global_lock);	
-	if(file_descriptor_id>=0){
+	if(file_descriptor_id >=0){
 		struct file_descriptor * fd = findFile(file_descriptor_id,true);
 		if(fd != NULL && fd->f != NULL ){
 			file_close(fd->f);
@@ -241,6 +242,7 @@ void close(int file_descriptor_id){
 	exit(-1);
 }
 
+/* Creates a new file called file initially initial size bytes in size.*/
 bool create(char* file, unsigned initial_size){
 	bool res = false;
 	if(file==NULL){
@@ -252,12 +254,13 @@ bool create(char* file, unsigned initial_size){
 	return res;
 }
 
-
-static void halt(void){
+/* Terminates Pintos by calling shutdown_power_off() */
+void halt(void){
 	shutdown_power_off();
 }
 
-
+/* Opens the file called file. Returns a nonnegative integer handle called a “file descriptor”
+(fd), or -1 if the file could not be opened.*/
 int open(const char* name){
 	if(name == NULL){
 		exit(-1);
@@ -279,7 +282,7 @@ int open(const char* name){
 	return -1;
 }
 
-
+/* Finds the file descriptor by (fd) in this thread's fd_list */
 struct file_descriptor* find_my_descriptor(int fd){
 	struct thread* cur_thread = thread_current();
 	struct list* fd_list = &cur_thread->fd_list;
@@ -293,8 +296,8 @@ struct file_descriptor* find_my_descriptor(int fd){
 	}
 	return NULL;
 }
-
-//needs to setup structure in thread file descriptors
+/* Returns the position of the next byte to be read or written in open file fd, expressed
+in bytes from the beginning of the file. */
 int tell(int fd){
 	if(fd < 0){
 		exit(-1);
@@ -312,6 +315,8 @@ int tell(int fd){
 	return -1;
 }
 
+/* Changes the next byte to be read or written in open file fd to position, expressed in
+bytes from the beginning of the file. */
 void seek(int fd, unsigned position){
 	if(fd < 0){
 		exit(-1);
@@ -325,6 +330,7 @@ void seek(int fd, unsigned position){
 	lock_release(&system_global_lock);
 }
 
+/* Returns the size, in bytes, of the file open as fd. */
 int filesize(int fd){
 	if(fd < 0){
 		exit(-1);
@@ -341,7 +347,8 @@ int filesize(int fd){
 	return -1;
 }
 
-
+/* Reads size bytes from the file open as fd into buffer. Returns the number of bytes
+actually read. */
 int read(int fd, void* buffer, unsigned size){
 	if (fd == STDIN_FILENO){
     uint8_t* buff = (uint8_t *) buffer;
@@ -364,6 +371,8 @@ int read(int fd, void* buffer, unsigned size){
 	return -1;	
 }
 
+
+/* Deletes the file called file. Returns true if successful, false otherwise. */
 bool remove(const char* file_name){
 	lock_acquire(&system_global_lock);
 	if(file_name != NULL){
@@ -375,6 +384,8 @@ bool remove(const char* file_name){
 	exit(-1);
 }
 
+/* Writes size bytes from buffer to the open file fd. Returns the number of bytes actually
+written, which may be less than size if some bytes could not be written. */
 int write(int fd, const void *buffer, unsigned size){
 	lock_acquire(&system_global_lock);
 	if (fd == STDOUT_FILENO) {

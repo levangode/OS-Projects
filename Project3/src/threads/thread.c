@@ -10,6 +10,7 @@
 #include "threads/palloc.h"
 #include "threads/switch.h"
 #include "threads/synch.h"
+#include "threads/malloc.h"
 #include "threads/vaddr.h"
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -155,7 +156,7 @@ creat_and_add_child_status(tid_t tid, struct thread * t){
 
   // init stat_code_elem
   struct child_status_code* stat_code_elem = malloc(sizeof(struct child_status_code));
-  child_t -> stat_code_elem = stat_code_elem;
+  child_t -> stat_code_elem = (struct child_stat_code*) stat_code_elem;
   ASSERT(stat_code_elem != NULL);
 
   stat_code_elem -> child_tid = tid;
@@ -516,11 +517,11 @@ init_thread (struct thread *t, const char *name, int priority)
 
   #ifdef USERPROG
   list_init(&t->fd_list);
-  t->fd_num = 2;//in.out
+  t->fd_num = 2;//The open system call will never return either 0 or 1 for stdin/out
   list_init(&t->child_stat_code_list);
   sema_init(&t->process_starting_sema, 0);
   t->process_start_status = 0;
-  t->gj = NULL;
+  t->current_file = NULL;
   #endif
 
   old_level = intr_disable ();

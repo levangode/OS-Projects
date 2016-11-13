@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 #include <string.h>
 #include "syscall.h"
 
@@ -27,7 +28,7 @@ void down_child_sema(struct child_status_code*);
 struct child_status_code* pop_child_elem(tid_t);
 void set_status_code(int);
 void clear_wait_list(void);
-
+void close_all_files(void);
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -116,7 +117,7 @@ void down_child_sema(struct child_status_code* child_code_elem){
 */
 void set_status_code(int status_code){
   struct thread* cur_t = thread_current();
-  struct child_status_code* stat_elem = cur_t->stat_code_elem;
+  struct child_status_code* stat_elem = (struct child_status_code*)cur_t->stat_code_elem;
   ASSERT(stat_elem != NULL);
   stat_elem->status_code = status_code;
 
@@ -197,12 +198,13 @@ void up_wait_sema(){
   struct thread* cur_t = thread_current();
   ASSERT(cur_t != NULL);
 
-  struct child_status_code* status_code_elem = cur_t->stat_code_elem;
+  struct child_status_code* status_code_elem = (struct child_status_code*) cur_t->stat_code_elem;
   ASSERT (status_code_elem != NULL);
 
   sema_up(&status_code_elem->wait_sema);
 
 }
+
 
 /*
   close all files currently opened.
@@ -210,6 +212,7 @@ void up_wait_sema(){
   opened.
 */
 void close_all_files(){
+
   struct list* files = &thread_current()->fd_list;
 
   struct list_elem* cur;
@@ -407,7 +410,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-  t->gj = file;
+  t->current_file = file;
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
       || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
@@ -495,8 +498,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     thread_current() -> parent -> process_start_status = -1;
   } 
   sema_up(&thread_current() -> parent -> process_starting_sema );
-  if (thread_current()->gj != NULL) {
-    file_deny_write(thread_current()->gj);
+  if (thread_current()->current_file != NULL) {
+    file_deny_write(thread_current()->current_file);
   }
   return success;
 }
@@ -609,9 +612,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
-/*
-  
-*/
+
+/* Pushes arguments to stack */
+
 void push_to_stack(char** argv, int argc, void** esp){
   char* next;
   int i;
@@ -671,7 +674,6 @@ setup_stack (void **esp, const char* file_name)
         char* token, *save_ptr;
         
         token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.
-        //token = strtok_r(NULL, " ", &save_ptr); //procceeds to next argument
         while(token != NULL){
           argv_p[argc_p] = token;
           argc_p++;
