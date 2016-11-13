@@ -108,7 +108,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				char *cmd_line = *(char**)next;
+				lock_acquire(&system_global_lock);
 				f->eax = process_execute(cmd_line);
+				lock_release(&system_global_lock);
 				break;
 			}
 		case SYS_WAIT:
