@@ -29,6 +29,9 @@ struct child_status_code* pop_child_elem(tid_t);
 void set_status_code(int);
 void clear_wait_list(void);
 void close_all_files(void);
+#define init_alloc 20
+#define argmax_length 150
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -46,8 +49,8 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  char string_to_parse[150];
-  strlcpy(string_to_parse, file_name, 150);
+  char string_to_parse[argmax_length];
+  strlcpy(string_to_parse, file_name, argmax_length);
   char* token, *save_ptr;
 
   token = strtok_r(string_to_parse, " ", &save_ptr);
@@ -397,8 +400,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-  char string_to_parse[150];
-  strlcpy(string_to_parse, file_name, 150);
+  char string_to_parse[argmax_length];
+  strlcpy(string_to_parse, file_name, argmax_length);
   char* token, *save_ptr;
 
   token = strtok_r(string_to_parse, " ", &save_ptr);
@@ -667,10 +670,10 @@ setup_stack (void **esp, const char* file_name)
         *esp = PHYS_BASE;
         //set up stack with arguments
         int argc_p = 0;
-        char* argv_p[20*sizeof(char*)];//to be made constant size
+        char* argv_p[init_alloc*sizeof(char*)];//to be made constant size
 
-        char string_to_parse[150];
-        strlcpy(string_to_parse, file_name, 150);
+        char string_to_parse[argmax_length];
+        strlcpy(string_to_parse, file_name, argmax_length);
         char* token, *save_ptr;
         
         token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.
