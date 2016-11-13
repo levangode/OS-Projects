@@ -185,7 +185,7 @@ void up_wait_sema(){
   struct thread* cur_t = thread_current();
   ASSERT(cur_t != NULL);
 
-  struct child_status_code* status_code_elem = cur_t->stat_code_elem;
+  struct child_status_code* status_code_elem = (struct child_status_code*) cur_t->stat_code_elem;
   ASSERT (status_code_elem != NULL);
 
   sema_up(&status_code_elem->wait_sema);

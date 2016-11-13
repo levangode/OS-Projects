@@ -156,7 +156,6 @@ creat_and_add_child_status(tid_t tid, struct thread * t){
 
   // init stat_code_elem
   struct child_status_code* stat_code_elem = malloc(sizeof(struct child_status_code));
-  child_t -> stat_code_elem = stat_code_elem;
   ASSERT(stat_code_elem != NULL);
 
   stat_code_elem -> child_tid = tid;
