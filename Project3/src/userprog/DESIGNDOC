@@ -1,0 +1,53 @@
+
+
+---GROUP---
+
+Levan Goderdzishvili - lgode14@freeuni.edu.ge
+Mikheil Metreveli - mmetr14@freeuni.edu.ge
+Papuna Gaprindashvili - pgapr14@freeuni.edu.ge
+Sandro Magradze - amagh13@freeuni.edu.ge
+
+
+---ARGUMENT PASSING---
+
+
+
+
+
+
+
+
+
+
+---ALGORITHMS---
+
+
+
+
+
+
+
+
+---FILE SYSTEM---
+Added file descriptor structure for optimal file managment.   
+
+struct file_descriptor{
+	int id; //unique id
+	struct file * f; //file pointer
+	tid_t master; // file owner tip
+	struct list_elem elem; 
+};
+
+Added 'system_global_lock' 
+
+
+
+
+
+
+
+---SYSTEM CALLS---
+
+
+
+
