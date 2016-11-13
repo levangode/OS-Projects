@@ -6,6 +6,12 @@
 #include <stdint.h>
 #include "threads/synch.h"
 
+#ifdef USERPROG
+  #include "filesys/directory.h"
+  #include "filesys/file.h"
+  #include "filesys/filesys.h"
+#endif
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -114,7 +120,6 @@ struct thread
     //for catching errors during thread creation
     struct semaphore process_starting_sema;
     int process_start_status;
-
 
     //for ensurence of file integrity while executing
     struct file* executable_file;
