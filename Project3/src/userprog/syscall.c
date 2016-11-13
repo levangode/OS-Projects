@@ -72,6 +72,9 @@ void exit(int status_code){
 	
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	set_status_code(status_code);
+	if (thread_current()->gj != NULL) {
+    file_allow_write(thread_current()->gj);
+  }
 
 	thread_exit();
 }

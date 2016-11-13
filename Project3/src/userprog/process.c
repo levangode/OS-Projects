@@ -409,7 +409,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-
+  t->gj = file;
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
       || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
@@ -495,20 +495,19 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* We arrive here whether the load is successful or not. */
   if( success == false ){
     thread_current() -> parent -> process_start_status = -1;
-    if(file!=NULL){
+    /*if(file!=NULL){
       thread_current()->executable_file = file;
 
       file_deny_write(file);
-    }
+    }*/
     //printf("threadi romelsac status davusete = %s\n", thread_current()->parent->name);
     //printf("shvili = %s\n", thread_current()->name);
     //printf("mshobeli awia = %s\n", thread_current()->parent->name);
-    
-  } else {
-    file_close (file);
-
-  }
+  } 
   sema_up(&thread_current() -> parent -> process_starting_sema );
+  if (thread_current()->gj != NULL) {
+    file_deny_write(thread_current()->gj);
+  }
   return success;
 }
 

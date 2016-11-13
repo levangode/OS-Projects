@@ -123,6 +123,7 @@ struct thread
 
     //for ensurence of file integrity while executing
     struct file* executable_file;
+    struct file* gj;
     
 #endif
 
