@@ -105,11 +105,8 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
     int child_load;
     tid_t parent_id;
-    struct list child_list;
-    struct file *exe_file;
+    //struct list child_list;
     int fd_num;
-    struct condition child_cond;
-    struct lock child_lock;
     struct list fd_list;
 
     // for returnin status value
@@ -122,7 +119,6 @@ struct thread
     int process_start_status;
 
     //for ensurence of file integrity while executing
-    struct file* executable_file;
     struct file* gj;
     
 #endif

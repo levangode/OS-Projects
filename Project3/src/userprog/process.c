@@ -26,6 +26,7 @@ void up_wait_sema(void);
 void down_child_sema(struct child_status_code*);
 struct child_status_code* pop_child_elem(tid_t);
 void set_status_code(int);
+void clear_wait_list(void);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -197,15 +198,35 @@ void close_all_files(){
 
   struct file_descriptor* cur_elem;
 
-  for(cur = list_begin(files); cur != list_end(files); cur = list_next(cur)){
+  for(cur = list_begin(files); cur != list_end(files); ){
     cur_elem = list_entry(cur, struct file_descriptor, elem);
     ASSERT(cur_elem != NULL);
 
     struct file* file_to_close = (struct file*) cur_elem->f;
     ASSERT(file_to_close != NULL);
 
-    file_close(file_to_close);
+    //file_close(file_to_close);
+    cur = list_next(cur);
+    free(cur_elem);
 
+  }
+}
+
+void clear_wait_list(){
+  struct thread* cur_t = thread_current();
+  ASSERT(cur_t!=NULL);
+  struct list* child_list = &cur_t -> child_stat_code_list;
+  struct list_elem* cur_elem = list_begin(child_list);
+  ASSERT(cur_elem != NULL);
+  struct child_status_code* tmp_elem = NULL;
+
+
+  for(; cur_elem != list_end(child_list); ){
+    tmp_elem = list_entry(cur_elem, struct child_status_code, child_status_code_list_elem);
+
+    cur_elem = list_next(cur_elem);
+    free(tmp_elem);
+    
   }
 }
 
@@ -219,7 +240,8 @@ process_exit (void)
     return;
   }
 
-  //close_all_files();
+  clear_wait_list();
+  close_all_files();
 
   uint32_t *pd;
   //increase semaphore value so that process_wait() can go ahead and read status code.

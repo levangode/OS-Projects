@@ -18,7 +18,7 @@ static bool remove(const char*);
 static int open(const char*);
 static void close(int fd);
 struct lock system_global_lock;
-struct list files_opened;
+
 
 
 void is_valid(void* addr);
@@ -65,7 +65,6 @@ syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   lock_init(&system_global_lock);
-  list_init(&files_opened);
 }
 
 void exit(int status_code){
@@ -271,7 +270,7 @@ int open(const char* name){
 		my_fd->f = my_file;
 		my_fd->id = curThread->fd_num;
 		curThread->fd_num++;
-		list_push_back(&files_opened,&my_fd->elem);
+		
 		list_push_back(&curThread->fd_list,&my_fd->elem);
 		lock_release(&system_global_lock);
 		return my_fd->id;
