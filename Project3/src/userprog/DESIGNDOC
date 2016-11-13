@@ -34,13 +34,13 @@ Added file descriptor structure for optimal file managment.
 struct file_descriptor{
 	int id; //unique id
 	struct file * f; //file pointer
-	tid_t master; // file owner tip
 	struct list_elem elem; 
 };
 
 Added 'system_global_lock' 
 
-
+Added file descriptor list to thread struct. 
+'struct list fd_list;'
 
 
 
