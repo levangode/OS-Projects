@@ -79,29 +79,6 @@ struct thread
 
   };
 
-struct child_status_code{
-	/*tid of the current element*/
-  	tid_t child_tid;
-  	/*status code for current element*/
-  	int status_code;
-
-  	/*semaphore for waitin to current elemets status code*/
-  	struct semaphore wait_sema;
-
-  	/*list element*/
-  	struct list_elem child_status_code_list_elem;
-
-};
-
-struct file_descriptor{
-	/*file descriptor*/
-	int id;
-	/*file*/
-	struct file * f;
-	/*list element*/
-	struct list_elem elem;
-};
-
 
 ---- ALGORITHMS ----
 
@@ -126,14 +103,52 @@ struct file_descriptor{
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct child_status_code{
+  /*tid of the current element*/
+    tid_t child_tid;
+    /*status code for current element*/
+    int status_code;
+
+    /*semaphore for waitin to current elemets status code*/
+    struct semaphore wait_sema;
+
+    /*list element*/
+    struct list_elem child_status_code_list_elem;
+
+};
+
+struct file_descriptor{
+  /*file descriptor*/
+  int id;
+  /*file*/
+  struct file * f;
+  /*list element*/
+  struct list_elem elem;
+};
+ 
+
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
+
+Each process has a list of file descriptors.
 
 ---- ALGORITHMS ----
 
 >> B3: Describe your code for reading and writing user data from the
 >> kernel.
+
+write:
+  while maintaining synchronization, we check the fd num. in case of stdout, we directly write
+  to console with putbuf() command. stdin case is automatically ignored. In other cases, we
+  have to find a file by the given fd, if we find such, we write to it with file_write() passing
+  the same buffer and size to it.
+
+read:
+  We check if received file descriptor is stin and if it is so then we read from user input,
+  else we acquire global system lock, search for our descriptor and get it's file. If we
+  can find the descriptor and the file then we read from it, release the lock and return 
+  the size of read data.
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
 >> to be copied from user space into the kernel.  What is the least
