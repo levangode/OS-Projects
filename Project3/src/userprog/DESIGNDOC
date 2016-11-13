@@ -97,3 +97,13 @@ filesize:
 remove:
 	find the descriptor, get the file, return the value from filesys_remove to eax.
 
+tell:
+	As far as every file descriptor is denoted with positive numbers, we instantly ignore
+	if a wrong descriptor is passed. We use the global system lock to ensure synchronization 
+	and if we find an open descriptor, we call file_tell on it and return the value to eax.
+
+write:
+	while maintaining synchronization, we check the fd num. in case of stdout, we directly write
+	to console with putbuf() command. stdin case is automatically ignored. In other cases, we
+	have to find a file by the given fd, if we find such, we write to it with file_write() passing
+	the same buffer and size to it.
