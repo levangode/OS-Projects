@@ -7,7 +7,6 @@ void syscall_init (void);
 struct file_descriptor{
 	int id;
 	struct file * f;
-	tid_t master;
 	struct list_elem elem;
 };
 
