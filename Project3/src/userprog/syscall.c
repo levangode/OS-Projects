@@ -8,13 +8,14 @@
 #include "threads/synch.h"
 #include "pagedir.h"
 #include "userprog/process.h"
+#include "devices/shutdown.h"
+#include "devices/input.h"
 
 
 static void syscall_handler (struct intr_frame *);
 static void halt(void);
 static bool remove(const char*);
 static int open(const char*);
-static int file_descriptor_number = 1;
 static void close(int fd);
 struct lock system_global_lock;
 struct list files_opened;
@@ -34,6 +35,7 @@ int open(const char* name);
 static void halt(void);
 struct file_descriptor* find_my_descriptor(int fd);
 int filesize(int fd);
+struct file_descriptor * findFile(int file_descriptor_id, bool should_remove);
 
 
 
@@ -66,7 +68,7 @@ syscall_init (void)
   list_init(&files_opened);
 }
 
-exit(int status_code){
+void exit(int status_code){
 	
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	set_status_code(status_code);
@@ -277,7 +279,6 @@ int open(const char* name){
 
 
 struct file_descriptor* find_my_descriptor(int fd){
-	struct file_descriptor* res;
 	struct thread* cur_thread = thread_current();
 	struct list* fd_list = &cur_thread->fd_list;
 	struct list_elem* next = list_head(fd_list);
@@ -340,6 +341,15 @@ int filesize(int fd){
 
 
 int read(int fd, void* buffer, unsigned size){
+	if (fd == STDIN_FILENO){
+    uint8_t* buff = (uint8_t *) buffer;
+    int i;
+    int s = size;
+    for (i = 0; i < s; i++){
+	  	buff[i] = input_getc();	//getchar returns uint8_t
+		}
+    return size;
+  }
 	lock_acquire(&system_global_lock);
 	struct file_descriptor* desc = find_my_descriptor(fd);
 	if(desc != NULL){

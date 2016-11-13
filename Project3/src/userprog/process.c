@@ -22,8 +22,6 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static int initial_alloc_size = 4;
-static int max_alloc_size = 100;
 void up_wait_sema(void);
 void down_child_sema(struct child_status_code*);
 struct child_status_code* pop_child_elem(tid_t);
@@ -267,6 +265,11 @@ process_exit (void)
 
   uint32_t *pd;
 
+  if(thread_current()->executable_file != NULL){
+    file_allow_write(thread_current()->executable_file);
+    printf("file_lock_raised\n");
+  }
+
   //increase semaphore value so that process_wait() can go ahead and read status code.
   up_wait_sema();
   
@@ -494,7 +497,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     thread_current() -> parent -> process_start_status = -1;
     if(file!=NULL){
       thread_current()->executable_file = file;
-      //printf("file_locked\n");
+
       file_deny_write(file);
     }
     //printf("threadi romelsac status davusete = %s\n", thread_current()->parent->name);
@@ -652,8 +655,7 @@ void push_to_stack(char** argv, int argc, void** esp){
   void* fake = NULL;
   *esp -= sizeof(void*);
   memcpy(*esp, &fake, sizeof(void*));
-        
-  free(argv);
+  
 }
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
@@ -671,7 +673,7 @@ setup_stack (void **esp, const char* file_name)
         *esp = PHYS_BASE;
         //set up stack with arguments
         int argc_p = 0;
-        char** argv_p = malloc(20*sizeof(char*));//to be made constant size
+        char* argv_p[20*sizeof(char*)];//to be made constant size
 
         char string_to_parse[150];
         strlcpy(string_to_parse, file_name, 150);
