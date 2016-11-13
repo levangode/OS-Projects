@@ -205,7 +205,8 @@ void close_all_files(){
     struct file* file_to_close = (struct file*) cur_elem->f;
     ASSERT(file_to_close != NULL);
 
-    //file_close(file_to_close);
+    file_close(file_to_close);
+    list_remove(cur);
     cur = list_next(cur);
     free(cur_elem);
 
@@ -224,10 +225,13 @@ void clear_wait_list(){
   for(; cur_elem != list_end(child_list); ){
     tmp_elem = list_entry(cur_elem, struct child_status_code, child_status_code_list_elem);
 
+    list_remove(cur_elem);
+
     cur_elem = list_next(cur_elem);
     free(tmp_elem);
-    
   }
+
+
 }
 
 /* Free the current process's resources. */
