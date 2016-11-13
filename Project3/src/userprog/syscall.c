@@ -6,6 +6,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "threads/malloc.h"
 #include "pagedir.h"
 #include "userprog/process.h"
 #include "devices/shutdown.h"

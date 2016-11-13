@@ -28,7 +28,7 @@ void down_child_sema(struct child_status_code*);
 struct child_status_code* pop_child_elem(tid_t);
 void set_status_code(int);
 void clear_wait_list(void);
-
+void close_all_files(void);
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -109,7 +109,7 @@ void down_child_sema(struct child_status_code* child_code_elem){
 
 void set_status_code(int status_code){
   struct thread* cur_t = thread_current();
-  struct child_status_code* stat_elem = cur_t->stat_code_elem;
+  struct child_status_code* stat_elem = (struct child_status_code*)cur_t->stat_code_elem;
   ASSERT(stat_elem != NULL);
   stat_elem->status_code = status_code;
 
@@ -192,7 +192,7 @@ void up_wait_sema(){
 
 }
 
-void close_all_files(){
+void close_all_files(void){
   struct list* files = &thread_current()->fd_list;
 
   struct list_elem* cur;
