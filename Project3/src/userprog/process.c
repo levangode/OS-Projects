@@ -18,7 +18,6 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include <string.h>
-#include "syscall.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -195,18 +194,12 @@ process_wait (tid_t child_tid)
   } else {
     //printf("pre_wait >>>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
     down_child_sema(child_elem);
-
     //printf("post_wait >>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
 
     //debug code
     // //printf("overcome_sema. status code is: %d\n", child_elem->status_code);
     //end
-
-    int status_code = child_elem->status_code;
-
-    free(child_elem);
-
-    return status_code;
+    return child_elem->status_code;
   }
 
   /*int i;
@@ -230,39 +223,11 @@ void up_wait_sema(){
 
 }
 
-void close_all_files(){
-  struct list* files = &thread_current()->fd_list;
-
-  struct list_elem* cur;
-
-  struct file_descriptor* cur_elem;
-
-  for(cur = list_begin(files); cur != list_end(files); cur = list_next(cur)){
-    cur_elem = list_entry(cur, struct file_descriptor, elem);
-    ASSERT(cur_elem != NULL);
-
-    struct file* file_to_close = (struct file*) cur_elem->f;
-    ASSERT(file_to_close != NULL);
-
-    file_close(file_to_close);
-
-  }
-
-  file_close(thread_current()->executable_file);
-}
-
 /* Free the current process's resources. */
 void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
-    
-  if(thread_tid() == 1){
-    return;
-  }
-
-  close_all_files();
-
   uint32_t *pd;
 
   if(thread_current()->executable_file != NULL){
@@ -493,17 +458,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
+  file_close (file);
   if( success == false ){
     thread_current() -> parent -> process_start_status = -1;
-    /*if(file!=NULL){
-      thread_current()->executable_file = file;
-
-      file_deny_write(file);
-    }*/
-    //printf("threadi romelsac status davusete = %s\n", thread_current()->parent->name);
-    //printf("shvili = %s\n", thread_current()->name);
-    //printf("mshobeli awia = %s\n", thread_current()->parent->name);
-  } 
+  }
   sema_up(&thread_current() -> parent -> process_starting_sema );
   if (thread_current()->gj != NULL) {
     file_deny_write(thread_current()->gj);
