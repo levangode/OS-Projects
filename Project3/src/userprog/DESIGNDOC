@@ -85,3 +85,15 @@ wait:
 	it will not be present in list and error is returned.
 
 	
+seek:
+	for each thread we are maintaining the list of file descriptors. When a fd parameter is
+	passed to seek, we check our list for file_descriptor with id == fd, and extract the file element from it.
+	if we couldn't find such descriptor, we do nothing, else we call the preprepeared file_seek.
+	The function will use the global filesystem lock as other syscalls.
+
+filesize:
+	same strategy as in seek, fd is passed, we execute preprepared file_length and return the result to eax.
+
+remove:
+	find the descriptor, get the file, return the value from filesys_remove to eax.
+
