@@ -48,6 +48,40 @@ Added file descriptor list to thread struct.
 
 ---SYSTEM CALLS---
 
+wait:
+	struct thread{
+		...
+	    struct list child_stat_code_list;
+	    struct child_stat_code* stat_code_elem;
+	    ...
+	}
 
+	struct child_status_code{
+  		tid_t child_tid;
+ 		int status_code;
 
+  		struct semaphore wait_sema;
 
+  		struct list_elem child_status_code_list_elem;
+	};
+
+	status code storage:
+	status code list added to thread structure for keeping track of children status codes.
+	child status codes are kept in thir own structure which is preallocated by parent
+	during thread creation and pointer to them is stored in stat_code_elem for easy and
+	fast access to status code by executing thread.
+
+	blocking:
+	parent thread is blocked on child by pid. the semaphore for given pid is found in 
+	child_stat_code_list->child_status_code_elem->wait_sema. parent is blocked until
+	child sets its own status code by calling set_status_code(int).
+
+	child list management:
+	child list is populated during child thread creation memmory is allocated in heap
+	by parent thread. list element is insertid in list and pointer to element is stored in child
+	list elements are freed when wait() is called. and also if process_exit is called all
+	elements(ie which ones have not been waited) are also freed.
+	list only stores elemets which have not been waited so far, so if thread is already waied
+	it will not be present in list and error is returned.
+
+	
