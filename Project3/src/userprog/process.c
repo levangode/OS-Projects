@@ -58,13 +58,7 @@ process_execute (const char *file_name)
     return -1;
   }
   #ifdef USERPROG
-  //printf("mshobeli igebs = %s\n", thread_current()->name);
-  //if(strcmp(thread_current()->name, "main") != 0){
-    sema_down(&thread_current()->process_starting_sema);
-    //printf("threadi romelmac sema aigo = %s\n", thread_current()->name);
-    //printf("am threadi status = %d\n", thread_current()->process_start_status);
-    
-  //}
+  sema_down(&thread_current()->process_starting_sema);
   if(thread_current()->process_start_status == -1){
     return -1;
   }
@@ -113,14 +107,10 @@ void down_child_sema(struct child_status_code* child_code_elem){
 
 void set_status_code(int status_code){
   struct thread* cur_t = thread_current();
-
   struct child_status_code* stat_elem = cur_t->stat_code_elem;
-
   ASSERT(stat_elem != NULL);
-
   stat_elem->status_code = status_code;
 
-  //printf("status_code_set by:%s, to :%d\n", thread_current()->name, status_code);
 
 }
 
@@ -131,30 +121,15 @@ void set_status_code(int status_code){
 struct child_status_code* pop_child_elem(tid_t child_tid){
   struct thread* cur_t = thread_current();
   ASSERT(cur_t!=NULL);
-
   struct list* child_list = &cur_t -> child_stat_code_list;
-  // ASSERT(!list_empty(child_list)); //assert is ony for debugging.
-
   struct list_elem* cur_elem = list_begin(child_list);
   ASSERT(cur_elem != NULL);
-
-  //ASSERT(list_size(child_list) < 3);
-
   struct child_status_code* res = NULL; 
-
   struct child_status_code* tmp_elem = NULL;
-
-  //debug code
-  // //printf("trying to wait:%d____to%d\n", thread_tid(), child_tid);
 
 
   for(; cur_elem != list_end(child_list); cur_elem = list_next(cur_elem)){
     tmp_elem = list_entry(cur_elem, struct child_status_code, child_status_code_list_elem);
-    
-    //debug code
-    // //printf("iterating through elems\n");
-    // //printf("%d____%d\n", tmp_elem->child_tid, tmp_elem->status_code);
-    
 
     if(tmp_elem->child_tid == child_tid){
       res = tmp_elem;
@@ -162,8 +137,6 @@ struct child_status_code* pop_child_elem(tid_t child_tid){
       break;
     }
   }
-
-  // //printf("iteration finished\n");
 
   return res;
 }
@@ -193,14 +166,7 @@ process_wait (tid_t child_tid)
   if(child_elem == NULL){
     return -1;
   } else {
-    //printf("pre_wait >>>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
     down_child_sema(child_elem);
-
-    //printf("post_wait >>> %d  >>>>  %d\n", child_elem->child_tid, child_elem->status_code);
-
-    //debug code
-    // //printf("overcome_sema. status code is: %d\n", child_elem->status_code);
-    //end
 
     int status_code = child_elem->status_code;
 
@@ -208,12 +174,6 @@ process_wait (tid_t child_tid)
 
     return status_code;
   }
-
-  /*int i;
-  int j;
-  for(i=0; i<2000000000; i++){
-    
-  }*/
 
 
   return -1;
@@ -247,8 +207,6 @@ void close_all_files(){
     file_close(file_to_close);
 
   }
-
-  file_close(thread_current()->executable_file);
 }
 
 /* Free the current process's resources. */
@@ -264,12 +222,6 @@ process_exit (void)
   close_all_files();
 
   uint32_t *pd;
-
-  if(thread_current()->executable_file != NULL){
-    file_allow_write(thread_current()->executable_file);
-    printf("file_lock_raised\n");
-  }
-
   //increase semaphore value so that process_wait() can go ahead and read status code.
   up_wait_sema();
   
@@ -495,14 +447,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* We arrive here whether the load is successful or not. */
   if( success == false ){
     thread_current() -> parent -> process_start_status = -1;
-    /*if(file!=NULL){
-      thread_current()->executable_file = file;
-
-      file_deny_write(file);
-    }*/
-    //printf("threadi romelsac status davusete = %s\n", thread_current()->parent->name);
-    //printf("shvili = %s\n", thread_current()->name);
-    //printf("mshobeli awia = %s\n", thread_current()->parent->name);
   } 
   sema_up(&thread_current() -> parent -> process_starting_sema );
   if (thread_current()->gj != NULL) {
