@@ -517,7 +517,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   #ifdef USERPROG
   list_init(&t->fd_list);
-  t->fd_num = 2;//in.out
+  t->fd_num = 2;//The open system call will never return either 0 or 1 for stdin/out
   list_init(&t->child_stat_code_list);
   sema_init(&t->process_starting_sema, 0);
   t->process_start_status = 0;
