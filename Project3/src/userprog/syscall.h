@@ -5,6 +5,7 @@
 
 void syscall_init (void);
 
+struct lock system_global_lock;
 
 struct file_descriptor{
 	int id;

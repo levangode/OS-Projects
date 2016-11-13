@@ -17,7 +17,6 @@ static void syscall_handler (struct intr_frame *);
 void halt(void);
 int open(const char* file_name);
 void close(int fd);
-struct lock system_global_lock;
 void is_valid(void* addr);
 void exit(int status_code);
 int write(int fd, const void *buffer, unsigned size);	
@@ -108,9 +107,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+1;
 				is_valid(next);
 				char *cmd_line = *(char**)next;
-				lock_acquire(&system_global_lock);
+				
 				f->eax = process_execute(cmd_line);
-				lock_release(&system_global_lock);
+				
 				break;
 			}
 		case SYS_WAIT:

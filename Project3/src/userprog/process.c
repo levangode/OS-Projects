@@ -274,6 +274,9 @@ process_exit (void)
 
   clear_wait_list();
   close_all_files();
+  if(lock_held_by_current_thread (&system_global_lock)){
+    lock_release(&system_global_lock);
+  }
 
   uint32_t *pd;
   
@@ -407,7 +410,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   token = strtok_r(string_to_parse, " ", &save_ptr);
 
   /* Open executable file. */
+  lock_acquire(&system_global_lock);
   file = filesys_open (token);
+  
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -415,6 +420,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
   t->current_file = file;
   /* Read and verify executable header. */
+  
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
       || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
       || ehdr.e_type != 2
@@ -426,7 +432,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: error loading executable\n", file_name);
       goto done; 
     }
-
+  
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
   for (i = 0; i < ehdr.e_phnum; i++) 
@@ -435,10 +441,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
       if (file_ofs < 0 || file_ofs > file_length (file))
         goto done;
+      
       file_seek (file, file_ofs);
-
+      
       if (file_read (file, &phdr, sizeof phdr) != sizeof phdr)
         goto done;
+    
       file_ofs += sizeof phdr;
       switch (phdr.p_type) 
         {
@@ -485,7 +493,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-
+  lock_release(&system_global_lock);
   /* Set up stack. */
   if (!setup_stack (esp, file_name))
     goto done;
