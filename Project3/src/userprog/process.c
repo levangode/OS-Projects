@@ -219,7 +219,7 @@ process_exit (void)
     return;
   }
 
-  close_all_files();
+  //close_all_files();
 
   uint32_t *pd;
   //increase semaphore value so that process_wait() can go ahead and read status code.

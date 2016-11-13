@@ -75,7 +75,7 @@ void exit(int status_code){
 	if (thread_current()->gj != NULL) {
     file_allow_write(thread_current()->gj);
   }
-
+  
 	thread_exit();
 }
 
