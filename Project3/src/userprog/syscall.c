@@ -74,8 +74,8 @@ void is_valid_buff(void* buff, int size){
 void exit(int status_code){
 	printf("%s: exit(%d)\n", thread_current()->name, status_code);
 	set_status_code(status_code);
-	if (thread_current()->gj != NULL) {
-    	file_allow_write(thread_current()->gj);
+	if (thread_current()->current_file != NULL) {
+    	file_allow_write(thread_current()->current_file);
   	}
 	thread_exit();
 }

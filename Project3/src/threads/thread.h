@@ -119,7 +119,7 @@ struct thread
     int process_start_status;
 
     //for ensurence of file integrity while executing
-    struct file* gj;
+    struct file* current_file;
     
 #endif
 

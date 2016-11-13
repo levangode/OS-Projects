@@ -388,7 +388,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-  t->gj = file;
+  t->current_file = file;
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
       || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
@@ -476,8 +476,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     thread_current() -> parent -> process_start_status = -1;
   } 
   sema_up(&thread_current() -> parent -> process_starting_sema );
-  if (thread_current()->gj != NULL) {
-    file_deny_write(thread_current()->gj);
+  if (thread_current()->current_file != NULL) {
+    file_deny_write(thread_current()->current_file);
   }
   return success;
 }
@@ -590,7 +590,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
-
+/* Pushes arguments to stack */
 void push_to_stack(char** argv, int argc, void** esp){
   char* next;
   int i;
@@ -650,7 +650,6 @@ setup_stack (void **esp, const char* file_name)
         char* token, *save_ptr;
         
         token = strtok_r(string_to_parse, " ", &save_ptr);  //First argument is process name, not needed.
-        //token = strtok_r(NULL, " ", &save_ptr); //procceeds to next argument
         while(token != NULL){
           argv_p[argc_p] = token;
           argc_p++;
