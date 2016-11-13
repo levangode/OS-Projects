@@ -31,6 +31,55 @@ Sandro Magradze  		<amagh13@freeuni.edu.ge>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+
+No new structs.
+Two static variables, init_aloc and argmax_length.
+init_aloc defines the arbitrary number of arguments that can be passed through a command.
+argmax_length defines the arbitrary max length of the command together with its arguments, which is entered by user.
+
+
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  How do
+>> you arrange for the elements of argv[] to be in the right order?
+>> How do you avoid overflowing the stack page?
+
+At first, we parse the whole string and temporary save them in array like argv, but its temporal.
+Then we iterate through this array in reversed order and do the "stackpushing" thing for each of them - 
+- which is, freeing the enough memory at first by moving the stack pointer down, and then memcpying the
+argument into the free space. After that, we follow the steps described in the assignment - the word alignment/null separators etc.
+
+Stack overflowing won't be precautioned. THe page fault will be caught in exception and will be properely handled by as, which in
+this case is exiting from the thread.
+
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+Because after extracting the first token(the command name), we should be able to access the rest of the string too.
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+
+1) Don't waste time in kernel.
+2) kernel will get safe arguments and won't have to do the exceptions thing.
+
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+
 struct thread
   {
     tid_t tid;                          
@@ -78,6 +127,30 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
   };
+
+struct child_status_code{
+  /*tid of the current element*/
+    tid_t child_tid;
+    /*status code for current element*/
+    int status_code;
+
+    /*semaphore for waitin to current elemets status code*/
+    struct semaphore wait_sema;
+
+    /*list element*/
+    struct list_elem child_status_code_list_elem;
+
+};
+
+struct file_descriptor{
+  /*file descriptor*/
+  int id;
+  /*file*/
+  struct file * f;
+  /*list element*/
+  struct list_elem elem;
+};
+
 
 
 ---- ALGORITHMS ----
@@ -127,6 +200,7 @@ struct file_descriptor{
 };
  
 
+<<<<<<< HEAD
 wait:
   struct thread{
     ...
@@ -144,11 +218,19 @@ wait:
       struct list_elem child_status_code_list_elem;
   };
 
+=======
+>>>>>>> origin/master
+>>>>>>> origin/master
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
 
+<<<<<<< HEAD
+
+
+=======
 Each process has a list of file descriptors.
+>>>>>>> origin/master
 
 ---- ALGORITHMS ----
 
@@ -239,12 +321,24 @@ write:
 >> paragraphs, describe the strategy or strategies you adopted for
 >> managing these issues.  Give an example.
 
+When reading from stack, we simply check every pointer for valideness before using it. 
+On the other hand if the pointer points to a buffer, we check the whole buffer for the valideness.
+If an error is caught, we exit the thread, which on it's own, calls the process_exit where we deallocate all our resources,
+close files and release locks.
+
 ---- SYNCHRONIZATION ----
 
 >> B7: The "exec" system call returns -1 if loading the new executable
 >> fails, so it cannot return before the new executable has completed
 >> loading.  How does your code ensure this?  How is the load
 >> success/failure status passed back to the thread that calls "exec"?
+
+We ensure this with one semaphore initialy set to 0. On creation of the child thread we check
+for successful load of it meanwhile keeping the pointer to the parent thread, where we have a status variable
+for the successful launch of the child. As soon as it's known whether child loaded successfully or not, we set
+the status variable in the parent and signal the parent letting him to take the semaphore on which he blocked
+right away after creating the child. The parent downs the semaphore and checks the status set by child, so he can
+find out if his child survived or not :)
 
 >> B8: Consider parent process P with child process C.  How do you
 >> ensure proper synchronization and avoid race conditions when P
@@ -261,10 +355,17 @@ write:
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
 
+<<<<<<< HEAD
 
+=======
+Idk why it should have disadvantages, everyithing is neat and fine.
+>>>>>>> origin/master
 
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
+
+We didn't change anything about it.
+
 
 			   SURVEY QUESTIONS
 			   ================
@@ -277,6 +378,8 @@ the quarter.
 
 >> In your opinion, was this assignment, or any one of the three problems
 >> in it, too easy or too hard?  Did it take too long or too little time?
+
+Tu dzma xar raa
 
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
