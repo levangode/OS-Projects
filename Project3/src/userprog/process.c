@@ -102,17 +102,26 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
+/*
+  block on wait_sema.
+*/
 void down_child_sema(struct child_status_code* child_code_elem){
   sema_down(&child_code_elem->wait_sema);
 }
 
+/*
+  set status code for current thread.
+  also unblock wait sema so that parent process(if waiting for this child) 
+  can read status code.
+*/
 void set_status_code(int status_code){
   struct thread* cur_t = thread_current();
   struct child_status_code* stat_elem = cur_t->stat_code_elem;
   ASSERT(stat_elem != NULL);
   stat_elem->status_code = status_code;
 
-
+  //increase semaphore value so that process_wait() can go ahead and read status code.
+  up_wait_sema();
 }
 
 /*
@@ -158,8 +167,7 @@ process_wait (tid_t child_tid)
   struct child_status_code* child_elem;
   child_elem = pop_child_elem(child_tid);
 
-  //printf("waiting by:%s >>> to: %d\n", thread_current()->name, child_tid);
-
+  
   /*
     when element does'n occure in list always return -1 this happens
     when tid doesn't belong to child or tid has already been waited
@@ -176,10 +184,15 @@ process_wait (tid_t child_tid)
     return status_code;
   }
 
-
   return -1;
 }
 
+/*
+  increases wait semaphore.
+  when process wait is called it waits until child writes its status code
+  in given variable. parent thread is blocked on wait_sema until child writes
+  status code and calls this function.
+*/
 void up_wait_sema(){
   struct thread* cur_t = thread_current();
   ASSERT(cur_t != NULL);
@@ -191,6 +204,11 @@ void up_wait_sema(){
 
 }
 
+/*
+  close all files currently opened.
+  used for closing all files in process_exit so that no files are left
+  opened.
+*/
 void close_all_files(){
   struct list* files = &thread_current()->fd_list;
 
@@ -213,6 +231,10 @@ void close_all_files(){
   }
 }
 
+/*
+  when process exit is close child list is cleared.
+  all memmory allocated by child status code elements are freed.
+*/
 void clear_wait_list(){
   struct thread* cur_t = thread_current();
   ASSERT(cur_t!=NULL);
@@ -248,8 +270,6 @@ process_exit (void)
   close_all_files();
 
   uint32_t *pd;
-  //increase semaphore value so that process_wait() can go ahead and read status code.
-  up_wait_sema();
   
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -589,7 +609,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
-
+/*
+  
+*/
 void push_to_stack(char** argv, int argc, void** esp){
   char* next;
   int i;
