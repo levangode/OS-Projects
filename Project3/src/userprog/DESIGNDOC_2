@@ -127,6 +127,23 @@ struct file_descriptor{
 };
  
 
+wait:
+  struct thread{
+    ...
+      struct list child_stat_code_list;
+      struct child_stat_code* stat_code_elem;
+      ...
+  }
+
+  struct child_status_code{
+      tid_t child_tid;
+    int status_code;
+
+      struct semaphore wait_sema;
+
+      struct list_elem child_status_code_list_elem;
+  };
+
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
@@ -149,6 +166,54 @@ read:
   else we acquire global system lock, search for our descriptor and get it's file. If we
   can find the descriptor and the file then we read from it, release the lock and return 
   the size of read data.
+
+  status code storage:
+  status code list added to thread structure for keeping track of children status codes.
+  child status codes are kept in thir own structure which is preallocated by parent
+  during thread creation and pointer to them is stored in stat_code_elem for easy and
+  fast access to status code by executing thread.
+
+  blocking:
+  parent thread is blocked on child by pid. the semaphore for given pid is found in 
+  child_stat_code_list->child_status_code_elem->wait_sema. parent is blocked until
+  child sets its own status code by calling set_status_code(int).
+
+  child list management:
+  child list is populated during child thread creation memmory is allocated in heap
+  by parent thread. list element is insertid in list and pointer to element is stored in child
+  list elements are freed when wait() is called. and also if process_exit is called all
+  elements(ie which ones have not been waited) are also freed.
+  list only stores elemets which have not been waited so far, so if thread is already waied
+  it will not be present in list and error is returned.
+
+  
+seek:
+  for each thread we are maintaining the list of file descriptors. When a fd parameter is
+  passed to seek, we check our list for file_descriptor with id == fd, and extract the file element from it.
+  if we couldn't find such descriptor, we do nothing, else we call the preprepeared file_seek.
+  The function will use the global filesystem lock as other syscalls.
+
+filesize:
+  same strategy as in seek, fd is passed, we execute preprepared file_length and return the result to eax.
+
+remove:
+  find the descriptor, get the file, return the value from filesys_remove to eax.
+
+tell:
+  As far as every file descriptor is denoted with positive numbers, we instantly ignore
+  if a wrong descriptor is passed. We use the global system lock to ensure synchronization 
+  and if we find an open descriptor, we call file_tell on it and return the value to eax.
+
+write:
+  while maintaining synchronization, we check the fd num. in case of stdout, we directly write
+  to console with putbuf() command. stdin case is automatically ignored. In other cases, we
+  have to find a file by the given fd, if we find such, we write to it with file_write() passing
+  the same buffer and size to it.
+
+
+
+
+
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
 >> to be copied from user space into the kernel.  What is the least
@@ -195,6 +260,8 @@ read:
 
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
+
+
 
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
