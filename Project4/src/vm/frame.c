@@ -21,3 +21,8 @@ uint8_t * allocate_frame(enum palloc_flags flags){
 	}
 	return page;
 }
+
+void free_frame(void* page){
+	palloc_free_page(page);
+
+}

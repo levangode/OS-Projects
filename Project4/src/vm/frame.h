@@ -15,7 +15,7 @@ struct frame_entry{
 
 void init_frame_table(void);
 uint8_t * allocate_frame(enum palloc_flags flags);
-void free_frame(void);
+void free_frame(void* page);
 
 
 
