@@ -12,10 +12,10 @@ void page_init(void){
 
 struct spt_entry* find_page_in_supt(void * addr){
 	struct spt_entry temp;
-	temp.upage = addr;
+	temp.upage = (uint8_t*)addr;
 	struct hash_elem * res = hash_find(&supplemental_page_table,&temp.elem);
 	if(res != NULL){
-		struct hash_elem* val = hash_entry(res,struct hash_entry,elem);
+		struct spt_entry* val = hash_entry(res,struct spt_entry,elem);
 		return val;
 	}
 	return NULL;
@@ -31,8 +31,8 @@ bool page_less_func (const struct hash_elem *a,
                              const struct hash_elem *b,
                              void *aux UNUSED){
 
-	struct spt_entry* as = hash_entry(a, struct supt_entry, elem);
-  	struct spt_entry* bs = hash_entry(b, struct supt_entry, elem);
+	struct spt_entry* as = hash_entry(a, struct spt_entry, elem);
+  	struct spt_entry* bs = hash_entry(b, struct spt_entry, elem);
 	return as->upage < bs->upage;
 }
 
