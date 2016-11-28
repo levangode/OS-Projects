@@ -12,10 +12,11 @@ void init_frame_table(void){
 
 
 
-uint8_t * allocate_frame(enum palloc_flags flags){
+uint8_t * allocate_frame(enum palloc_flags flags, uint8_t *upage){
 	uint8_t* page = palloc_get_page(flags);
 	struct frame_entry* tmp_entry = malloc(sizeof(struct frame_entry));
-	tmp_entry->page = page;
+	tmp_entry->kpage = page;
+	tmp_entry->upage = upage;
 	if(page != NULL){
 		list_push_back(&frame_list, &tmp_entry->elem);
 	}

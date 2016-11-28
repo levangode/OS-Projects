@@ -598,7 +598,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
       /* Get a page of memory. */
       //uint8_t *kpage = palloc_get_page (PAL_USER);
-      uint8_t *kpage = allocate_frame (PAL_USER);
+      uint8_t *kpage = allocate_frame (PAL_USER, upage);
       
       if (kpage == NULL)
         return false;
@@ -699,8 +699,6 @@ setup_stack (void **esp, const char* file_name)
         palloc_free_page (kpage);
     }
   return success;
-
-  
 
 }
 
