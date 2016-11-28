@@ -168,6 +168,8 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
   void * page_addr = (void*)pg_round_down(fault_addr);
+  //will check for stack growth after implementing supplemental table managment
+
 
 
   /* To implement virtual memory, delete the rest of the function
