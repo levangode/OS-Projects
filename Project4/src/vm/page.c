@@ -10,6 +10,17 @@ void page_init(void){
 	hash_init(&supplemental_page_table, page_hash_func, page_less_func, NULL);
 }
 
+struct spt_entry* find_page_in_supt(void * addr){
+	struct spt_entry temp;
+	temp.upage = addr;
+	struct hash_elem * res = hash_find(&supplemental_page_table,&temp.elem);
+	if(res != NULL){
+		struct hash_elem* val = hash_entry(res,struct hash_entry,elem);
+		return val;
+	}
+	return NULL;
+}
+
 
 unsigned page_hash_func(const struct hash_elem *e, void *aux UNUSED){
 	struct spt_entry* entry = hash_entry(e, struct spt_entry, elem);

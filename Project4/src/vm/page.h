@@ -16,6 +16,8 @@ struct spt_entry{
 	struct hash_elem elem;
 };
 
+
+struct supt_entry* find_page_in_supt(void * addr);
 void page_init(void);
 bool page_less_func (const struct hash_elem *a,
                              const struct hash_elem *b,
