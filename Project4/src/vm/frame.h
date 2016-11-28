@@ -10,6 +10,8 @@ struct lock list_lock;
 struct frame_entry{
 	uint8_t* kpage;
 	uint8_t* upage;
+
+	struct thread* occupying_thread; //needed to prevent thread from evicting it's own memory
 	struct list_elem elem;
 };
 

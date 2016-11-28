@@ -9,9 +9,10 @@ struct hash supplemental_page_table;
 
 
 
-struct supt_entry{
+struct spt_entry{
 	uint8_t* kpage;
 	uint8_t* upage;
+
 	struct hash_elem elem;
 };
 
@@ -21,8 +22,7 @@ bool page_less_func (const struct hash_elem *a,
                              void *aux);
 unsigned page_hash_func(const struct hash_elem *e, void *aux);
 
-
-
+void spt_add(uint8_t* upage, uint8_t* kpage, bool writable);
 
 
 
