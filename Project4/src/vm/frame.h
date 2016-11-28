@@ -2,10 +2,10 @@
 #define _FRAME_
 
 #include <list.h>
-
+#include "threads/synch.h"
 
 struct list frame_list;
-
+struct lock list_lock;
 
 struct frame_entry{
 	uint8_t* kpage;
