@@ -117,7 +117,7 @@ struct thread
     //for catching errors during thread creation
     struct semaphore process_starting_sema;
     int process_start_status;
-
+    uint8_t * backup_esp;//last saved esp
     //for ensurence of file integrity while executing
     struct file* current_file;
     

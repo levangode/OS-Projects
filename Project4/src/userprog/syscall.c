@@ -87,6 +87,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 	is_valid(f->esp);
 	is_valid_buff(f->esp, sizeof(int));
 	int syscall_num = *(int*)f->esp;	//loads syscall number.
+	thread_current()->backup_esp = f->esp;
 	void* next;
 	switch(syscall_num){
 		case SYS_HALT:

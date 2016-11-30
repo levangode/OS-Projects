@@ -169,7 +169,12 @@ page_fault (struct intr_frame *f)
 
   void * page_addr = (void*)pg_round_down(fault_addr);
   //will check for stack growth after implementing supplemental table managment
-
+  void * esp;
+  if(user){
+    esp = f->esp;
+  }else{
+    esp = thread_current()->backup_esp;
+  }
 
 
   /* To implement virtual memory, delete the rest of the function
