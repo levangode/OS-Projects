@@ -9,14 +9,17 @@
 
 
 
-#define STACK_LIMIT 0x800000
+#define STACK_LIMIT 0x800000  // == 2^23
 
 
 void page_init(void){
 	hash_init(&supplemental_page_table, page_hash_func, page_less_func, NULL);
 }
 
-struct spt_entry* find_page_in_supt(void * addr){
+/* Finds a spt entry in the spt table which corresponds to the given user vitual addres
+ * Returns NULL if no such entry exists in the spt table
+ */
+struct spt_entry* find_page_in_supt(void * uvaddr){
 	struct spt_entry temp;
 	temp.upage = (uint8_t*)addr;
 	struct hash_elem * res = hash_find(&supplemental_page_table,&temp.elem);
@@ -28,11 +31,14 @@ struct spt_entry* find_page_in_supt(void * addr){
 }
 
 
+/* Hash function for hashing spt entries by  user virtual addresses */
 unsigned page_hash_func(const struct hash_elem *e, void *aux UNUSED){
 	struct spt_entry* entry = hash_entry(e, struct spt_entry, elem);
   	return hash_int((int)entry->upage);
 }
 
+
+/* Compare function for comparing two spt entries by their user virtual addresses */
 bool page_less_func (const struct hash_elem *a,
                              const struct hash_elem *b,
                              void *aux UNUSED){
@@ -42,6 +48,8 @@ bool page_less_func (const struct hash_elem *a,
 	return as->upage < bs->upage;
 }
 
+
+/* Adds new spt entry to hash. */
 void spt_add(uint8_t* upage, uint8_t* kpage, bool writable){
 	struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
 	tmp_entry->upage = upage;
