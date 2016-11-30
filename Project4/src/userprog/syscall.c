@@ -208,6 +208,31 @@ syscall_handler (struct intr_frame *f UNUSED)
 				close(fd);
 				break;
 			}
+
+#ifdef VM
+		case SYS_MMAP: // 13
+    		{
+    			PANIC("mmap called!@#$^&*(){}:>?<>!@#$&*(*&&*(&*(&*(&*(:{}:}{:}{:>?>?<>?<>?<>?");
+      			// int fd;
+      			// void *addr;
+      			// memread_user(f->esp + 4, &fd, sizeof(fd));
+      			// memread_user(f->esp + 8, &addr, sizeof(addr));
+
+      			// mmapid_t ret = sys_mmap (fd, addr);
+      			// f->eax = ret;
+      			break;
+    		}
+
+  		case SYS_MUNMAP: // 14
+	    	{
+	    		PANIC("munmap called!@#<>?:';/.,./][}{}{;8788(*&*7*@#$#@${}[][}';;'l;l;l';l',m,.m,");
+	      		// mmapid_t mid;
+	      		// memread_user(f->esp + 4, &mid, sizeof(mid));
+
+	      		// sys_munmap(mid);
+	      		break;
+	    	}
+#endif
 		default:
 			exit(-1);
 	}
