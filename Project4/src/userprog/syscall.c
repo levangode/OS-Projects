@@ -237,7 +237,26 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 #ifdef VM
 int mmap(int fd, int address_to_map){
-	PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
+	// basic check of argument validity
+	if(upage == NULL){
+		return -1;
+	} else 
+	if(pg_ofs(upage) != 0) {
+		return -1;
+	} else 
+	if(fd == 0 || fd == 1) {
+		return -1;
+	}
+
+	struct thread* cur_t = thread_current();
+
+	// interaction with file system requred.
+	lock_acquire(&filesys_lock);
+
+
+
+	//PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
+	lock_release(&filesys_lock);
     return 0;  
 }
 
