@@ -21,7 +21,7 @@ void page_init(void){
  */
 struct spt_entry* find_page_in_supt(void * uvaddr){
 	struct spt_entry temp;
-	temp.upage = (uint8_t*)addr;
+	temp.upage = (uint8_t*)uvaddr;
 	struct hash_elem * res = hash_find(&supplemental_page_table,&temp.elem);
 	if(res != NULL){
 		struct spt_entry* val = hash_entry(res,struct spt_entry,elem);
