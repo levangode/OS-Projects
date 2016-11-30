@@ -3,6 +3,19 @@
 
 #include "threads/thread.h"
 
+#ifdef VM
+	struct map_descriptor {
+	  int descriptor_id;
+	  struct file* file;
+
+	  void *map_pointer;   // pointer to where memmory is mapped.
+	  size_t file_size;  // file size
+
+	  struct list_elem elem;
+	};
+
+#endif
+
 tid_t process_execute (const char *file_name);
 int process_wait (tid_t);
 void process_exit (void);

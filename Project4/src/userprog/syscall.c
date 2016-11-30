@@ -212,8 +212,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 #ifdef VM
 		case SYS_MMAP: // 13
     		{
-    			PANIC("mmap called!@#$^&*(){}:>?<>!@#$&*(*&&*(&*(&*(&*(:{}:}{:}{:>?>?<>?<>?<>?");
-      			// int fd;
+    			mmap(1,2);
+    			// int fd;
       			// void *addr;
       			// memread_user(f->esp + 4, &fd, sizeof(fd));
       			// memread_user(f->esp + 8, &addr, sizeof(addr));
@@ -225,8 +225,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 
   		case SYS_MUNMAP: // 14
 	    	{
-	    		PANIC("munmap called!@#<>?:';/.,./][}{}{;8788(*&*7*@#$#@${}[][}';;'l;l;l';l',m,.m,");
-	      		// mmapid_t mid;
+	    		munmap(1);
+	    		// mmapid_t mid;
 	      		// memread_user(f->esp + 4, &mid, sizeof(mid));
 
 	      		// sys_munmap(mid);
@@ -237,6 +237,19 @@ syscall_handler (struct intr_frame *f UNUSED)
 			exit(-1);
 	}
 }
+
+#ifdef VM
+int mmap(int id, int z){
+	PANIC("mmap called!@#$^&*(){}:>?<>!@#$&*(*&&*(&*(&*(&*(:{}:}{:}{:>?>?<>?<>?<>?");
+    return 0;  
+}
+
+int munmap(int id){
+	PANIC("munmap called!@#<>?:';/.,./][}{}{;8788(*&*7*@#$#@${}[][}';;'l;l;l';l',m,.m,");
+	      		
+	return 0;
+}
+#endif
 
 struct file_descriptor * findFile(int file_descriptor_id, bool should_remove){
 	struct thread* curThread = thread_current();
