@@ -212,28 +212,17 @@ syscall_handler (struct intr_frame *f UNUSED)
 #ifdef VM
 		case SYS_MMAP: // 13
     		{
-    			
-    			// int fd;
-      			// void *addr;
-      			// memread_user(f->esp + 4, &fd, sizeof(fd));
-      			// memread_user(f->esp + 8, &addr, sizeof(addr));
-
-      			// mmapid_t ret = sys_mmap (fd, addr);
       			next = (int*)f->esp + 1;
     			int fd = *(int*)next;
     			next = (int*)f->esp + 2;
     			void* map_pointer = *(void**)next; 
+      			
       			f->eax = mmap(fd, map_pointer);
       			break;
     		}
 
   		case SYS_MUNMAP: // 14
 	    	{
-	    		// mmapid_t mid;
-	      		// memread_user(f->esp + 4, &mid, sizeof(mid));
-
-	      		// sys_munmap(mid);
-
 	    		next = (int*)f->esp + 1;
     			int id = *(int*)next;
 
