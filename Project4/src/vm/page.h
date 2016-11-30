@@ -13,6 +13,8 @@ struct spt_entry{
 	uint8_t* kpage;
 	uint8_t* upage;
 
+	bool writable;
+
 	struct hash_elem elem;
 };
 

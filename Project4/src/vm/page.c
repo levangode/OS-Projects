@@ -38,5 +38,9 @@ bool page_less_func (const struct hash_elem *a,
 
 void spt_add(uint8_t* upage, uint8_t* kpage, bool writable){
 	struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
-	
+	tmp_entry->upage = upage;
+	tmp_entry->kpage = kpage;
+	tmp_entry->writable = writable;
+
+	hash_insert(&supplemental_page_table, &tmp_entry->elem);
 }
