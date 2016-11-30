@@ -212,24 +212,32 @@ syscall_handler (struct intr_frame *f UNUSED)
 #ifdef VM
 		case SYS_MMAP: // 13
     		{
-    			mmap(1,2);
+    			
     			// int fd;
       			// void *addr;
       			// memread_user(f->esp + 4, &fd, sizeof(fd));
       			// memread_user(f->esp + 8, &addr, sizeof(addr));
 
       			// mmapid_t ret = sys_mmap (fd, addr);
-      			// f->eax = ret;
+      			next = (int*)f->esp + 1;
+    			int fd = *(int*)next;
+    			next = (int*)f->esp + 2;
+    			void* map_pointer = *(void**)next; 
+      			f->eax = mmap(fd, map_pointer);
       			break;
     		}
 
   		case SYS_MUNMAP: // 14
 	    	{
-	    		munmap(1);
 	    		// mmapid_t mid;
 	      		// memread_user(f->esp + 4, &mid, sizeof(mid));
 
 	      		// sys_munmap(mid);
+
+	    		next = (int*)f->esp + 1;
+    			int id = *(int*)next;
+
+	    		f->eax = munmap(id);
 	      		break;
 	    	}
 #endif
@@ -239,14 +247,13 @@ syscall_handler (struct intr_frame *f UNUSED)
 }
 
 #ifdef VM
-int mmap(int id, int z){
-	PANIC("mmap called!@#$^&*(){}:>?<>!@#$&*(*&&*(&*(&*(&*(:{}:}{:}{:>?>?<>?<>?<>?");
+int mmap(int fd, int address_to_map){
+	PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
     return 0;  
 }
 
 int munmap(int id){
-	PANIC("munmap called!@#<>?:';/.,./][}{}{;8788(*&*7*@#$#@${}[][}';;'l;l;l';l',m,.m,");
-	      		
+	PANIC("trying to unmap map id: %d;", id);
 	return 0;
 }
 #endif
