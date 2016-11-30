@@ -29,7 +29,7 @@ unsigned page_hash_func(const struct hash_elem *e, void *aux);
 void spt_add(uint8_t* upage, uint8_t* kpage, bool writable);
 
 
-
+bool stack_growth(uint8_t* uvaddr);
 
 
 

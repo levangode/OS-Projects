@@ -10,5 +10,6 @@ void process_activate (void);
 
 void push_to_stack(char** argv, int argc, void** esp);
 void set_status_code(int status_code);
+bool install_page (void *upage, void *kpage, bool writable);
 
 #endif /* userprog/process.h */

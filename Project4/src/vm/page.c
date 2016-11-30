@@ -2,8 +2,14 @@
 #include <hash.h>
 #include <debug.h>
 #include "threads/malloc.h"
+#include "threads/palloc.h"
+#include "frame.h"
+#include "threads/vaddr.h"
+#include "userprog/process.h"
 
 
+
+#define STACK_LIMIT 0x800000
 
 
 void page_init(void){
@@ -43,4 +49,23 @@ void spt_add(uint8_t* upage, uint8_t* kpage, bool writable){
 	tmp_entry->writable = writable;
 
 	hash_insert(&supplemental_page_table, &tmp_entry->elem);
+}
+
+
+
+/* Grows the stack by allocating new spt table entry and corresponding user frame */
+bool stack_growth(uint8_t* uvaddr){
+	if((uint8_t*)PHYS_BASE - uvaddr > STACK_LIMIT){
+    return false;
+  }
+  struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
+ 	uint8_t* upage = uvaddr;
+ 	uint8_t* kpage = allocate_frame(PAL_USER, upage);
+ 	bool writable = true;
+ 	if (!install_page (upage, kpage, writable))	{
+  	palloc_free_page (kpage);
+    return false; 
+  }
+  hash_insert(&supplemental_page_table, &tmp_entry->elem);
+  return true;
 }
