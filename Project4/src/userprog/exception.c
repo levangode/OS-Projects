@@ -7,11 +7,12 @@
 #include "threads/vaddr.h"
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
-
+#include <stdbool.h>
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 /* Checks if the pointer addr is valid user address */
+bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr);
 void is_valid_ptr(void* addr);
 void is_valid_ptr(void* addr){
   if(addr == NULL){
@@ -175,6 +176,10 @@ page_fault (struct intr_frame *f)
   }else{
     esp = thread_current()->backup_esp;
   }
+  bool load_res;
+  if(stack_should_grow(f,not_present,fault_addr)){
+    
+  }
 
 
   /* To implement virtual memory, delete the rest of the function
@@ -187,4 +192,10 @@ page_fault (struct intr_frame *f)
           user ? "user" : "kernel");
   kill (f);
 }
-
+bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr){
+  void* floor = 0x08048000;
+  if( !(fault_addr > floor && not_present && is_user_vaddr(fault_addr)) && f->esp - 32 <= fault_addr ){
+    return true;
+  }
+  return false;
+}
