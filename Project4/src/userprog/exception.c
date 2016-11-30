@@ -176,11 +176,13 @@ page_fault (struct intr_frame *f)
   }else{
     esp = thread_current()->backup_esp;
   }
-  bool load_res;
+  bool load_res = false;
   if(stack_should_grow(f,not_present,fault_addr)){
-    
+    load_res = stack_growth(page_addr);
+  }else{
+    //TODO page loading 
   }
-
+  if(load_res)return;
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
@@ -193,7 +195,7 @@ page_fault (struct intr_frame *f)
   kill (f);
 }
 bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr){
-  void* floor = 0x08048000;
+  void* floor = (void*)0x08048000;
   if( !(fault_addr > floor && not_present && is_user_vaddr(fault_addr)) && f->esp - 32 <= fault_addr ){
     return true;
   }
