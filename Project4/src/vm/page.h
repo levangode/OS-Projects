@@ -12,7 +12,7 @@ struct hash supplemental_page_table;
 struct spt_entry{
 	uint8_t* kpage;
 	uint8_t* upage;
-
+	int page_type;
 	bool writable;
 
 	struct hash_elem elem;
@@ -30,6 +30,8 @@ void spt_add(uint8_t* upage, uint8_t* kpage, bool writable);
 
 
 bool stack_growth(uint8_t* uvaddr);
+
+bool load_page(uint8_t* upage);
 
 
 

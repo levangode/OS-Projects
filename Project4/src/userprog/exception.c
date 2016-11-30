@@ -146,7 +146,7 @@ page_fault (struct intr_frame *f)
   void *fault_addr;  /* Fault address. */
 
 
-  is_valid_ptr(fault_addr);
+  //is_valid_ptr(fault_addr);
 
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
@@ -170,6 +170,7 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
   void * page_addr = (void*)pg_round_down(fault_addr);
+
   //will check for stack growth after implementing supplemental table managment
   void * esp;
   if(user){
@@ -177,13 +178,18 @@ page_fault (struct intr_frame *f)
   }else{
     esp = thread_current()->backup_esp;
   }
+
   bool load_res = false;
   if(stack_should_grow(f,not_present,fault_addr)){
+   
     load_res = stack_growth(page_addr);
   }else{
-    //TODO page loading 
+    load_res = load_page(page_addr);
+    
   }
-  if(load_res)return;
+  if(!load_res){
+    exit(-1);
+  }
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to

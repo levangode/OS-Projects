@@ -68,12 +68,41 @@ bool stack_growth(uint8_t* uvaddr){
   }
   struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
  	uint8_t* upage = uvaddr;
- 	uint8_t* kpage = allocate_frame(PAL_USER, upage);
  	bool writable = true;
- 	if (!install_page (upage, kpage, writable))	{
-  	palloc_free_page (kpage);
-    return false; 
-  }
+
+ 	tmp_entry->upage = uvaddr;
+ 	tmp_entry->page_type = 1;
+ 	tmp_entry->writable = true;
   hash_insert(&supplemental_page_table, &tmp_entry->elem);
-  return true;
+  return load_page(upage);
+}
+
+
+bool load_page(uint8_t* upage){
+	bool res = true;
+	struct spt_entry* tmp_entry = find_page_in_supt(upage);
+	if(tmp_entry == NULL){
+		return false;
+	}
+	void* kpage = allocate_frame(PAL_USER, upage);
+	if(kpage == NULL){
+		return false;
+	}
+	if(tmp_entry->page_type == 0){	//FILE
+		//get file
+	} else if(tmp_entry->page_type == 1){ 	//ZEROPAGE
+		res = true;
+	} else if(tmp_entry->page_type == 2){	//SWAP
+
+	} else if(tmp_entry->page_type == 3){	//MMAP
+
+	} else {
+		PANIC("SHOULD HAVE ENTERED ANY OF THE CASES");
+		return false;
+	}
+	if (!install_page (upage, kpage, true))	{
+  		palloc_free_page (kpage);
+    	return false; 
+    }
+    return res;
 }
