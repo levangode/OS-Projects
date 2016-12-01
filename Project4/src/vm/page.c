@@ -88,13 +88,13 @@ bool load_page(uint8_t* upage){
 	if(kpage == NULL){
 		return false;
 	}
-	if(tmp_entry->page_type == 0){	//FILE
+	if(tmp_entry->page_type == FROM_FILE){	//FILE
 		//get file
-	} else if(tmp_entry->page_type == 1){ 	//ZEROPAGE
+	} else if(tmp_entry->page_type == ALL_ZERO){ 	//ZEROPAGE
 		res = true;
-	} else if(tmp_entry->page_type == 2){	//SWAP
+	} else if(tmp_entry->page_type == FROM_SWAP){	//SWAP
 
-	} else if(tmp_entry->page_type == 3){	//MMAP
+	} else if(tmp_entry->page_type == FROM_MMAP){	//MMAP
 
 	} else {
 		PANIC("SHOULD HAVE ENTERED ANY OF THE CASES");
@@ -106,3 +106,9 @@ bool load_page(uint8_t* upage){
     }
     return res;
 }
+
+bool spt_install_file(void* upage,struct file* f,size_t offset,unsigned int bytes_read,unsigned int bytes_zero,bool writable){
+	
+}
+
+
