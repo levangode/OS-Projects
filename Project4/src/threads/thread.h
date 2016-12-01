@@ -12,6 +12,10 @@
   #include "filesys/filesys.h"
 #endif
 
+#ifdef VM
+  #include <hash.h>
+#endif
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -121,6 +125,11 @@ struct thread
     //for ensurence of file integrity while executing
     struct file* current_file;
     
+#endif
+
+#ifdef VM
+    struct hash supplemental_page_table;
+
 #endif
 
     /* Owned by thread.c. */

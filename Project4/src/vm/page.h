@@ -20,7 +20,7 @@ struct spt_entry{
 
 
 struct spt_entry* find_page_in_supt(void * addr);
-void page_init(void);
+void page_init(struct hash* supplemental_page_table);
 bool page_less_func (const struct hash_elem *a,
                              const struct hash_elem *b,
                              void *aux);

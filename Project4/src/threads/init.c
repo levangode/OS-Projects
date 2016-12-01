@@ -130,7 +130,7 @@ main (void)
 #endif
 
 #ifdef VM
-  page_init();
+  page_init(&thread_current()->supplemental_page_table);
 #endif
   printf ("Boot complete.\n");
   

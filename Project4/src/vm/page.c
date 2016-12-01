@@ -12,8 +12,8 @@
 #define STACK_LIMIT 0x800000  // == 2^23
 
 
-void page_init(void){
-	hash_init(&supplemental_page_table, page_hash_func, page_less_func, NULL);
+void page_init(struct hash* supplemental_page_table){
+	hash_init(supplemental_page_table, page_hash_func, page_less_func, NULL);
 }
 
 /* Finds a spt entry in the spt table which corresponds to the given user vitual addres
@@ -22,7 +22,7 @@ void page_init(void){
 struct spt_entry* find_page_in_supt(void * uvaddr){
 	struct spt_entry temp;
 	temp.upage = (uint8_t*)uvaddr;
-	struct hash_elem * res = hash_find(&supplemental_page_table,&temp.elem);
+	struct hash_elem * res = hash_find(&thread_current()->supplemental_page_table,&temp.elem);
 	if(res != NULL){
 		struct spt_entry* val = hash_entry(res,struct spt_entry,elem);
 		return val;
@@ -56,7 +56,7 @@ void spt_add(uint8_t* upage, uint8_t* kpage, bool writable){
 	tmp_entry->kpage = kpage;
 	tmp_entry->writable = writable;
 
-	hash_insert(&supplemental_page_table, &tmp_entry->elem);
+	hash_insert(&thread_current()->supplemental_page_table, &tmp_entry->elem);
 }
 
 
@@ -73,7 +73,7 @@ bool stack_growth(uint8_t* uvaddr){
  	tmp_entry->upage = uvaddr;
  	tmp_entry->page_type = 1;
  	tmp_entry->writable = true;
-  hash_insert(&supplemental_page_table, &tmp_entry->elem);
+  hash_insert(&thread_current()->supplemental_page_table, &tmp_entry->elem);
   return load_page(upage);
 }
 

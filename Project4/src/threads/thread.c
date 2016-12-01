@@ -233,6 +233,9 @@ thread_create (const char *name, int priority,
   t->parent = thread_current();
   #endif
 
+  #ifdef VM
+  page_init(&t->supplemental_page_table);
+  #endif
   /* Add to run queue. */
   thread_unblock (t);
 
