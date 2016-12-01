@@ -3,6 +3,13 @@
 
 #include <stdbool.h>
 #include <hash.h>
+#include <inttypes.h>
+#include "threads/palloc.h"
+#include "threads/thread.h"
+
+
+
+
 #define FROM_FILE 0
 #define ALL_ZERO 1
 #define FROM_SWAP 2
@@ -21,12 +28,12 @@ struct spt_entry{
 	unsigned int bytes_read;
 	unsigned int bytes_zero;
 	struct file* f;
-	size_t offset;
+	off_t offset;
 	size_t swap;
 	struct hash_elem elem;
 };
 
-bool spt_install_file(void* upage,struct file* f,size_t offset,unsigned int bytes_read,unsigned int bytes_zero,bool writable);
+bool spt_install_file(void* upage,struct file* f,off_t offset,unsigned int bytes_read,unsigned int bytes_zero,bool writable);
 struct spt_entry* find_page_in_supt(void * addr);
 void page_init(struct hash* supplemental_page_table);
 bool page_less_func (const struct hash_elem *a,
