@@ -684,6 +684,7 @@ setup_stack (void **esp, const char* file_name)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
+        spt_add(((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
         *esp = PHYS_BASE;
         //set up stack with arguments
         int argc_p = 0;

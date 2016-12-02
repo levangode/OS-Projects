@@ -176,8 +176,11 @@ page_fault (struct intr_frame *f)
   }
 
   bool load_res = false;
+  if(!is_user_vaddr(fault_addr)){
+    //printf("%s\n", "gamovidaa");
+    exit(-1);
+  }
   if(stack_should_grow(f,not_present,fault_addr)){
-
     //printf("%s\n", "grew");
     load_res = stack_growth(page_addr);
 
@@ -188,6 +191,7 @@ page_fault (struct intr_frame *f)
    
   }
   if(!load_res){
+    //printf("%s\n", "gamovidaa");
     exit(-1);
   }
 }

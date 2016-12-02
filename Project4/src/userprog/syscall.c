@@ -11,6 +11,7 @@
 #include "userprog/process.h"
 #include "devices/shutdown.h"
 #include "devices/input.h"
+#include "vm/page.h"
 
 
 static void syscall_handler (struct intr_frame *);
@@ -108,7 +109,14 @@ syscall_handler (struct intr_frame *f UNUSED)
 			{
 				next = (int*)f->esp+1;
 				is_valid(next);
-				char *cmd_line = *(char**)next;
+				char* cmd_line = *(char**)next;
+				char* tmp = cmd_line;
+
+				while(*tmp != 0){
+					tmp=tmp+1;
+					is_valid(tmp);
+				}
+				//PANIC("gg");
 				
 				f->eax = process_execute(cmd_line);
 				
@@ -162,9 +170,13 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = next+1;
 				next = next+1;
 				is_valid(next);
+
 				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
-				is_valid_buff(buf, size);
+				is_valid(buf);
+				//is_valid_buff(buf, size);
+
+				//PANIC("gg");
 				f->eax=read(fd, buf, size);
 				break;
 			}
@@ -178,7 +190,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 				is_valid(next);
 				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
-				is_valid_buff(buf, size);
+				is_valid(buf);
+				//is_valid_buff(buf, size);
 				f->eax = write(fd, buf, size);
 				break;
 			}
