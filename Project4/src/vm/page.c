@@ -6,6 +6,7 @@
 #include "frame.h"
 #include "threads/vaddr.h"
 #include "userprog/process.h"
+#include <string.h>
 
 
 
@@ -88,8 +89,23 @@ bool load_page(uint8_t* upage){
 	if(kpage == NULL){
 		return false;
 	}
+
 	if(tmp_entry->page_type == FROM_FILE){	//FILE
-		//get file
+
+		struct file* load_file = tmp_entry->f;
+		int offset = tmp_entry->offset;
+		int bytes_read = tmp_entry->bytes_read;
+		int bytes_zero = tmp_entry->bytes_zero;
+		file_seek(load_file, offset);
+
+		if (file_read (load_file, kpage, bytes_read) != (int) bytes_read)
+        {
+          palloc_free_page (kpage);
+          return false; 
+        }
+        memset (kpage + bytes_read, 0, bytes_zero);
+        
+        res = true;
 	} else if(tmp_entry->page_type == ALL_ZERO){ 	//ZEROPAGE
 		res = true;
 	} else if(tmp_entry->page_type == FROM_SWAP){	//SWAP
@@ -100,10 +116,12 @@ bool load_page(uint8_t* upage){
 		PANIC("SHOULD HAVE ENTERED ANY OF THE CASES");
 		return false;
 	}
+
 	if (!install_page (upage, kpage, true))	{
   		palloc_free_page (kpage);
     	return false; 
     }
+    
     return res;
 }
 

@@ -146,8 +146,6 @@ page_fault (struct intr_frame *f)
   void *fault_addr;  /* Fault address. */
 
 
-  //is_valid_ptr(fault_addr);
-
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
      data.  It is not necessarily the address of the instruction
@@ -170,7 +168,6 @@ page_fault (struct intr_frame *f)
 
   void * page_addr = (void*)pg_round_down(fault_addr);
 
-  //will check for stack growth after implementing supplemental table managment
   void * esp;
   if(user){
     esp = f->esp;
@@ -180,30 +177,24 @@ page_fault (struct intr_frame *f)
 
   bool load_res = false;
   if(stack_should_grow(f,not_present,fault_addr)){
-   
+
+    //printf("%s\n", "grew");
     load_res = stack_growth(page_addr);
+
   }else{
+    //PANIC("zz");
+    //printf("%s\n", "loaded");
     load_res = load_page(page_addr);
-    
+   
   }
   if(!load_res){
     exit(-1);
   }
-
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f);
 }
 
 bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr){
   void* floor = (void*)0x08048000;
-  if( !(fault_addr > floor && not_present && is_user_vaddr(fault_addr)) && f->esp - 32 <= fault_addr ){
+  if( (fault_addr > floor && not_present) && is_user_vaddr(fault_addr) && (f->esp - 32 <= fault_addr)){
     return true;
   }
   return false;

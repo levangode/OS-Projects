@@ -604,25 +604,25 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
       /* Get a page of memory. */
       //uint8_t *kpage = palloc_get_page (PAL_USER);
-      uint8_t *kpage = allocate_frame (PAL_USER, upage);
-      if (kpage == NULL)
-        return false;
+      //uint8_t *kpage = allocate_frame (PAL_USER, upage);
+      //if (kpage == NULL)
+        //return false;
 
       /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+      /*if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
           palloc_free_page (kpage);
           return false; 
         }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
+      //memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
-      /* Add the page to the process's address space. */
+      /* Add the page to the process's address space. 
       if (!install_page (upage, kpage, writable)) 
         {
           palloc_free_page (kpage);
           return false; 
         }
-      
+      */
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
@@ -725,8 +725,5 @@ bool install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   bool res =  (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
-  if(res){
-    spt_add(upage, kpage, writable);
-  }
   return res;
 }
