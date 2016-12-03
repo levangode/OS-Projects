@@ -103,8 +103,7 @@ bool load_page(uint8_t* upage){
           palloc_free_page (kpage);
           return false; 
         }
-        memset (kpage + bytes_read, 0, bytes_zero);
-        
+        memset ((char*)kpage + bytes_read, 0, bytes_zero);
         res = true;
 	} else if(tmp_entry->page_type == ALL_ZERO){ 	//ZEROPAGE
 		res = true;
@@ -125,9 +124,12 @@ bool load_page(uint8_t* upage){
     return res;
 }
 
-bool spt_install_file(void* upage,struct file* f,off_t offset,unsigned int bytes_read,unsigned int bytes_zero,bool writable){
+bool spt_install_file(void* upage,struct file* f,off_t offset, size_t bytes_read, size_t bytes_zero, bool writable){
 	struct hash spt_page_table = thread_current()->supplemental_page_table;
-	struct spt_entry * new_spt_entry = (struct spt_entry*)malloc(sizeof(struct spt_entry));
+	struct spt_entry * new_spt_entry = malloc(sizeof(struct spt_entry));
+	if(new_spt_entry == NULL){
+		return false;
+	}
 	new_spt_entry->page_type = FROM_FILE;
 	new_spt_entry->isDirty = false;
 	new_spt_entry->f = f;

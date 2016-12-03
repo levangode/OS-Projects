@@ -25,15 +25,15 @@ struct spt_entry{
 	int page_type;
 	bool writable;
 	bool isDirty;
-	unsigned int bytes_read;
-	unsigned int bytes_zero;
+	size_t bytes_read;
+	size_t bytes_zero;
 	struct file* f;
 	off_t offset;
 	size_t swap;
 	struct hash_elem elem;
 };
 
-bool spt_install_file(void* upage,struct file* f,off_t offset,unsigned int bytes_read,unsigned int bytes_zero,bool writable);
+bool spt_install_file(void* upage,struct file* f,off_t offset,size_t bytes_read,size_t bytes_zero,bool writable);
 struct spt_entry* find_page_in_supt(void * addr);
 void page_init(struct hash* supplemental_page_table);
 bool page_less_func (const struct hash_elem *a,
