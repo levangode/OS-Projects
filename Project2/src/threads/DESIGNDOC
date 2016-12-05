@@ -1,34 +1,65 @@
-																Design Document
+            +--------------------+
+            |        CS 140      |
+            | PROJECT 1: THREADS |
+            |   DESIGN DOCUMENT  |
+            +--------------------+
+                   
+---- GROUP ----
 
+>> Fill in the names and email addresses of your group members.
 
-===========
-PROJECT 2 =
-===========
+FirstName LastName <lgode14@freeuni.edu.ge>
+FirstName LastName <pgapr14@freeuni.edu.ge>
+FirstName LastName <mmetr14@freeuni.edu.ge>
+FirstName LastName <amagh13@freeuni.edu.ge>
 
+---- PRELIMINARIES ----
 
-========
-Team A =
-========
-<lgode14@freeuni.edu.ge>
-<pgapr14@freeuni.edu.ge>
-<amagh13@freeuni.edu.ge>
-<mmetr14@freeuni.edu.ge>
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
 
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
 
-===============
-= Alarm Clock =
-===============
-Added sleeping_threads in timer.c to save threads that I put to sleep. Also added wake_up_time in thread struct. 
-I calculate wake_up_time by adding current ticks os system to the ticks inputted by the user. After I put this thread in the sleep list(ordered) and block it.
-To wake up the thread I get the first one in the list and check if it is time to wake up. If it is then I unblock the thread and remove it from the list.
-Using interrupts in timer_sleep.
+                 ALARM CLOCK
+                 ===========
 
+---- DATA STRUCTURES ----
 
-=======================
-= Priority Scheduling =
-=======================
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
 
-#Data Structures
+---- ALGORITHMS ----
+
+>> A2: Briefly describe what happens in a call to timer_sleep(),
+>> including the effects of the timer interrupt handler.
+
+>> A3: What steps are taken to minimize the amount of time spent in
+>> the timer interrupt handler?
+
+---- SYNCHRONIZATION ----
+
+>> A4: How are race conditions avoided when multiple threads call
+>> timer_sleep() simultaneously?
+
+>> A5: How are race conditions avoided when a timer interrupt occurs
+>> during a call to timer_sleep()?
+
+---- RATIONALE ----
+
+>> A6: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+             PRIORITY SCHEDULING
+             ===================
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
 
 struct thread
   {
@@ -63,66 +94,139 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
   };
 
-/* This struct is made for donations and donations only. */
-struct priority_entry
+  struct priority_entry
 {
   struct thread* priority_donator;
   struct lock* donated_for_lock;
 
   struct list_elem priority_elem; 
 };
-  
-We added some data structures and variables to thread struct in order to maintain synchronization and implement priority scheduling.
 
-1. struct list donation_list;  This is a list of donations which we will maintain to keep track of donations - checking current donation
-and reverting to previous donations.
+თითოეულ სრედს დავამატეთ donation_list-რომელშიც დასორტირებულად(პრიორიტეტის მიხედვით) ვინახავთ donation_entry-ებს.
+რა არის donation_entry. ეს არის სტრუქტურა, რომელიც ინახავს ინფორმაციას დონაციის შესახებ, კერძოდ: 
+    ### priority_donator-სრედი, რომელმაც დონაცია გაგვიკეთა
+    ### donated_for_lock-ლოქი, რომელზეც მოხდა დონაცია
+    ### priority_elem-ლისტში შესანახად საჭირო ელემენტი
 
-2. struct priority_entry donation_entry;  This is an element which current thread will give to another when making donation on them.
+თითოეულ სრედს გააჩნია წინასწარ გამზადებული donation_entry რომელსაც შემდგომში პირდაპირ გადასცემს იმ სრედს, რომელსაც დონაციას უკეთებს და ისიც შესაბამისად შეინახავს ამ entry-ს.
 
-3. struct lock* blockedOn; This is a lock, which the thread memorizes, when it's unable to take a lock and blocks on it.
-This pointer to lock is needed for making nested and chain donations.
+ასევე თითოეული სრედი ინახავს ფოინთერს ლოქზე, რომელზეც ის არის დაბლოკილი. ეს საჭიროა ჯაჭვური და ჩადგმული დონაციების გასაკეთებლად და ამ მექანიზმსაც ავხსნით.
 
+>> B2: Explain the data structure used to track priority donation.
 
-#Algorithms and implementation strategies
+სტრუქტურები აღვწერეთ უკვე ზემოთ.
 
-*** When a thread is added to the ready list that has a higher priority than the currently running thread, the current thread should immediately
-yield the processor to the new thread.
-+++ We reconstructed the ready list of threads, which is now a priority list, the thread which has the highest priority comes first in the list.
-so when a scheduler is called to launch a new waiting thread, the one with the highest priority will always run first.
+>> Use ASCII art to diagram a nested donation.  (Alternately, submit a
+>> .png file.)
 
-*** When threads are waiting for a lock, semaphore, or condition variable, the highest priority waiting thread should be awakened first.
-+++ What we did for semaphores and locks, we simply pop the thread with the highest priority waiting.
-For condition variables, which maintain the list of semaphores, we go through all such lists, search for maximum prioritized thread, and awaken it on the condition signal.
+გვაქვს სამი სრედი H(მაღალი პრიო), M(საშუალო), L(დაბალი)
 
-*** Priority donation
-+++ We implemented priority donation for locks. 
-Donation happens when a high priority thread wants a lock, but another thread with low priority is holding this lock.
-High thread gives his priority to lower thread, lower thread executes and reverts to its previous priority.
-In order to support nested donations and multiple donations, we decided not to update threads donation list on every donation.
-Instead, we chose an easier and much more comfortable strategy. We reimplemented thread_get_priority method which will return its current 
-priority, so if it's being donated, it will return priority of donator thread. As far as donations just keep pointers to donator threads,
-if a priority of a donator thread is changed, donated thread will also return a new priority, because the pointer remains unchanged.
+        +------+    +------+
+        |Lock A|    |Lock B|
+        +------+    +------+
 
-thread_set_priority was reimplemented so that if new priority is lower then any of other threads, this thread will yield the CPU.
++--------+     +--------+      +---------+
+|Thread M|     |Thread L|      |Thread H |
++--------+     +--------+      +---------+
 
-If a thread had multiple donations on one lock, when it finally executes and has to revert the donations, removes all of them(for this lock).
+M-ს აქვს აღებული A ლოქი, რომელიც ასევე უნდა H-ს.
+ხოლო L-ს აქვს აღებული B ლოქი, რომელიც უნდა M-ს.
 
-*** You must also handle nested donation
-+++ As I already said, we didn't have to write the recursive algorithm to make nested donations. They are updated automatically because of
-pointers to donator threads.
+H-მა უნდა გაუკეთოს დონაცია M-ს რათა ის გაეშვას და H-ს
 
-### Small Donation Scheme ###
-H, M, S
-high, medium and small priority threads.
-let S be running
-M is launched and wants a lock from S.
-M donates its priority to S, making it able to run.
-meanwhile there comes H thread which wants the lock from M.
-H donates it's priority to M, M can run but it still needs lock from S. So S inherits priority from H too. S runs, releases
-the lock for M, then M runs, releases lock for H and finally H runs too.
+---- ALGORITHMS ----
 
-======================
-= Advanced Scheduler =
-======================
-Added recent_cpu to,nice to thread struct and load average to thread.c. I use given formulas to calculate load average and recent cpu. I refresh all these new values from timer.c/timer_interrupt. TIMER_FREQ is determined by a constant and this controls how frequently every value will be refreshed. Same thing with refresh_everything, REFRESH_TIME determines how frequently this function will be called.
+>> B3: How do you ensure that the highest priority thread waiting for
+>> a lock, semaphore, or condition variable wakes up first?
 
+>> B4: Describe the sequence of events when a call to lock_acquire()
+>> causes a priority donation.  How is nested donation handled?
+
+>> B5: Describe the sequence of events when lock_release() is called
+>> on a lock that a higher-priority thread is waiting for.
+
+---- SYNCHRONIZATION ----
+
+>> B6: Describe a potential race in thread_set_priority() and explain
+>> how your implementation avoids it.  Can you use a lock to avoid
+>> this race?
+
+---- RATIONALE ----
+
+>> B7: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+              ADVANCED SCHEDULER
+              ==================
+
+---- DATA STRUCTURES ----
+
+>> C1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+---- ALGORITHMS ----
+
+>> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
+>> has a recent_cpu value of 0.  Fill in the table below showing the
+>> scheduling decision and the priority and recent_cpu values for each
+>> thread after each given number of timer ticks:
+
+timer  recent_cpu    priority   thread
+ticks   A   B   C   A   B   C   to run
+-----  --  --  --  --  --  --   ------
+ 0
+ 4
+ 8
+12
+16
+20
+24
+28
+32
+36
+
+>> C3: Did any ambiguities in the scheduler specification make values
+>> in the table uncertain?  If so, what rule did you use to resolve
+>> them?  Does this match the behavior of your scheduler?
+
+>> C4: How is the way you divided the cost of scheduling between code
+>> inside and outside interrupt context likely to affect performance?
+
+---- RATIONALE ----
+
+>> C5: Briefly critique your design, pointing out advantages and
+>> disadvantages in your design choices.  If you were to have extra
+>> time to work on this part of the project, how might you choose to
+>> refine or improve your design?
+
+>> C6: The assignment explains arithmetic for fixed-point math in
+>> detail, but it leaves it open to you to implement it.  Why did you
+>> decide to implement it the way you did?  If you created an
+>> abstraction layer for fixed-point math, that is, an abstract data
+>> type and/or a set of functions or macros to manipulate fixed-point
+>> numbers, why did you do so?  If not, why not?
+
+               SURVEY QUESTIONS
+               ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Any other comments?

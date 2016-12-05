@@ -1,0 +1,128 @@
+																Design Document
+
+
+===========
+PROJECT 2 =
+===========
+
+
+========
+Team A =
+========
+<lgode14@freeuni.edu.ge>
+<pgapr14@freeuni.edu.ge>
+<amagh13@freeuni.edu.ge>
+<mmetr14@freeuni.edu.ge>
+
+
+===============
+= Alarm Clock =
+===============
+Added sleeping_threads in timer.c to save threads that I put to sleep. Also added wake_up_time in thread struct. 
+I calculate wake_up_time by adding current ticks os system to the ticks inputted by the user. After I put this thread in the sleep list(ordered) and block it.
+To wake up the thread I get the first one in the list and check if it is time to wake up. If it is then I unblock the thread and remove it from the list.
+Using interrupts in timer_sleep.
+
+
+=======================
+= Priority Scheduling =
+=======================
+
+#Data Structures
+
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    int64_t wake_up_time;
+    //added by me for scheduler
+    int nice; 
+    int recent_cpu;
+    struct list_elem allelem;           /* List element for all threads list. */
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+
+    struct priority_entry donation_entry;
+
+    struct list donation_list;
+
+    struct lock* blockedOn;
+
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+
+/* This struct is made for donations and donations only. */
+struct priority_entry
+{
+  struct thread* priority_donator;
+  struct lock* donated_for_lock;
+
+  struct list_elem priority_elem; 
+};
+  
+We added some data structures and variables to thread struct in order to maintain synchronization and implement priority scheduling.
+
+1. struct list donation_list;  This is a list of donations which we will maintain to keep track of donations - checking current donation
+and reverting to previous donations.
+
+2. struct priority_entry donation_entry;  This is an element which current thread will give to another when making donation on them.
+
+3. struct lock* blockedOn; This is a lock, which the thread memorizes, when it's unable to take a lock and blocks on it.
+This pointer to lock is needed for making nested and chain donations.
+
+
+#Algorithms and implementation strategies
+
+*** When a thread is added to the ready list that has a higher priority than the currently running thread, the current thread should immediately
+yield the processor to the new thread.
++++ We reconstructed the ready list of threads, which is now a priority list, the thread which has the highest priority comes first in the list.
+so when a scheduler is called to launch a new waiting thread, the one with the highest priority will always run first.
+
+*** When threads are waiting for a lock, semaphore, or condition variable, the highest priority waiting thread should be awakened first.
++++ What we did for semaphores and locks, we simply pop the thread with the highest priority waiting.
+For condition variables, which maintain the list of semaphores, we go through all such lists, search for maximum prioritized thread, and awaken it on the condition signal.
+
+*** Priority donation
++++ We implemented priority donation for locks. 
+Donation happens when a high priority thread wants a lock, but another thread with low priority is holding this lock.
+High thread gives his priority to lower thread, lower thread executes and reverts to its previous priority.
+In order to support nested donations and multiple donations, we decided not to update threads donation list on every donation.
+Instead, we chose an easier and much more comfortable strategy. We reimplemented thread_get_priority method which will return its current 
+priority, so if it's being donated, it will return priority of donator thread. As far as donations just keep pointers to donator threads,
+if a priority of a donator thread is changed, donated thread will also return a new priority, because the pointer remains unchanged.
+
+thread_set_priority was reimplemented so that if new priority is lower then any of other threads, this thread will yield the CPU.
+
+If a thread had multiple donations on one lock, when it finally executes and has to revert the donations, removes all of them(for this lock).
+
+*** You must also handle nested donation
++++ As I already said, we didn't have to write the recursive algorithm to make nested donations. They are updated automatically because of
+pointers to donator threads.
+
+### Small Donation Scheme ###
+H, M, S
+high, medium and small priority threads.
+let S be running
+M is launched and wants a lock from S.
+M donates its priority to S, making it able to run.
+meanwhile there comes H thread which wants the lock from M.
+H donates it's priority to M, M can run but it still needs lock from S. So S inherits priority from H too. S runs, releases
+the lock for M, then M runs, releases lock for H and finally H runs too.
+
+======================
+= Advanced Scheduler =
+======================
+Added recent_cpu to,nice to thread struct and load average to thread.c. I use given formulas to calculate load average and recent cpu. I refresh all these new values from timer.c/timer_interrupt. TIMER_FREQ is determined by a constant and this controls how frequently every value will be refreshed. Same thing with refresh_everything, REFRESH_TIME determines how frequently this function will be called.
+
