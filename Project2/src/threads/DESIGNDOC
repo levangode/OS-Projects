@@ -30,28 +30,45 @@ FirstName LastName <amagh13@freeuni.edu.ge>
 >> A1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+sleeping_threads// რომ შემენახა ყველა პროცესი რომლებსაც დავაძინებდი.
+int64_t wake_up_time;//ვინახავ როდის უნდა გაიღვიძოს პროცესმა
+
+
 
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
+პირველ რიგში ვამოწმებ რომ გადმოცემული tick-ის რაოდენობა, ანუ რამდენი ხანიც უნდა ეძინოს 
+პროცესს 0-ზე მეტი იყოს. ვთიშავ ინტერაპტებს. მოცემულ პროცესს wake_up_time-ად ვანიჭებ
+სისტემაში ახლა რამდენი tick-იც არის მაგას დამატებული შემოსული tick-ების რაოდენობას,
+რაც მოგვცემს გაღვიძების დროს სისტემის tick-ების დროით. ვინახავ ამ პროცესს ზემოხსენებულ sleeping_thread-ში.
+ვუშვებ thread_block() და ვრთავ ინტერაპტებს.
+interrupt handler-ში tick-ებს ვზრდით, შემდეგ ვამოწმებ mlfqs ფლაგი თუ გვაქვს სქეჯულერისთვის.თუ გვაქვს შესაბამის 
+ფუნქციებს ვუშვებ, რომლებიც პირობაში აღწერილი ფორმულების მიხედვით ანგარიშობენ სხვადასხვა ცვლადს.  ვამოწმებ
+რომელიმე პროცესის გაღვიძების დრო თუ მოვიდა. თუ დროა ვაღვიძებ და ვითვლი რამდენი გავაღვიძე. ბოლოს თუ 0-ზე 
+მეტმა გაიღვიძა intr_yield_on_return()-ს ვიძახებ.
 
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
-
+sleeping_threads წინასწარაა დასორტირებული და შედეგად პირდაპირ ვიღებთ იმ პროცესს,რომელსაც ახლა უწევს გაღვიძება.
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
+ინტერაპტებს ვთიშავ. სემაფორის ან ლოკის გამოყენება უაზროდ გაართულებდა კოდს.
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
+კვლავ ინტერაპტების გათიშვის იმედზე ვარ..ჯერ არ უმტყუნია
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
-
+დაუსორტირებელი ლისტში რომ შემენახა პროცესები ყოველ ჯერზე როდესაც
+interrupt_handler-ში შემოვიდოდა მომიწევდა მთელი ლისტის გადაყოლა,
+რაც ცუდია ვინაიდან interrupt_handler-ში ცოტა ხანი გვინდა ვიყოთ.
              PRIORITY SCHEDULING
              ===================
 
