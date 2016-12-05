@@ -99,11 +99,11 @@ struct thread
     /*parent thread tid*/
     tid_t parent_id;
 
-    /*file descriptor counter*/
-    int fd_num;
+    /*file descriptor-ის მთვლელი*/
+    int fd_num;//ვიყენებთ ფაილების გადასანომრად
 
-    /*file descriptor list*/
-    struct list fd_list;
+    /*file descriptor list*/ 
+    struct list fd_list;//ვინახავთ ფაილების დესკრიპტორებს
 
     /*pointer to parent thread*/
     struct thread* parent;
@@ -121,7 +121,7 @@ struct thread
     /*this file is locked so that noone can edit it during execution*/
     struct file* current_file;
     
-#endif
+#endif  
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
