@@ -106,20 +106,20 @@ struct thread
     struct list fd_list;//ვინახავთ ფაილების დესკრიპტორებს
 
     /*pointer to parent thread*/
-    struct thread* parent;
+    struct thread* parent;//ვინახავთ მშობელი პროცესის მისამართს
     /*status codes list for children*/
-    struct list child_stat_code_list;
+    struct list child_stat_code_list; //შვილების სტატუსების სია.(სია სიაში არის ადგილი ყველა შვილობილი ნაკადის "კოდის" თვის)
     /*status code elem where current threads status code is submitted*/
-    struct child_stat_code* stat_code_elem;
+    struct child_stat_code* stat_code_elem; // პოინტერი ელემენტზე სადაც პროცესმა უნდა ჩაწეროს სტატუს კოდი; აღიწერება პროცესის შექმნისას
 
     /*for parent to wait to see if child started successfully or not*/
-    struct semaphore process_starting_sema;
+    struct semaphore process_starting_sema; // სემაფორა გამოიყენება პროცესის დაწყებისას სინქრონიზაციისთვის. პროცესის დაწყებას ელოდება მშობელი რათა გაიგოს წარნატებით დაიწყო თუ არა პროცესი.
     /*for returnin proces start information success/fail*/
-    int process_start_status;
+    int process_start_status; // პროცესის დაწყების შემდეგ ერრორ კოდის დაბრუნების ინსტრუმენტი
 
     //for ensurence of file integrity while executing
     /*this file is locked so that noone can edit it during execution*/
-    struct file* current_file;
+    struct file* current_file;// ვინახავთ ფაილს რომელიც ამჟამად გაშვებულია(ამ) პროცესში
     
 #endif  
 
@@ -128,103 +128,39 @@ struct thread
 
   };
 
+// სტრუქტურა რომელშიც გამოყოფილია ადგილი(int status_code) სტატუს კოდის დასაბრუნებლად ასევე ამ სტატუს კოდის ჩაწერაზე დასალოდებლად გამოყოფილია სემაფორა(semaphore wait_sema);
 struct child_status_code{
   /*tid of the current element*/
     tid_t child_tid;
     /*status code for current element*/
-    int status_code;
+    int status_code; //კოდის ჩასაწერი ელემენტი
 
     /*semaphore for waitin to current elemets status code*/
-    struct semaphore wait_sema;
+    struct semaphore wait_sema; // სემაფორა დასალოდებლად(პროცესის დასრულებაზე, ანუ სტატუსის წაკითხვაზე)
 
     /*list element*/
-    struct list_elem child_status_code_list_elem;
+    struct list_elem child_status_code_list_elem; // სიის ელემენტი სიაში დასამატებლად(სია აქვს პრცესის გამშვებს ხოლო შვილს მხოლოდ თავის ელემენტზე მიმთითებელი)
 
 };
 
+//სტრუქტურა დესკრიფტორების შესანახად
 struct file_descriptor{
   /*file descriptor*/
-  int id;
+  int id; // დაგენერირებული იდენთიფიკატორი
   /*file*/
-  struct file * f;
+  struct file * f; // ფაილის ელემენტი
   /*list element*/
-  struct list_elem elem;
+  struct list_elem elem; // სიის ელემენტი(დესკრიფტორების სიაში ჩასამატებლად)
 };
 
-
-
----- ALGORITHMS ----
-
->> A2: Briefly describe how you implemented argument parsing.  How do
->> you arrange for the elements of argv[] to be in the right order?
->> How do you avoid overflowing the stack page?
-
----- RATIONALE ----
-
->> A3: Why does Pintos implement strtok_r() but not strtok()?
-
->> A4: In Pintos, the kernel separates commands into a executable name
->> and arguments.  In Unix-like systems, the shell does this
->> separation.  Identify at least two advantages of the Unix approach.
-
-			     SYSTEM CALLS
-			     ============
-
----- DATA STRUCTURES ----
-
->> B1: Copy here the declaration of each new or changed `struct' or
->> `struct' member, global or static variable, `typedef', or
->> enumeration.  Identify the purpose of each in 25 words or less.
-
-struct child_status_code{
-  /*tid of the current element*/
-    tid_t child_tid;
-    /*status code for current element*/
-    int status_code;
-
-    /*semaphore for waitin to current elemets status code*/
-    struct semaphore wait_sema;
-
-    /*list element*/
-    struct list_elem child_status_code_list_elem;
-
-};
-
-struct file_descriptor{
-  /*file descriptor*/
-  int id;
-  /*file*/
-  struct file * f;
-  /*list element*/
-  struct list_elem elem;
-};
- 
-
-wait:
-  struct thread{
-    ...
-      struct list child_stat_code_list;
-      struct child_stat_code* stat_code_elem;
-      ...
-  }
-
-  struct child_status_code{
-      tid_t child_tid;
-    int status_code;
-
-      struct semaphore wait_sema;
-
-      struct list_elem child_status_code_list_elem;
-  };
 
 
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
 
-
 Each process has a list of file descriptors and current fd number.
-
+პროცესს აქვს სია რომელშიც დამახსოვრებული აქვს რომელი დესკრიფრორი რა ფაილზე მიუთითებს
 
 ---- ALGORITHMS ----
 
@@ -236,6 +172,7 @@ write:
   to console with putbuf() command. stdin case is automatically ignored. In other cases, we
   have to find a file by the given fd, if we find such, we write to it with file_write() passing
   the same buffer and size to it.
+  
 
 read:
   We check if received file descriptor is stin and if it is so then we read from user input,
