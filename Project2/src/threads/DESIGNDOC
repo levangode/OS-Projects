@@ -211,6 +211,12 @@ Scheuling-ს რაც შეეხება, აქ ალბათ ცალ�
 >> C1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+#define REFRESH_TIME 4//პრიორიტეტების განახლების დრო(თიქებს ამაზე ვყოფთ)
+
+int nice; //ვინახავთ პროცესის nice მნიშვნელობას
+int recent_cpu; //ვინახავთ recent_cpu მნიშვნელობას
+int load_avg;//გლობალური ცვლადი thread.c ში რომელიც სისტემის საშუალო დატვირთვას ზომავს
+სამივე ცვლადი აუცილებელია Advanced Scheduler-ის ფორმულებისთვის
 
 ---- ALGORITHMS ----
 
