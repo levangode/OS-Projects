@@ -277,8 +277,15 @@ int mmap(int fd, void* map_page){
 	if(fd_local && fd_local){
 		f = filesys_reopen(fd_local->f);
 	}
+	if(f == NULL){
+		lock_release(&system_global_lock);
+		return -1;
+	}
 
-
+	uint32_t size = file_length(f);
+	if(!size){
+		lock_release(&system_global_lock);
+	}
 
 
 	//PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
