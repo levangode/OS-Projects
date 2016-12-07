@@ -21,6 +21,7 @@ void page_init(struct hash* supplemental_page_table){
  * Returns NULL if no such entry exists in the spt table
  */
 struct spt_entry* find_page_in_supt(void * uvaddr){
+	uvaddr = pg_round_down(uvaddr);
 	struct spt_entry temp;
 	temp.upage = (uint8_t*)uvaddr;
 	struct hash_elem * res = hash_find(&thread_current()->supplemental_page_table,&temp.elem);
@@ -84,6 +85,7 @@ bool stack_growth(uint8_t* uvaddr){
 
 
 bool load_page(uint8_t* upage){
+	upage = pg_round_down(upage);
 	bool res = true;
 	struct spt_entry* tmp_entry = find_page_in_supt(upage);
 	if(tmp_entry == NULL){
