@@ -268,6 +268,14 @@ int mmap(int fd, void* map_page){
 	// interaction with file system requred.
 	lock_acquire(&system_global_lock);
 
+	//try to open file
+
+	struct file* f = NULL;
+	struct file_descriptor* fd = NULL;
+	fd = findFile(fd, false);
+
+
+
 
 
 	//PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
@@ -276,7 +284,7 @@ int mmap(int fd, void* map_page){
 }
 
 int munmap(int id){
-	PANIC("trying to unmap map id: %d;", id);
+	//PANIC("trying to unmap map id: %d;", id);
 	return 0;
 }
 #endif
