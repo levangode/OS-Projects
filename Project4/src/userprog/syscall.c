@@ -86,6 +86,7 @@ void exit(int status_code){
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
+	
 	is_valid(f->esp);
 	is_valid_buff(f->esp, sizeof(int));
 	int syscall_num = *(int*)f->esp;	//loads syscall number.

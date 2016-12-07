@@ -31,6 +31,10 @@ struct spt_entry* find_page_in_supt(void * uvaddr){
 	return NULL;
 }
 
+void free_spt(struct hash* supplemental_page_table){
+
+}
+
 
 /* Hash function for hashing spt entries by  user virtual addresses */
 unsigned page_hash_func(const struct hash_elem *e, void *aux UNUSED){
@@ -115,13 +119,12 @@ bool load_page(uint8_t* upage){
 		PANIC("SHOULD HAVE ENTERED ANY OF THE CASES");
 		return false;
 	}
-
-	if (!install_page (upage, kpage, true))	{
+	if (!install_page(upage, kpage, tmp_entry->writable)){
   		palloc_free_page (kpage);
     	return false; 
     }
     
-    return res;
+    return true;
 }
 
 bool spt_install_file(void* upage,struct file* f,off_t offset, size_t bytes_read, size_t bytes_zero, bool writable){

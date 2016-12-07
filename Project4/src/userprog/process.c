@@ -279,7 +279,7 @@ process_exit (void)
   if(lock_held_by_current_thread (&system_global_lock)){
     lock_release(&system_global_lock);
   }
-
+  free_spt(&cur->supplemental_page_table);
   uint32_t *pd;
   
   /* Destroy the current process's page directory and switch back
@@ -724,7 +724,6 @@ bool install_page (void *upage, void *kpage, bool writable)
 
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
-  bool res =  (pagedir_get_page (t->pagedir, upage) == NULL
+  return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
-  return res;
 }
