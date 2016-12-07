@@ -56,11 +56,14 @@ bool page_less_func (const struct hash_elem *a,
 
 
 /* Adds new spt entry to hash. */
-void spt_add(uint8_t* upage, uint8_t* kpage, bool writable){
+void spt_add(uint8_t* upage, uint8_t* kpage, bool writable, bool loaded){
 	struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
 	tmp_entry->upage = upage;
 	tmp_entry->kpage = kpage;
 	tmp_entry->writable = writable;
+	if(loaded){
+		tmp_entry->loaded = true;
+	}
 
 	hash_insert(&thread_current()->supplemental_page_table, &tmp_entry->elem);
 }
@@ -91,6 +94,11 @@ bool load_page(uint8_t* upage){
 	if(tmp_entry == NULL){
 		return false;
 	}
+
+	/*if(tmp_entry->loaded){
+		printf("%s\n", "###############################");
+		return true;
+	}*/
 	void* kpage = allocate_frame(PAL_USER, upage);
 	if(kpage == NULL){
 		return false;
@@ -122,11 +130,12 @@ bool load_page(uint8_t* upage){
 		return false;
 	}
 	if (!install_page(upage, kpage, tmp_entry->writable)){
-  		palloc_free_page (kpage);
-    	return false; 
-    }
-    
-    return true;
+  	palloc_free_page (kpage);
+    return false; 
+  }
+
+  tmp_entry->loaded = true;
+  return true;
 }
 
 bool spt_install_file(void* upage,struct file* f,off_t offset, size_t bytes_read, size_t bytes_zero, bool writable){
@@ -144,6 +153,7 @@ bool spt_install_file(void* upage,struct file* f,off_t offset, size_t bytes_read
 	new_spt_entry->bytes_zero = bytes_zero;
 	new_spt_entry->bytes_read = bytes_read;
 	new_spt_entry->writable = writable;
+	new_spt_entry->loaded = false;
 
 	struct hash_elem * element = hash_insert(&spt_page_table,&new_spt_entry->elem);
 	if(element == NULL){

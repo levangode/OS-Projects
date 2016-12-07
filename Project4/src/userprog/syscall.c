@@ -18,10 +18,10 @@ static void syscall_handler (struct intr_frame *);
 void halt(void);
 int open(const char* file_name);
 void close(int fd);
-void is_valid(void* addr);
+void is_valid(void* addr, struct intr_frame *f);
 void exit(int status_code);
 int write(int fd, const void *buffer, unsigned size);	
-void is_valid_buff(void* buff, int size);
+void is_valid_buff(void* buff, int size, struct intr_frame *f);
 void seek(int fd, unsigned position);
 int tell(int fd);
 int read(int fd, void* buffer, unsigned size);
@@ -49,7 +49,7 @@ syscall_init (void)
  * invalid if - null pointer, a pointer to unmapped virtual memory, or a pointer to kernel virtual
  * address space
  */
-void is_valid(void* addr){
+void is_valid(void* addr, struct intr_frame *f){
 	if(addr == NULL){
 		exit(-1);
 	}
@@ -58,14 +58,27 @@ void is_valid(void* addr){
 	} else if (pagedir_get_page(thread_current()->pagedir, addr) == NULL){
 		exit(-1);
 	}
+	/*if(!is_user_vaddr(addr)){
+
+		exit(-1);
+	}
+	bool res = false;
+	if (find_page_in_supt(addr) != NULL){
+		res = load_page(addr);
+	} else if(addr >= f->esp - 32){
+		res = stack_growth(addr);
+	}
+	if(!res){
+		exit(-1);
+	}*/
 }
 
 /* Also validates the pointer, iterating through the whole buffer */
-void is_valid_buff(void* buff, int size){
+void is_valid_buff(void* buff, int size, struct intr_frame *f){
   char* iterator = (char*) buff;
   int i;
   for (i = 0; i<size; i++){
-  	is_valid(iterator+i);
+  	is_valid(iterator+i, f);
   }
 }
 
@@ -84,11 +97,11 @@ void exit(int status_code){
 
 
 static void
-syscall_handler (struct intr_frame *f UNUSED) 
+syscall_handler (struct intr_frame *f) 
 {
 	
-	is_valid(f->esp);
-	is_valid_buff(f->esp, sizeof(int));
+	is_valid(f->esp, f);
+	is_valid_buff(f->esp, sizeof(int), f);
 	int syscall_num = *(int*)f->esp;	//loads syscall number.
 	thread_current()->backup_esp = f->esp;
 	void* next;
@@ -101,7 +114,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_EXIT:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int arg = *(int*)next;
 				exit(arg);
 				break;
@@ -109,13 +122,13 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_EXEC:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				char* cmd_line = *(char**)next;
 				char* tmp = cmd_line;
 
 				while(*tmp != 0){
 					tmp=tmp+1;
-					is_valid(tmp);
+					is_valid(tmp, f);
 				}
 				//PANIC("gg");
 				
@@ -126,15 +139,15 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_WAIT:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int pid = *(int*)next;
 				f->eax = process_wait(pid);
 				break;
 			}
 		case SYS_CREATE:
 			{
-				is_valid((int*)f->esp + 1);
-				is_valid((int*)f->esp + 2);
+				is_valid((int*)f->esp + 1, f);
+				is_valid((int*)f->esp + 2, f);
 				char* file = *(char **)((int*)f->esp + 1);
 				int initial_size = *((int*)f->esp + 2);
 				f->eax = create(file, initial_size);
@@ -143,14 +156,14 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_REMOVE:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				char *file = *(char**)next;
 				f->eax = remove(file);
 				break;
 			}
 		case SYS_OPEN:
 			{
-				is_valid((int*)f->esp+1);
+				is_valid((int*)f->esp+1, f);
 				char * file = *(char**)((int*)f->esp + 1);
 				f->eax = open(file);
 				break;
@@ -158,7 +171,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_FILESIZE:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int fd = *(int*)next;
 				f->eax = filesize(fd);
 				break;
@@ -166,16 +179,16 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_READ:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int fd = *(int*)next;
 				next = next+1;
 				next = next+1;
-				is_valid(next);
+				is_valid(next, f);
 
 				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
-				is_valid(buf);
-				//is_valid_buff(buf, size);
+				is_valid(buf, f);
+				//is_valid_buff(buf, size, f);
 
 				//PANIC("gg");
 				f->eax=read(fd, buf, size);
@@ -184,25 +197,25 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_WRITE:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int fd = *(int*)next;
 				next = next+1;
 				next = next+1;
-				is_valid(next);
+				is_valid(next, f);
 				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
-				is_valid(buf);
-				//is_valid_buff(buf, size);
+				is_valid(buf, f);
+				//is_valid_buff(buf, size, f);
 				f->eax = write(fd, buf, size);
 				break;
 			}
 		case SYS_SEEK:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int fd = *(int*)next;
 				next = (int*)f->esp+2;
-				is_valid(next);
+				is_valid(next, f);
 				unsigned position = *(unsigned*)next;
 				seek(fd, position);
 				break;
@@ -210,7 +223,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_TELL:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int fd = *(int*)next;
 				f->eax = tell(fd);
 				break;
@@ -218,7 +231,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_CLOSE:
 			{
 				next = (int*)f->esp+1;
-				is_valid(next);
+				is_valid(next, f);
 				int fd = *(int*)next;
 				close(fd);
 				break;

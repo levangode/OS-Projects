@@ -188,7 +188,6 @@ page_fault (struct intr_frame *f)
    
   }
   if(!load_res){
-    //printf("%s\n", "gamovidaa");
     exit(-1);
   }
 }
