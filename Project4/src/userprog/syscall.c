@@ -271,9 +271,12 @@ int mmap(int fd, void* map_page){
 	//try to open file
 
 	struct file* f = NULL;
-	struct file_descriptor* fd = NULL;
+	struct file_descriptor* fd_local = NULL;
 	fd = findFile(fd, false);
 
+	if(fd_local && fd_local){
+		f = filesys_reopen(fd_local->f);
+	}
 
 
 
