@@ -154,4 +154,30 @@ bool spt_install_file(void* upage,struct file* f,off_t offset, size_t bytes_read
 	}	
 }
 
+/*
+	installs page for mapped file
+*/
+bool spt_install_file_mmap(void* upage,struct file* f,off_t offset, size_t bytes_read, size_t bytes_zero, bool writable){
+	struct hash spt_page_table = thread_current()->supplemental_page_table;
+	struct spt_entry * new_spt_entry = malloc(sizeof(struct spt_entry));
+	if(new_spt_entry == NULL){
+		return false;
+	}
+	new_spt_entry->page_type = FROM_MMAP;
+	new_spt_entry->isDirty = false;
+	new_spt_entry->f = f;
+	new_spt_entry->offset = offset;
+	new_spt_entry->upage = upage;
+	new_spt_entry->kpage = NULL;
+	new_spt_entry->bytes_zero = bytes_zero;
+	new_spt_entry->bytes_read = bytes_read;
+	new_spt_entry->writable = writable;
 
+	struct hash_elem * element = hash_insert(&spt_page_table,&new_spt_entry->elem);
+	if(element == NULL){
+		return true;
+	}else{
+		PANIC("DUPLICATE SPT ENTRY!");
+		return false;
+	}	
+}
