@@ -25,14 +25,14 @@ uint8_t * allocate_frame(enum palloc_flags flags, uint8_t *upage){
 	}
 	return page;
 }
-//used algorithm described 
+//used algorithm described on seminar
 void * eviction(uint8_t *upage,enum palloc_flags flags){
 	if(hash_size(&frame_list) ==0){
 		PANIC("FRAME LIST IS EMPTY");
 	}
 	size_t size = hash_size(&frame_list);
 	size_t counter = 0;
-	frame_entry* evicted = NULL;
+	struct frame_entry* evicted = NULL;
 	while(true){
 		if(counter == ITERATION_NUM * size)break;
 		//TODO pick evitable one
