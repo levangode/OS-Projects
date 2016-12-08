@@ -25,6 +25,27 @@ uint8_t * allocate_frame(enum palloc_flags flags, uint8_t *upage){
 	}
 	return page;
 }
+//used algorithm described 
+void * eviction(uint8_t *upage,enum palloc_flags flags){
+	if(hash_size(&frame_list) ==0){
+		PANIC("FRAME LIST IS EMPTY");
+	}
+	size_t size = hash_size(&frame_list);
+	size_t counter = 0;
+	frame_entry* evicted = NULL;
+	while(true){
+		if(counter == ITERATION_NUM * size)break;
+		//TODO pick evitable one
+
+		counter++;
+	}
+	if(evicted == NULL){
+		PANIC("NOTHING EVICTED. GET MORE RAM");
+	}
+
+}
+
+
 
 void free_frame(void* page){
 	palloc_free_page(page);
