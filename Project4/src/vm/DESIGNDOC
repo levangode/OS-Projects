@@ -44,6 +44,14 @@ FirstName LastName <email@domain.example>
 >> A4: When two user processes both need a new frame at the same time,
 >> how are races avoided?
 
+ფრეიმ ალოკაცია ჩვეულებრივ დაშენებულია palloc_get_page-ზე, რომელიც იყენებს palloc_get_multiple-ს, ხოლო ამ უკანასკნელს გააჩნია
+თავისი სინქრონიზაციის მექანიზმი ->>>
+	lock_acquire (&pool->lock);
+  	page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
+  	lock_release (&pool->lock);
+<<< რომელიც მთელ pool-ს ლოქავს და შესაბამისად სხვადასხვა პროცესი თუ ერთად შეეცდება ახალი ფრეიმის მიღებას, ერთ-ერთს პულზე დალოდება მოუწევს სანამ მეორე
+ლოქს გაათავისუფლებს.
+
 ---- RATIONALE ----
 
 >> A5: Why did you choose the data structure(s) that you did for
@@ -77,6 +85,8 @@ FirstName LastName <email@domain.example>
 >> particular, explain how it prevents deadlock.  (Refer to the
 >> textbook for an explanation of the necessary conditions for
 >> deadlock.)
+
+სინქრონიზაციაში არ გვაქვს დედლოქის პრობლემა, რადგან არსადაა მოსალოდნელი ციკლის შეკვრა.
 
 >> B6: A page fault in process P can cause another process Q's frame
 >> to be evicted.  How do you ensure that Q cannot access or modify
