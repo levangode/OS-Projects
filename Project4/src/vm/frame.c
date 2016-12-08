@@ -19,6 +19,7 @@ uint8_t * allocate_frame(enum palloc_flags flags, uint8_t *upage){
 	struct frame_entry* tmp_entry = malloc(sizeof(struct frame_entry));
 	tmp_entry->kpage = page;
 	tmp_entry->upage = upage;
+	tmp_entry->is_pinned = true;
 	if(page != NULL){
 		lock_acquire(&list_lock);
 		list_push_back(&frame_list, &tmp_entry->elem);
