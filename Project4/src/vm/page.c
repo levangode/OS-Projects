@@ -11,7 +11,7 @@
 
 
 
-#define STACK_LIMIT 0x800000  // == 2^23
+
 
 
 void page_init(struct hash* supplemental_page_table){
