@@ -130,12 +130,18 @@ struct thread
 #ifdef VM
     struct hash supplemental_page_table;
 
+    struct list mmap_table;
 #endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
   };
+
+struct mmap_entry{
+  struct file* f;
+  
+}  
 
 struct child_status_code{
   tid_t child_tid;
