@@ -298,7 +298,28 @@ int mmap(int fd, void* map_page){
 	uint32_t size = file_length(f);
 	if(!size){
 		lock_release(&system_global_lock);
+		retrun -1;
 	}
+
+	uint32_t i = 0;
+
+	for(; i<size; i+=PGSIZE){
+		void* addr;
+
+		uint32_t read;
+		if( i+PGSIZE < size ){
+			read = PGSIZE;
+		} else {
+			read = size - i;
+		}
+		uint32_t zero = PGSIZE - read;
+
+		spt_install_file_mmap(map_page, f, i, read, zero, false);///may be writable
+
+	
+	}
+
+
 
 
 	//PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
