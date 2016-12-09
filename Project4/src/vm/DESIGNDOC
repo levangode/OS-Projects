@@ -57,6 +57,8 @@ FirstName LastName <email@domain.example>
 >> A5: Why did you choose the data structure(s) that you did for
 >> representing virtual-to-physical mappings?
 
+
+
 		       PAGING TO AND FROM DISK
 		       =======================
 
@@ -71,9 +73,19 @@ FirstName LastName <email@domain.example>
 >> B2: When a frame is required but none is free, some frame must be
 >> evicted.  Describe your code for choosing a frame to evict.
 
+გამოვიყენე second chance ალგორითმი რომელიც სემინარზე აღგვიწერეს. გადავუყვები frame-ების
+ლისტს, თუ დაპინულია მაშინ მოცემულ frame-ს აღარ განვიხილავ. ხოლო pagedir_is_accessed
+ით ვამოწმებთ access ბიტს და თუ false-არის მაშინ ამ frame-ს ვირჩევთ eviction-სთვის. თუ 
+access ბიტი true არის, მაშინ false-ს ვანიჭებ და ვაგრძელებ ძებდნას. ბოლოში თუ გავედი ვიწყებთ
+თავიდან, მაქსიმუმ 4-ჯერ (რაოდენობაზე ჯერ ვერ შევთანხმდით, ან 2 ჯერ ან 4 ჯერ).
+
 >> B3: When a process P obtains a frame that was previously used by a
 >> process Q, how do you adjust the page table (and any other data
 >> structures) to reflect the frame Q no longer has?
+
+ეს ნაწილი ჯერ არ მიწერია ბოლომდე, მაგრამ როდესაც ევიქშენს დავამთავრებთ გაგდებული frame აღარ იქნება რამში
+(pagedir_clear_page-ით),და მის ადგილას ახალი ჩაიწერება. thread_currents() ის supplementary
+page table-ში მოხდება შესაბამისი ცვლილებები .
 
 >> B4: Explain your heuristic for deciding whether a page fault for an
 >> invalid virtual address should cause the stack to be extended into
