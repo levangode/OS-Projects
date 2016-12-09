@@ -138,6 +138,32 @@ bool load_page(uint8_t* upage){
 	} else if(tmp_entry->page_type == FROM_SWAP){	//SWAP
 
 	} else if(tmp_entry->page_type == FROM_MMAP){	//MMAP
+		struct file* load_file = tmp_entry->f;
+		int offset = tmp_entry->offset;
+		int bytes_read = tmp_entry->bytes_read;
+		int bytes_zero = tmp_entry->bytes_zero;
+		bool release = false;
+		if(!lock_held_by_current_thread(&system_global_lock)){
+			lock_acquire(&system_global_lock);
+			release = true;
+		}
+		file_seek(load_file, offset);
+
+		if (file_read (load_file, kpage, bytes_read) != (int) bytes_read)
+        {
+          palloc_free_page (kpage);
+          if(release)
+          	lock_release(&system_global_lock);
+          return false; 
+        }
+        if(release)
+        	lock_release(&system_global_lock);
+        memset ((char*)kpage + bytes_read, 0, bytes_zero);
+        res = true;
+
+        PANIC("asdfasdkjhdsfkgsdkgdsfkh\n");
+
+		// PANIC("ACCESS MAPPED FILE %d", res);
 
 	} else {
 		PANIC("SHOULD HAVE ENTERED ANY OF THE CASES");
