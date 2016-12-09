@@ -152,6 +152,21 @@ bool load_page(uint8_t* upage){
   return true;
 }
 
+
+bool make_spt_dirty(void* page, bool dirty){
+	struct hash spt_table = thread_current()->supplemental_page_table;
+	struct spt_entry* element = find_page_in_supt(page);
+	if(element == NULL){
+		PANIC("ATTEMPTED TO SET DIRTY BUT PAGE WASN'T FOUND");
+	}
+	if(dirty){
+		element->isDirty = true;
+	}
+	return true;
+}
+
+
+
 bool spt_install_file(void* upage,struct file* f,off_t offset, size_t bytes_read, size_t bytes_zero, bool writable){
 	struct hash spt_page_table = thread_current()->supplemental_page_table;
 	struct spt_entry * new_spt_entry = malloc(sizeof(struct spt_entry));
