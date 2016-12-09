@@ -21,3 +21,14 @@ for(i=0;i < PGSIZE / BLOCK_SECTOR_SIZE;i++ ){
 bitmap_set(swapblock, index, 1);
 lock_release(&swaplock);
 }
+int swap_out (void *swap_pg){
+	lock_acquire(&swaplock);
+	size_t index = bitmap_scan(swapmap,0,1,1);
+	int i;
+	for(i=0;i < PGSIZE / BLOCK_SECTOR_SIZE;i++){
+		block_write(swapblock,index * (PGSIZE / BLOCK_SECTOR_SIZE) + i,swap_pg + (BLOCK_SECTOR_SIZE * i));
+	}
+	bitmap_set(swapmap, index, 0);
+	lock_release(&swaplock);
+	return index;
+}
