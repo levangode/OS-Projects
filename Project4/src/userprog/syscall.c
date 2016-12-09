@@ -303,10 +303,20 @@ int mmap(int fd, void* map_page){
 		return -1;
 	}
 
+	uint32_t k = 0;
+	for(; k<size; k+=PGSIZE){
+		void* addr = map_page + k;
+		void* entry_addr = find_page_in_supt(addr);
+		if(entry_addr!=NULL){
+			lock_release(&system_global_lock);
+			return -1;
+		}
+	}
+
 
 	uint32_t i = 0;
 	for(; i<size; i+=PGSIZE){
-
+		
 		//void* addr = ;
 
 		uint32_t read;
@@ -329,15 +339,18 @@ int mmap(int fd, void* map_page){
 	map_entry->uaddr = map_page;
 	map_entry->size = size;
 
+	//struct list* mmap_table = &cur_t->mmap_table;
+	//list_push_front(mmap_table, map_entry);
+
 	//PANIC("size: %d, id_counter: %d, user_address: %d", size, cur_t->map_id_counter);
 	// PANIC("file descriptor is: %d", fd_local->id);
 	//PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
 	lock_release(&system_global_lock);
-    return 0;  
+    return map_entry->id;  
 }
 
 int munmap(int id){
-	//PANIC("trying to unmap map id: %d;", id);
+	
 	return 0;
 }
 #endif
