@@ -133,11 +133,14 @@ bool load_page(uint8_t* upage){
         	lock_release(&system_global_lock);
         memset ((char*)kpage + bytes_read, 0, bytes_zero);
         res = true;
+
+
 	} else if(tmp_entry->page_type == ALL_ZERO){ 	//ZEROPAGE
 		res = true;
 	} else if(tmp_entry->page_type == FROM_SWAP){	//SWAP
 
 	} else if(tmp_entry->page_type == FROM_MMAP){	//MMAP
+		//PANIC("asd");
 		struct file* load_file = tmp_entry->f;
 		int offset = tmp_entry->offset;
 		int bytes_read = tmp_entry->bytes_read;
@@ -161,9 +164,10 @@ bool load_page(uint8_t* upage){
         memset ((char*)kpage + bytes_read, 0, bytes_zero);
         res = true;
 
-        PANIC("asdfasdkjhdsfkgsdkgdsfkh\n");
-
-		// PANIC("ACCESS MAPPED FILE %d", res);
+		//PANIC("%c%c%c%c%c", (char*)upage, (char*)upage+1, (char*)upage+2, (char*)upage+3, (char*)upage+4);
+        //printf("asdasdasdas\n" );
+		//printf("asdasdasdasdasd1111111111\n");	
+		//PANIC("ACCESS MAPPED FILE %d", res);
 
 	} else {
 		PANIC("SHOULD HAVE ENTERED ANY OF THE CASES");
