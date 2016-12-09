@@ -265,6 +265,7 @@ syscall_handler (struct intr_frame *f)
 
 #ifdef VM
 int mmap(int fd, void* map_page){
+	
 	// basic check of argument validity
 	if(map_page == NULL){
 		return -1;
@@ -285,10 +286,11 @@ int mmap(int fd, void* map_page){
 
 	struct file* f = NULL;
 	struct file_descriptor* fd_local = NULL;
-	fd = findFile(fd, false);
+	fd_local = findFile(fd, false);
+	
 
-	if(fd_local && fd_local){
-		f = filesys_reopen(fd_local->f);
+	if(fd_local && fd_local->f){
+		f = file_reopen(fd_local->f);
 	}
 	if(f == NULL){
 		lock_release(&system_global_lock);
@@ -301,9 +303,10 @@ int mmap(int fd, void* map_page){
 		return -1;
 	}
 
-	uint32_t i = 0;
 
+	uint32_t i = 0;
 	for(; i<size; i+=PGSIZE){
+
 		void* addr;
 
 		uint32_t read;
@@ -314,7 +317,7 @@ int mmap(int fd, void* map_page){
 		}
 		uint32_t zero = PGSIZE - read;
 
-		spt_install_file_mmap(map_page, f, i, read, zero, false);///may be writable
+		spt_install_file_mmap(map_page, f, i, read, zero, true);///may be writable
 	
 	}
 
@@ -326,7 +329,9 @@ int mmap(int fd, void* map_page){
 	map_entry->uaddr = map_page;
 	map_entry->size = size;
 
+	//PANIC("size: %d, id_counter: %d, user_address: %d", size, cur_t->map_id_counter);
 
+	// PANIC("file descriptor is: %d", fd_local->id);
 	//PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
 	lock_release(&system_global_lock);
     return 0;  
