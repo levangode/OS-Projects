@@ -167,6 +167,7 @@ void pin_page(void* page){
 void unpin_page(void* page){
 	struct spt_entry* element = find_page_in_supt(page);
 	if(element == NULL)return;
+	uint8_t* kpage = element->kpage;
 	struct frame_entry* curElem = find_frame(kpage);
 	lock_acquire(&list_lock);
 	curElem->is_pinned = true;
