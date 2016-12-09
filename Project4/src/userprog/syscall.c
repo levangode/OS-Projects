@@ -298,7 +298,7 @@ int mmap(int fd, void* map_page){
 	uint32_t size = file_length(f);
 	if(!size){
 		lock_release(&system_global_lock);
-		retrun -1;
+		return -1;
 	}
 
 	uint32_t i = 0;
@@ -315,11 +315,16 @@ int mmap(int fd, void* map_page){
 		uint32_t zero = PGSIZE - read;
 
 		spt_install_file_mmap(map_page, f, i, read, zero, false);///may be writable
-
 	
 	}
 
 
+	struct mmap_entry* map_entry = malloc(sizeof(struct mmap_entry));
+
+	map_entry->id = cur_t->map_id_counter++;
+	map_entry->f = f;
+	map_entry->uaddr = map_page;
+	map_entry->size = size;
 
 
 	//PANIC("trying to map file: %d on address: %u;", fd, address_to_map);
