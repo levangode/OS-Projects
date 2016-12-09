@@ -327,7 +327,7 @@ int mmap(int fd, void* map_page){
 		}
 		uint32_t zero = PGSIZE - read;
 
-		spt_install_file_mmap(map_page+i, f, i, read, zero, true);///may be writable
+		spt_install_file_mmap(map_page+i, f, i, read, zero, false);///may be writable
 		load_page(pg_round_down(map_page));
 	}
 
@@ -339,8 +339,8 @@ int mmap(int fd, void* map_page){
 	map_entry->uaddr = map_page;
 	map_entry->size = size;
 
-	//struct list* mmap_table = &cur_t->mmap_table;
-	//list_push_front(mmap_table, map_entry);
+	struct list* mmap_table = &cur_t->mmap_table;
+	list_push_front(mmap_table, map_entry);
 
 	//PANIC("size: %d, id_counter: %d, user_address: %d", size, cur_t->map_id_counter);
 	// PANIC("file descriptor is: %d", fd_local->id);
