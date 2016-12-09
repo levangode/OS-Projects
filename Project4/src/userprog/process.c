@@ -726,7 +726,7 @@ bool install_page (void *upage, void *kpage, bool writable)
   bool res =  (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
   if(res){
-    spt_add(upage, kpage, writable, true);
+    spt_add(upage, kpage, writable);
   }
   return res;
 }

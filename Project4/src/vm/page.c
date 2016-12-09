@@ -12,7 +12,7 @@
 
 
 
-
+/* Initializes page table which is initialing the struct hash */
 void page_init(struct hash* supplemental_page_table){
 	hash_init(supplemental_page_table, page_hash_func, page_less_func, NULL);
 }
@@ -31,11 +31,13 @@ struct spt_entry* find_page_in_supt(void * uvaddr){
 	}
 	return NULL;
 }
+/* Free fn for spt entries */
 void spte_fn (struct hash_elem* to_delete, void* aux){
 	struct spt_entry* next = hash_entry(to_delete, struct spt_entry, elem);
 	free(next);
 }
 
+/* Supplemental page table free. calls on process exit */
 void free_spt(struct hash* supplemental_page_table){
 	hash_destroy(supplemental_page_table, spte_fn);
 }
@@ -60,15 +62,11 @@ bool page_less_func (const struct hash_elem *a,
 
 
 /* Adds new spt entry to hash. */
-void spt_add(uint8_t* upage, uint8_t* kpage, bool writable, bool loaded){
+void spt_add(uint8_t* upage, uint8_t* kpage, bool writable){
 	struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
 	tmp_entry->upage = upage;
 	tmp_entry->kpage = kpage;
 	tmp_entry->writable = writable;
-	if(loaded){
-		tmp_entry->loaded = true;
-	}
-
 	hash_insert(&thread_current()->supplemental_page_table, &tmp_entry->elem);
 }
 
@@ -82,9 +80,9 @@ bool stack_growth(uint8_t* uvaddr){
   struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
  	uint8_t* upage = uvaddr;
  	bool writable = true;
-
+ 	tmp_entry->kpage = NULL;
  	tmp_entry->upage = uvaddr;
- 	tmp_entry->page_type = 1;
+ 	tmp_entry->page_type = ALL_ZERO;	//zero page (0 bytes to read)
  	tmp_entry->writable = true;
   hash_insert(&thread_current()->supplemental_page_table, &tmp_entry->elem);
   return load_page(upage);
@@ -95,21 +93,16 @@ bool load_page(uint8_t* upage){
 	upage = pg_round_down(upage);
 	bool res = true;
 	struct spt_entry* tmp_entry = find_page_in_supt(upage);
+	
 	if(tmp_entry == NULL){
 		return false;
 	}
-
-	/*if(tmp_entry->loaded){
-		printf("%s\n", "###############################");
-		return true;
-	}*/
 	void* kpage = allocate_frame(PAL_USER, upage);
 	if(kpage == NULL){
 		return false;
 	}
 
 	if(tmp_entry->page_type == FROM_FILE){	//FILE
-
 		struct file* load_file = tmp_entry->f;
 		int offset = tmp_entry->offset;
 		int bytes_read = tmp_entry->bytes_read;
@@ -121,20 +114,20 @@ bool load_page(uint8_t* upage){
 		}
 		file_seek(load_file, offset);
 
-		if (file_read (load_file, kpage, bytes_read) != (int) bytes_read)
-        {
-          palloc_free_page (kpage);
-          if(release)
-          	lock_release(&system_global_lock);
-          return false; 
-        }
-        if(release)
-        	lock_release(&system_global_lock);
-        memset ((char*)kpage + bytes_read, 0, bytes_zero);
-        res = true;
+		if (file_read (load_file, kpage, bytes_read) != (int) bytes_read){
+     	palloc_free_page (kpage);
+			if(release)
+				lock_release(&system_global_lock);
+			
+      return false; 
+     }
+     if(release)
+      lock_release(&system_global_lock);
 
-
+    memset ((char*)kpage + bytes_read, 0, bytes_zero);
+    res = true;
 	} else if(tmp_entry->page_type == ALL_ZERO){ 	//ZEROPAGE
+		//just load the page.
 		res = true;
 	} else if(tmp_entry->page_type == FROM_SWAP){	//SWAP
 
@@ -176,8 +169,6 @@ bool load_page(uint8_t* upage){
   	palloc_free_page (kpage);
     return false; 
   }
-
-  tmp_entry->loaded = true;
   return true;
 }
 
@@ -238,7 +229,6 @@ bool spt_install_file(void* upage,struct file* f,off_t offset, size_t bytes_read
 	new_spt_entry->bytes_zero = bytes_zero;
 	new_spt_entry->bytes_read = bytes_read;
 	new_spt_entry->writable = writable;
-	new_spt_entry->loaded = false;
 
 	struct hash_elem * element = hash_insert(&spt_page_table,&new_spt_entry->elem);
 	if(element == NULL){

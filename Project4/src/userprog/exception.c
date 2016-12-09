@@ -182,10 +182,8 @@ page_fault (struct intr_frame *f)
   }
   if(stack_should_grow(f,not_present,fault_addr)){
     load_res = stack_growth(page_addr);
-
   }else{
     load_res = load_page(page_addr);
-   
   }
   if(!load_res){
     exit(-1);
@@ -194,7 +192,6 @@ page_fault (struct intr_frame *f)
 
 bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr){
   void* floor = (void*)0x08048000;
-  if( (fault_addr > floor && not_present) && is_user_vaddr(fault_addr) && (f->esp - 32 <= fault_addr)){
     return true;
   }
   return false;
