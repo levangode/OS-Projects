@@ -235,6 +235,9 @@ thread_create (const char *name, int priority,
 
   #ifdef VM
   page_init(&t->supplemental_page_table);
+
+  list_init(&t->mmap_table);
+  t->map_id_counter = 1;
   #endif
   /* Add to run queue. */
   thread_unblock (t);
