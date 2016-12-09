@@ -50,24 +50,27 @@ syscall_init (void)
  * address space
  */
 void is_valid(void* addr, struct intr_frame *f){
-	
-	if(find_page_in_supt(addr) == NULL){
-		bool res = false;
-		//printf("%d\n", (int)addr);
-		//printf("%d\n", (int)addr);
-		//printf("rucxa : %d\n", addr);
-		//printf("Racxa : %d\n", ((int)1<<23));
-		if(is_user_vaddr(addr) && (f->esp - 32 <= addr)  && (int)addr < ((int)1<<23) ){
-			res = stack_growth(pg_round_down(addr));
-		}
-		if(!res){
-			exit(-1);
-		}
+	if(addr == NULL){
+		exit(-1);
 	}
-	
+	if(!is_user_vaddr(addr)){
+		exit(-1);
+	} else if (pagedir_get_page(thread_current()->pagedir, addr) == NULL){
+		exit(-1);
+	}
+	/*if(!is_user_vaddr(addr)){
 
-	
-
+		exit(-1);
+	}
+	bool res = false;
+	if (find_page_in_supt(addr) != NULL){
+		res = load_page(addr);
+	} else if(addr >= f->esp - 32){
+		res = stack_growth(addr);
+	}
+	if(!res){
+		exit(-1);
+	}*/
 }
 
 /* Also validates the pointer, iterating through the whole buffer */
@@ -96,6 +99,7 @@ void exit(int status_code){
 static void
 syscall_handler (struct intr_frame *f) 
 {
+	
 	is_valid(f->esp, f);
 	is_valid_buff(f->esp, sizeof(int), f);
 	int syscall_num = *(int*)f->esp;	//loads syscall number.
@@ -184,11 +188,10 @@ syscall_handler (struct intr_frame *f)
 				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
 				is_valid(buf, f);
-				is_valid_buff(buf, size, f);
+				//is_valid_buff(buf, size, f);
 
 				//PANIC("gg");
 				f->eax=read(fd, buf, size);
-
 				break;
 			}
 		case SYS_WRITE:
@@ -202,7 +205,7 @@ syscall_handler (struct intr_frame *f)
 				int size = *(unsigned int*)((int*)f->esp+3);
 				void* buf = *(char**)((int*)f->esp+2);
 				is_valid(buf, f);
-				is_valid_buff(buf, size, f);
+				//is_valid_buff(buf, size, f);
 				f->eax = write(fd, buf, size);
 				break;
 			}
