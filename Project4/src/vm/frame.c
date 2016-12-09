@@ -27,6 +27,15 @@ uint8_t * allocate_frame(enum palloc_flags flags, uint8_t *upage){
 	}
 	return page;
 }
+
+bool check_dirty(struct frame_entry* evicted){
+	if(pagedir_is_dirty(evicted->occupying_thread->pagedir,evicted->upage) ||pagedir_is_dirty(evicted->occupying_thread->pagedir,evicted->kpage)){
+		return true;
+	}
+	return false;
+}
+
+
 //used algorithm described on seminar
 void * eviction(uint8_t *upage,enum palloc_flags flags){
 	if(hash_size(&frame_list) ==0){
@@ -63,7 +72,7 @@ void * eviction(uint8_t *upage,enum palloc_flags flags){
 	//need to check evicted element's occupying thread's pagedir..thinking about how to do that
 	pagedir_clear_page(evicted->occupying_thread->pagedir,evicted->upage);
 	//next steps require swap..waiting for it
-
+	
 
 
 }
