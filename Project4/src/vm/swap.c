@@ -32,3 +32,8 @@ int swap_out (void *swap_pg){
 	lock_release(&swaplock);
 	return index;
 }
+void swap_free (int index){
+	lock_acquire(&swaplock);
+	bitmap_set(swapblock,index,1);
+	lock_release(&swaplock);
+}
