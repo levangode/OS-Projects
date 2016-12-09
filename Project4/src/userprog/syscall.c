@@ -327,7 +327,7 @@ int mmap(int fd, void* map_page){
 		}
 		uint32_t zero = PGSIZE - read;
 
-		spt_install_file_mmap(map_page+i, f, i, read, zero, false);///may be writable
+		spt_install_file_mmap(map_page+i, f, i, read, zero, true);///may be writable
 		load_page(pg_round_down(map_page));
 	}
 
