@@ -192,6 +192,7 @@ page_fault (struct intr_frame *f)
 
 bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr){
   void* floor = (void*)0x08048000;
+  if( ((int)fault_addr < (int)floor && not_present) && is_user_vaddr(fault_addr) && (f->esp - 32 <= fault_addr)){
     return true;
   }
   return false;
