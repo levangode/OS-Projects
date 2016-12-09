@@ -13,6 +13,20 @@ void init_frame_table(void){
 }
 
 
+struct frame_entry* find_frame(uint8_t* kpage){
+	lock_acquire(&list_lock);
+	struct list_elem * tmp;
+	for(tmp = list_begin(&frame_list); tmp != list_end(&frame_list); tmp = list_next(tmp) ){
+		struct frame_entry * curElem =  (struct frame_entry * ) list_entry(tmp,struct frame_entry,elem);
+		if(curElem->kpage == kpage){
+			lock_release(&list_lock);
+			return curElem;
+		}
+	}
+	lock_release(&list_lock);
+	return NULL;
+}
+
 
 uint8_t * allocate_frame(enum palloc_flags flags, uint8_t *upage){
 	uint8_t* page = palloc_get_page(flags);
@@ -72,7 +86,7 @@ void * eviction(uint8_t *upage,enum palloc_flags flags){
 	//need to check evicted element's occupying thread's pagedir..thinking about how to do that
 	pagedir_clear_page(evicted->occupying_thread->pagedir,evicted->upage);
 	//next steps require swap..waiting for it
-	
+
 
 
 }

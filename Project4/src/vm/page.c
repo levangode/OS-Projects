@@ -153,7 +153,31 @@ bool load_page(uint8_t* upage){
 }
 
 
-bool make_spt_dirty(void* page, bool dirty){
+void pin_page(void* page){
+	struct spt_entry* element = find_page_in_supt(page);
+	if(element == NULL)return;
+	uint8_t* kpage = element->kpage;
+	struct frame_entry* curElem = find_frame(kpage);
+	lock_acquire(&list_lock);
+	curElem->is_pinned = true;
+	lock_release(&list_lock);
+	
+}
+
+void unpin_page(void* page){
+	struct spt_entry* element = find_page_in_supt(page);
+	if(element == NULL)return;
+	uint8_t* kpage = element->kpage;
+	struct frame_entry* curElem = find_frame(kpage);
+	lock_acquire(&list_lock);
+	curElem->is_pinned = true;
+	lock_release(&list_lock);
+}
+
+
+
+
+void make_spt_dirty(void* page, bool dirty){
 	struct hash spt_table = thread_current()->supplemental_page_table;
 	struct spt_entry* element = find_page_in_supt(page);
 	if(element == NULL){
@@ -164,6 +188,9 @@ bool make_spt_dirty(void* page, bool dirty){
 	}
 	return true;
 }
+
+
+
 
 
 
