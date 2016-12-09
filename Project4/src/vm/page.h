@@ -15,9 +15,7 @@
 #define FROM_SWAP 2
 #define FROM_MMAP 3
 
-struct hash supplemental_page_table;
-
-
+#define STACK_LIMIT 0x800000  // == 2^23 == 8mb
 
 struct spt_entry{
 	uint8_t* kpage;
