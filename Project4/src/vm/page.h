@@ -35,6 +35,7 @@ struct spt_entry{
 };
 
 bool spt_install_file(void* upage,struct file* f,off_t offset,size_t bytes_read,size_t bytes_zero,bool writable);
+bool spt_install_file_mmap(void* upage,struct file* f,off_t offset,size_t bytes_read,size_t bytes_zero,bool writable);
 struct spt_entry* find_page_in_supt(void * addr);
 void page_init(struct hash* supplemental_page_table);
 bool page_less_func (const struct hash_elem *a,
