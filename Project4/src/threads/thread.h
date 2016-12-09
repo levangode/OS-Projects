@@ -131,6 +131,7 @@ struct thread
     struct hash supplemental_page_table;
 
     struct list mmap_table;
+    uint32_t map_id_counter;
 #endif
 
     /* Owned by thread.c. */
@@ -139,9 +140,15 @@ struct thread
   };
 
 struct mmap_entry{
-  struct file* f;
+  struct list_elem elem;
+
+  uint32_t id;//generated id
+  struct file* f;//file struct
+
+  void* uaddr;//user_virtual address
+  uint32_t size;//file size
   
-}  
+};  
 
 struct child_status_code{
   tid_t child_tid;
