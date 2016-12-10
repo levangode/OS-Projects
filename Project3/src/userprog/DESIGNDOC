@@ -31,11 +31,10 @@ Sandro Magradze  		<amagh13@freeuni.edu.ge>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
-
-No new structs.
-Two static variables, init_aloc and argmax_length.
-init_aloc defines the arbitrary number of arguments that can be passed through a command.
-argmax_length defines the arbitrary max length of the command together with its arguments, which is entered by user.
+ახალი სტრუქტურები არაფერი დაგვჭირდა.
+ორი სტატიკური ცვლადი აღვწერეთ, init_aloc და argmax_length
+init_aloc არის ხელოვნური(ამ შემთხვევაში არც ისე მნიშვნელოვანი) რიცხვი, რომლითაც შეგვიძლია ვაკონტროლოთ გადაცემადი არგუმენტების რაოდენობა.
+argmax_length მსგავს ფუნქციას ასრულებს თითოეული ბრძანების სიგრძის საკონტროლოდ.
 
 
 
@@ -45,28 +44,28 @@ argmax_length defines the arbitrary max length of the command together with its 
 >> you arrange for the elements of argv[] to be in the right order?
 >> How do you avoid overflowing the stack page?
 
-At first, we parse the whole string and temporary save them in array like argv, but its temporal.
-Then we iterate through this array in reversed order and do the "stackpushing" thing for each of them - 
-- which is, freeing the enough memory at first by moving the stack pointer down, and then memcpying the
-argument into the free space. After that, we follow the steps described in the assignment - the word alignment/null separators etc.
+თავდაპირველად ვპარსავთ მთლიან სტრინგს და ტოკენებად ვინახავთ არაიში(argv), რომელიც დროებითი არაია.
+შემდეგ(push_to_stack მეთოდში) ამ არაის გადავყვებით შებრუნებული ორდერინგით(ბოლოდან თავისკენ) და თითოეულ ტოკენს ვტენით სტეკში -
+რაც გულისხმობს სტეკ ფოინთერით ადგილის გამონთავისუფლებას, შემდეგ კი ამ ადგილში memcpy-ით არგუმენტის გადაკოპირება.
+ამის შემდეგ ვაწესრიგებთ ბოლო შტრიხებს, რომლებიც წინასწარი წესითაა განსაზღვრული, word alignmene(დამრგვალება),  argv, argc, null separatos.
 
-Stack overflowing won't be precautioned. THe page fault will be caught in exception and will be properely handled by as, which in
-this case is exiting from the thread.
+stack-owerflow-ს წინასწარ გაკონტროლება არ ხდება. თუ გადასცდა, ექსეფშენი page_fault-ში შეგვაგდებს, სადაც უკვე მოხდება მისი დამუშავება -
+ამ შემთხვევაში შეცდომის დაფიქსირება და პროცესის გათიშვა exit-ით.
 
 
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
 
-Because after extracting the first token(the command name), we should be able to access the rest of the string too.
+იმიტომ რომ ტოკენაიზერით პირველი არგუმენტის ამოღება (ბრძანების სახელის) თავიდანვე ხდება, შემდეგ savedPointer-ში სტატიკურ სთეითად
+უკვე დამახსოვრებულია ეს ნაბიჯი და შეგვიძლია აქედან განვაგრძოთ დაჭრა. 
 
 >> A4: In Pintos, the kernel separates commands into a executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
 
-
-1) Don't waste time in kernel.
-2) kernel will get safe arguments and won't have to do the exceptions thing.
+1) კერნელში, როგორც მთავარ ოპერატორში და არა შავი სამუშაოს მკეთებელში, არ მოგვიწევს ზედმეტი დროის დაკარგვა.
+2) კერნელს უსაფრთხო პარამეტრები გადაეცემა და რაც უფრო ნაკლები ექსეფშენი გვაქვს კერნელში მით უკეთესი.
 
 
 			     SYSTEM CALLS
@@ -252,10 +251,14 @@ write:
 >> paragraphs, describe the strategy or strategies you adopted for
 >> managing these issues.  Give an example.
 
-When reading from stack, we simply check every pointer for valideness before using it. 
-On the other hand if the pointer points to a buffer, we check the whole buffer for the valideness.
-If an error is caught, we exit the thread, which on it's own, calls the process_exit where we deallocate all our resources,
-close files and release locks.
+გვაქვს ფუნქცია is_valid რომელსაც გადაეცემა პოინტერი და იმ შემთხვევაში თუ ის არავალიდურია, პროცესი exit-დება, რაც
+თვითონ exit-ის იპლემენტაციიდან გამომდინარე (როგორც syscall exit ისევე process_exit), უზრუნველყოფს, რომ ყველაფერი რასაც იყენებდა
+(locks, buffers, etc.) თავის ადგილზე დააბრუნოს და მხოლოდ ამის შემდეგ გაითიშოს.
+
+ამ შემმოწმებალ ფუნქციას ვიძახებთ თითოეული არგუმენტისთვის, რასაც სტეკიდან ვკითხულობთ და სრული buffer-ისთვის თუ გვაქვს read ან write.
+შესაბამისად, უმეტესობა შესაძლო ერორების გაკონტროლება წინასწარვე ხდება, მაგრამ არის ისეთებიც, რომლებსაც წინასწარ ვერ დაიჭერ, ამიტომ
+ერორის დაჭერის შემთხვევაშიც მივმართავთ იგივე სტრატეგიას - fault-addrის შემოწმებით ვასრულებთ პროგრამას.
+
 
 ---- SYNCHRONIZATION ----
 
