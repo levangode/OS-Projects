@@ -30,6 +30,12 @@ struct frame_entry* find_frame(uint8_t* kpage){
 
 uint8_t * allocate_frame(enum palloc_flags flags, uint8_t *upage){
 	uint8_t* page = palloc_get_page(flags);
+	if(page == NULL){
+		lock_acquire(&list_lock);
+		eviction(upage,flags);
+		page = palloc_get_page(flags);
+		lock_release(&list_lock);
+	}
 	struct frame_entry* tmp_entry = malloc(sizeof(struct frame_entry));
 	tmp_entry->kpage = page;
 	tmp_entry->upage = upage;
