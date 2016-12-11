@@ -30,6 +30,7 @@ struct spt_entry{
 	size_t swap;
 	bool loaded;
 	struct hash_elem elem;
+	bool isSwap;
 };
 
 bool spt_install_file(void* upage,struct file* f,off_t offset,size_t bytes_read,size_t bytes_zero,bool writable);

@@ -215,7 +215,7 @@ void make_spt_swap(void* pg,int index){
 		return;
 	}
 	element->kpage = NULL;
-	element->page_type = FROM_SWAP;
+	element->isSwap = true;
 	element->swap = index;
 }
 
