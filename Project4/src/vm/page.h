@@ -29,6 +29,7 @@ struct spt_entry{
 	off_t offset;
 	size_t swap;
 	bool loaded;
+	
 	struct hash_elem elem;
 };
 

@@ -343,6 +343,33 @@ int mmap(int fd, void* map_page){
 
 int munmap(int id){
 	
+	struct thread* cur_t = thread_current();
+	struct mmap_entry* cur_entry = NULL;
+
+	/*find entry*/
+	{
+		struct list* mmap_table = &cur_t->mmap_table;
+		struct list_elem* cur_elem = list_begin(mmap_table);
+		struct mmap_entry* tmp;
+		for(; cur_elem != list_tail(mmap_table); cur_elem = list_next(cur_elem)){
+			tmp = list_entry(cur_elem, struct mmap_entry, elem);
+			if(tmp->id == id){
+				cur_entry = tmp;
+				break;
+			}
+		}
+	}
+
+	if(cur_entry == NULL){
+		return 0;
+	}
+
+	uint32_t i = 0;
+	uint32_t size = cur_entry->size;
+
+	
+
+
 	return 0;
 }
 #endif
