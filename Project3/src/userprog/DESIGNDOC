@@ -177,26 +177,6 @@ read:
   სხვა შემთხვევაში ვეძებთ ფაილს დესკრიპტორის მიხედვით, თუ ვიპოვით, file_read-ს ვაკეთებთ და წაკითხული 
   data-ს ზომას ვაბრუნებთ. (ასევე სინქრონიზაციის დაცვით)
   
-
-  status code storage:
-  status code list added to thread structure for keeping track of children status codes.
-  child status codes are kept in thir own structure which is preallocated by parent
-  during thread creation and pointer to them is stored in stat_code_elem for easy and
-  fast access to status code by executing thread.
-
-  blocking:
-  parent thread is blocked on child by pid. the semaphore for given pid is found in 
-  child_stat_code_list->child_status_code_elem->wait_sema. parent is blocked until
-  child sets its own status code by calling set_status_code(int).
-
-  child list management:
-  child list is populated during child thread creation memmory is allocated in heap
-  by parent thread. list element is insertid in list and pointer to element is stored in child
-  list elements are freed when wait() is called. and also if process_exit is called all
-  elements(ie which ones have not been waited) are also freed.
-  list only stores elemets which have not been waited so far, so if thread is already waied
-  it will not be present in list and error is returned.
-
   
 seek:
   for each thread we are maintaining the list of file descriptors. When a fd parameter is
@@ -223,6 +203,8 @@ tell:
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
 
+100%-ით ვერ მივხვდი კითხვას მაგრამ page table-სთან ინტერქციას რაც შეეხება, თითოეულ ბაიტს ვამოწმებთ ვალიდურობაზე,
+შესაბამისად 2 ბაიტიანისთვის 2 იქნება და სრული ფეიჯისთვის 4,096. 
 
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
@@ -266,16 +248,11 @@ wait-ი ეძებს შვილის სტრუქტურას რ�
 >> loading.  How does your code ensure this?  How is the load
 >> success/failure status passed back to the thread that calls "exec"?
 
-We ensure this with one semaphore initialy set to 0. On creation of the child thread we check
-for successful load of it meanwhile keeping the pointer to the parent thread, where we have a status variable
-for the successful launch of the child. As soon as it's known whether child loaded successfully or not, we set
-the status variable in the parent and signal the parent letting him to take the semaphore on which he blocked
-right away after creating the child. The parent downs the semaphore and checks the status set by child, so he can
-find out if his child survived or not :)
 
 სინქრონიზაციას უზრუნველყოფს სემაფორა რომელიც იქმნება მშობლის მიერ და იგი ელოდება შვილს სანამ არ მორჩება
-შვილი ინიციალიზაციას(წარმატებით ან წარუმატებლად) ამის შემდეგ ამოწმებს შვილი წარმატებით გაეშვა თუ არა
-და შესაბამის ზომებს მიმართავს.
+შვილი ინიციალიზაციას(წარმატებით ან წარუმატებლად). როდესაც შვილი "ჩამოყალიბდება", ის უსეტავს მშობელს გაშვების სტატუს კოდს,
+ანუ ამ მომენტიდან მშობელმა იცის მისი შვილი წარმატებით გაეშვა თუ ვერა. შემდეგ შვილი სემაფორას გაუზრდის და მშობელს უკვე შეუძლია ამ 
+სტატუსის წაკითხვა და საჭიროების შემთხვევაში -1-ის დაბრუნება.
 
 >> B8: Consider parent process P with child process C.  How do you
 >> ensure proper synchronization and avoid race conditions when P
@@ -306,8 +283,15 @@ note: სტატუს კოდის ჩაწერა შვილის �
 >> B9: Why did you choose to implement access to user memory from the
 >> kernel in the way that you did?
 
+ძირითადად პირობის და hint-ების მიხედვით დავწერეთ იმპლემენტაცია, მაგრამ VM-ის დაწერის შემდეგ უფრო კარგად მივხვდით userprog-ში
+რა და როგორ ხდებოდა, რისთვის გვჭირდებოდა ფოინთერების ვალიდურობის შემოწმება, რა იგულისხმებოდა ფოინთერის ვალიდურობაში
+და რა ალტერნატიული გადაწყვეტები შეიძლება ჰქონდეს ამ პრობლემას, რომელთაგან ერთ-ერთი, page fault handler-ში პრობლემების გადაჭრა
+vm-ში გამოვიყენეთ.
+
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
+
+არ გვაქვს რთული დიზაინი, ზედმეტ ინფორმაციას არ ვინახავთ, თავის საქმეს აკეთებს.
 
 =======
 Idk why it should have disadvantages, everyithing is neat and fine.
@@ -316,7 +300,7 @@ Idk why it should have disadvantages, everyithing is neat and fine.
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
 
-We didn't change anything about it.
+ჩვენს იმპლემენტაციაში არ დაგვჭირდა ამასთან შეხება.
 
 
 			   SURVEY QUESTIONS
@@ -332,7 +316,7 @@ the quarter.
 >> in it, too easy or too hard?  Did it take too long or too little time?
 
 დავალება არის საკმაოდ მარტივი მაგრამ ჭირდება დიდი დრო და ღამეების გათენება
-და თუ დააპატარავენთ ან კრედიტებს მოუმატებთ კარგი იქნება.
+და თუ დააპატარავენთ ან კრედიტებს მოუმატებთ კარგი იქნება. :D
 
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
@@ -343,7 +327,8 @@ the quarter.
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
 
-საერთოდ არაფერში არ გამომდგომია პირობა, შეიძლება ითქვას არც კი გამომიყენებია,
+პირობა გასავრცობია ჩემი აზრით, რაც არ უნდა სრულყოფილად დააკმაყოფილო პირობა, ტესტებში მაინც უფრო მეტ რაღაცას აღმოაჩენ რაც
+უნდა გაგეთვალისწინებინა.
 დროზე დაიწყონ წერა, და წინასწარ იყონ მზად რომ ყველაფერი გადადონ და დაწერონ ეს
 თორე ვერ მოასწრებემ.
 
