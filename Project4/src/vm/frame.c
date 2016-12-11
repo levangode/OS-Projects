@@ -57,7 +57,7 @@ bool check_dirty(struct frame_entry* evicted){
 
 
 //used algorithm described on seminar
-void * eviction(uint8_t *upage,enum palloc_flags flags){
+void eviction(uint8_t *upage,enum palloc_flags flags){
 	if(hash_size(&frame_list) ==0){
 		PANIC("FRAME LIST IS EMPTY");
 	}
