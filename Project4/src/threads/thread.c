@@ -13,6 +13,7 @@
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "vm/frame.h"
+#include "vm/page.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif

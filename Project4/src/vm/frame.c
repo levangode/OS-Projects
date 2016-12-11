@@ -6,6 +6,7 @@
 #include <list.h>
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "userprog/pagedir.h"
 
 void init_frame_table(void){
 	list_init(&frame_list);
@@ -52,10 +53,10 @@ bool check_dirty(struct frame_entry* evicted){
 
 //used algorithm described on seminar
 void * eviction(uint8_t *upage,enum palloc_flags flags){
-	if(hash_size(&frame_list) ==0){
+	if(list_size(&frame_list) == (size_t)0){
 		PANIC("FRAME LIST IS EMPTY");
 	}
-	size_t size = hash_size(&frame_list);
+	size_t size = list_size(&frame_list);
 	size_t counter = 0;
 	struct frame_entry* evicted = NULL;
 	struct list_elem* temp = NULL;

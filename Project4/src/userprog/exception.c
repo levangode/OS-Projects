@@ -13,7 +13,7 @@
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 /* Checks if the pointer addr is valid user address */
-bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr);
+bool stack_should_grow(void* esp,bool not_present, void* fault_addr);
 void is_valid_ptr(void* addr);
 void is_valid_ptr(void* addr){
   if(addr == NULL){
@@ -180,7 +180,7 @@ page_fault (struct intr_frame *f)
   if(!is_user_vaddr(fault_addr)){
     exit(-1);
   }
-  if(stack_should_grow(f,not_present,fault_addr)){
+  if(stack_should_grow(esp,not_present,fault_addr)){
     load_res = stack_growth(page_addr);
   }else{
     load_res = load_page(page_addr);
@@ -190,9 +190,9 @@ page_fault (struct intr_frame *f)
   }
 }
 
-bool stack_should_grow(struct intr_frame *f,bool not_present, void* fault_addr){
+bool stack_should_grow(void* esp, bool not_present, void* fault_addr){
   void* floor = (void*)0x08048000;//data storing starts at this address
-  if( ((int)fault_addr < (int)floor && not_present) && is_user_vaddr(fault_addr) && (f->esp - 32 <= fault_addr)){
+  if( ((int)fault_addr < (int)floor && not_present) && is_user_vaddr(fault_addr) && (esp - 32 <= fault_addr)){
     return true;
   }
   return false;

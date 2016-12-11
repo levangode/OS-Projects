@@ -10,6 +10,9 @@
 #include "userprog/syscall.h"
 
 
+void spte_fn (struct hash_elem* to_delete, void* aux);
+void pin_page(void* page);
+void unpin_page(void* page);
 
 
 /* Initializes page table which is initialing the struct hash */
@@ -79,7 +82,6 @@ bool stack_growth(uint8_t* uvaddr){
   }
   struct spt_entry* tmp_entry = malloc(sizeof(struct spt_entry));
  	uint8_t* upage = uvaddr;
- 	bool writable = true;
  	tmp_entry->kpage = NULL;
  	tmp_entry->upage = uvaddr;
  	tmp_entry->page_type = ALL_ZERO;	//zero page (0 bytes to read)
@@ -169,7 +171,7 @@ bool load_page(uint8_t* upage){
   	palloc_free_page (kpage);
     return false; 
   }
-  return true;
+  return res;
 }
 
 

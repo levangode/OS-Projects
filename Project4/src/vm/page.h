@@ -45,6 +45,7 @@ unsigned page_hash_func(const struct hash_elem *e, void *aux);
 
 void spt_add(uint8_t* upage, uint8_t* kpage, bool writable);
 
+void free_spt(struct hash* supplemental_page_table);
 
 bool stack_growth(uint8_t* uvaddr);
 
