@@ -12,7 +12,7 @@ void swap_init (void){
 	swapmap = bitmap_create(block_size(swapblock) / (PGSIZE / BLOCK_SECTOR_SIZE));
 	bitmap_set_all(swapmap,1);
 }
-void swap_in (int index, void *swap_pg){
+void swap_in (size_t index, void *swap_pg){
 lock_acquire(&swaplock);
 size_t i;
 for(i=0;i < PGSIZE / BLOCK_SECTOR_SIZE;i++ ){
@@ -21,10 +21,10 @@ for(i=0;i < PGSIZE / BLOCK_SECTOR_SIZE;i++ ){
 bitmap_set(swapblock, index, 1);
 lock_release(&swaplock);
 }
-int swap_out (void *swap_pg){
+size_t swap_out (void *swap_pg){
 	lock_acquire(&swaplock);
 	size_t index = bitmap_scan(swapmap,0,1,1);
-	int i;
+	size_t i;
 	for(i=0;i < PGSIZE / BLOCK_SECTOR_SIZE;i++){
 		block_write(swapblock,index * (PGSIZE / BLOCK_SECTOR_SIZE) + i,swap_pg + (BLOCK_SECTOR_SIZE * i));
 	}
@@ -32,7 +32,7 @@ int swap_out (void *swap_pg){
 	lock_release(&swaplock);
 	return index;
 }
-void swap_free (int index){
+void swap_free (size_t index){
 	lock_acquire(&swaplock);
 	bitmap_set(swapblock,index,1);
 	lock_release(&swaplock);
