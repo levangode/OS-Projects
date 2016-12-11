@@ -88,6 +88,10 @@ void * eviction(uint8_t *upage,enum palloc_flags flags){
 	//next steps require swap..waiting for it
 	make_spt_swap(evicted->upage,swap_out(evicted->kpage));
 	make_spt_dirty(evicted->upage,check_dirty(evicted));
+	struct frame_entry *frame = find_frame(evicted->kpage);
+	list_remove(&frame->elem);
+	free_frame(evicted->kpage);
+	free(frame);
 }
 
 
