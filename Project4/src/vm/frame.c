@@ -86,14 +86,12 @@ void * eviction(uint8_t *upage,enum palloc_flags flags){
 	//need to check evicted element's occupying thread's pagedir..thinking about how to do that
 	pagedir_clear_page(evicted->occupying_thread->pagedir,evicted->upage);
 	//next steps require swap..waiting for it
-
-
-
+	make_spt_swap(evicted->upage,swap_out(evicted->kpage));
+	make_spt_dirty(evicted->upage,check_dirty(evicted));
 }
 
 
 
 void free_frame(void* page){
 	palloc_free_page(page);
-
 }
