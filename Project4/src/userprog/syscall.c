@@ -320,7 +320,7 @@ int mmap(int fd, void* map_page){
 		uint32_t zero = PGSIZE - read;
 
 		spt_install_file_mmap(map_page+i, f, i, read, zero, true);///may be writable
-		load_page(pg_round_down(map_page));
+		//load_page(pg_round_down(map_page));
 	}
 
 
@@ -367,7 +367,40 @@ int munmap(int id){
 	uint32_t i = 0;
 	uint32_t size = cur_entry->size;
 
-	
+	for(; i<size; i+=PGSIZE){
+		void* uaddr = cur_entry->uaddr + i;
+		uint32_t num_bytes;
+		if(PGSIZE + i > size){
+			num_bytes = PGSIZE;
+		} else {
+			num_bytes = size - i;
+		}
+
+		/*unmap this page*/
+		struct spt_entry* spt = find_page_in_supt(uaddr);
+		// debug code
+		if(spt == NULL) {PANIC("spt_entry missin! @ syscall.unmap!");}
+
+		//pin frame?
+
+		//
+
+		if(spt->page_type == FROM_MMAP){
+			if(spt->isDirty){
+				file_write_at(spt->f, spt->kpage, num_bytes, spt->offset);
+			}
+		}
+
+		//tmp solution : just remove from page table;
+		struct spt_entry temp;
+		temp.upage = spt->upage;
+		struct hash_elem * res = hash_find(&cur_t->supplemental_page_table, &temp.elem);
+		hash_delete(&cur_t->supplemental_page_table, res);
+		pagedir_clear_page (cur_t->pagedir, spt->upage);
+		//free(spt);
+
+	}
+
 
 
 	return 0;
