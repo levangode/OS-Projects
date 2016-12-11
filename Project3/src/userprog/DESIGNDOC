@@ -167,17 +167,16 @@ Each process has a list of file descriptors and current fd number.
 >> kernel.
 
 write:
-  while maintaining synchronization, we check the fd num. in case of stdout, we directly write
-  to console with putbuf() command. stdin case is automatically ignored. In other cases, we
-  have to find a file by the given fd, if we find such, we write to it with file_write() passing
-  the same buffer and size to it.
+  სინქრონიზაციის დაცვასთან ერთად (გლობალური ფაილ სისტემის ლოქის გამოყენებით), ვამოწმებთ fd ფაილ დესკრიპტორის ნომერს.
+  თუ stdout-ია, პირდაპირ კონსოლში ვწერთ putbuf მეთდის გამოძახებით. stdin დესკრიპტორს ვაიგნორებთ, დანარჩენ შემთხვევებში კი ვეძებთ ფაილს
+  ფაილ დესკრიპტორის მიხედვით და თუ ვიპოვით, file_write-ს გადავცემთ იმავე buffer-სა და size-ს ამ ფაილისთვის.
   
 
 read:
-  We check if received file descriptor is stin and if it is so then we read from user input,
-  else we acquire global system lock, search for our descriptor and get it's file. If we
-  can find the descriptor and the file then we read from it, release the lock and return 
-  the size of read data.
+  ვამოწმებთ მიღებული დაილ დესკრიპტორი თუ არის stdin, თუ არის, ვკითხულობთ იუზერ ინპუტიდან input_getc-ს გამოყენებით.
+  სხვა შემთხვევაში ვეძებთ ფაილს დესკრიპტორის მიხედვით, თუ ვიპოვით, file_read-ს ვაკეთებთ და წაკითხული 
+  data-ს ზომას ვაბრუნებთ. (ასევე სინქრონიზაციის დაცვით)
+  
 
   status code storage:
   status code list added to thread structure for keeping track of children status codes.
@@ -216,16 +215,6 @@ tell:
   if a wrong descriptor is passed. We use the global system lock to ensure synchronization 
   and if we find an open descriptor, we call file_tell on it and return the value to eax.
 
-write:
-  while maintaining synchronization, we check the fd num. in case of stdout, we directly write
-  to console with putbuf() command. stdin case is automatically ignored. In other cases, we
-  have to find a file by the given fd, if we find such, we write to it with file_write() passing
-  the same buffer and size to it.
-
-
-
-
-
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
 >> to be copied from user space into the kernel.  What is the least
@@ -233,6 +222,7 @@ write:
 >> (e.g. calls to pagedir_get_page()) that might result?  What about
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
+
 
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
