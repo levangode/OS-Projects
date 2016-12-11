@@ -206,10 +206,18 @@ void make_spt_dirty(void* page, bool dirty){
 	if(dirty){
 		element->isDirty = true;
 	}
-	return true;
 }
 
-
+void make_spt_swap(void* pg,int index){
+	struct hash spt_table = thread_current()->supplemental_page_table;
+	struct spt_entry* element = find_page_in_supt(pg);
+	if(element == NULL){
+		return;
+	}
+	element->kpage = NULL;
+	element->page_type = FROM_SWAP;
+	element->swap = index;
+}
 
 
 
