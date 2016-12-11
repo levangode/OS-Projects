@@ -8,9 +8,11 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Levan Goderdzishvili  	<lgode14@freeuni.edu.ge>
+Mikheil Metreveli  		<mmetr14@freeuni.edu.ge>
+Papuna Gaprindashvili  	<pgapr14@freeuni.edu.ge> github: papunag209@<papunag209@gmail.com>
+Sandro Magradze  		<amagh13@freeuni.edu.ge>
+
 
 ---- PRELIMINARIES ----
 
@@ -67,7 +69,12 @@ FirstName LastName <email@domain.example>
 >> B1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
-
+struct block *swapblock;
+სტრუქტურა რომელშიც ინახება დასვაპული პეიგები საიდანაც ხდება ჩაწერა და წაკითხვა;
+struct bitmap *swapmap;
+swap ში სექტორები pageით არის დაკავებული თუ თავისუფალია; 
+struct lock swaplock;
+swap  ის სინქრონიზაციისთვის;
 ---- ALGORITHMS ----
 
 >> B2: When a frame is required but none is free, some frame must be
