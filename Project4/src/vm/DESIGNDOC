@@ -32,6 +32,43 @@ Sandro Magradze  		<amagh13@freeuni.edu.ge>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+
+
+
+
+page.h - ში 
+#define STACK_LIMIT 0x800000  // == 2^23 == 8mb
+struct spt_entry{
+	uint8_t* kpage;
+	uint8_t* upage;
+	int page_type;
+	bool writable;
+	bool isDirty;
+	size_t bytes_read;
+	size_t bytes_zero;
+	struct file* f;
+	off_t offset;
+	size_t swap;
+	bool loaded;
+	struct hash_elem elem;
+	bool isSwap;
+};
+
+
+frame.h-ში
+struct list frame_list;
+struct lock list_lock;
+struct frame_entry{
+	uint8_t* kpage;
+	uint8_t* upage;
+	bool is_pinned; //if true this frame can't be evicted
+	struct thread* occupying_thread; //needed to prevent thread from evicting it's own memory
+	struct list_elem elem;
+};
+
+
+
+
 ---- ALGORITHMS ----
 
 >> A2: In a few paragraphs, describe your code for accessing the data
@@ -111,11 +148,15 @@ page table-ში მოხდება შესაბამისი ცვლ
 >> to be evicted.  How do you ensure that Q cannot access or modify
 >> the page during the eviction process?  How do you avoid a race
 >> between P evicting Q's frame and Q faulting the page back in?
+list_lock-ის მეშვეობით ევიქშენის დროს ფრეიმების ლისტს მთლიანად ვლოკავთ
+შესაბამისად სხვა პროცესი ცვლილებებს ვერ მოახდენს სანამ ევიქშენი არ დასრულდება.
 
 >> B7: Suppose a page fault in process P causes a page to be read from
 >> the file system or swap.  How do you ensure that a second process Q
 >> cannot interfere by e.g. attempting to evict the frame while it is
 >> still being read in?
+is_pinned-ების მეშვეობით Q პროცესს ეცოდინება რომ არ შეუძლია ევიქშენი გაუკეთოს
+ამ ფრეიმს. P პროცესი is_pinned-ს true-ს მიანიჭებს read-ის დროს.
 
 >> B8: Explain how you handle access to paged-out pages that occur
 >> during system calls.  Do you use page faults to bring in pages (as
