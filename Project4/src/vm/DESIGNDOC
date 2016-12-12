@@ -284,15 +284,25 @@ the quarter.
 
 >> In your opinion, was this assignment, or any one of the three problems
 >> in it, too easy or too hard?  Did it take too long or too little time?
+mmap იყო შედარებით ადვილი
 
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+ზოგადად უკეთესი წარმოდგენა შემექმნა რამდენად გამოსადეგია ვირტუალური მეხსიერება
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
+1)სხვის კოდს თუ ჩახედავთ არ დაიჯეროთ უფრო მეტი არასწორი რაღაცეები წერია ვიდრე სწრი
+რამდენ ტესტზეც არ უნდა გადიოდეს, ტესტები სისწორეს არ ამოწმებენ, მხოლოდ ტესტებზე გადის
+თუ არა იმას. 
+2)make check-ს ჯობია make grade ყველაფრით უფრო მეტ ინფორმაციას გიწერს და დებაგისთვის
+გაცილებით უკეთესია. თან ქულასაც გიწერს.
 
 >> Do you have any suggestions for the TAs to more effectively assist
 >> students, either for future quarters or the remaining projects?
+დავალების სხვადასხვა ნაწილების მიახლოებითი სირთულე რომ წინასწარ უთხრათ ხოლმე ჯგუფებს
+კარგი იქნება რომ გუნდის რესურსები თავიდანვე სწორად გადაანაწილონ და მაქსიმალურად
+სრულყოფილად დაწერონ პროექტი.
 
 >> Any other comments?
