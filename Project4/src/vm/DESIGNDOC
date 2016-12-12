@@ -75,6 +75,13 @@ struct frame_entry{
 
 
 
+#define FROM_FILE 0	ფაილიდან
+#define ALL_ZERO 1	ცარიელი
+#define FROM_SWAP 2	სვაპიდან
+#define FROM_MMAP 3	მემორი მეპიდან
+
+მოვახდინეთ supplemental page table entry-ების ტიპების დეფინიცია, რომლის მიხედვითაც უნდა მოხდეს ფეიჯის ჩატვირთვა.
+
 ---- ALGORITHMS ----
 
 >> A2: In a few paragraphs, describe your code for accessing the data
@@ -114,6 +121,9 @@ pg_round_down-ით.
 upage და kpage-ს შეიცავდა და შემდეგ უკვე თითოეული feature-ს იმპლემენტაციისას ვამატებდით იმას, რაც დაგვჭირდებოდა.
 შესაბამისად, ის მინიმალური ინფორმაცია გვაქვს შენახული, რასაც იმპლემენტაციაში ვიყენებთ.
 
+SPT ენთრიების ჰეშირებას ვახდენთ upage-ს მიხედვით, რადგან წვდომა უნდა გვქონდეს იუზერის ვირტუალური მისამართების მიხედვით,
+თუ გვაქვს ასეთი მისამართი, უკვე ვპოულობთ მთელ ენთრის და ვიგებთ დანარჩენ ინფორმაციას.
+
 
 		       PAGING TO AND FROM DISK
 		       =======================
@@ -129,6 +139,7 @@ struct bitmap *swapmap;
 swap ში სექტორები pageით არის დაკავებული თუ თავისუფალია; 
 struct lock swaplock;
 swap  ის სინქრონიზაციისთვის;
+
 ---- ALGORITHMS ----
 
 >> B2: When a frame is required but none is free, some frame must be
