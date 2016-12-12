@@ -23,6 +23,9 @@ Sandro Magradze  		<amagh13@freeuni.edu.ge>
 >> preparing your submission, other than the Pintos documentation, course
 >> text, lecture notes, and course staff.
 
+<papunag209> წავიკითხე ლინუქსის წიგნი რომელიც მოგვეცის(unix programming inteface),
+პირობაში უკვე რამდენიმე დავალებაა თითქმის არაფერი წერია და საჭირო გახდა უკვე.
+
 			PAGE TABLE MANAGEMENT
 			=====================
 
@@ -183,14 +186,37 @@ already implemented...)
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct mmap_entry{
+  struct list_elem elem;
+
+  uint32_t id;//generated id
+  //დამაპული ფაილების იდ-ების გენერირება.
+  struct file* f;//file struct
+  //ფაილის სტრუქტურის შენახვა რომელიც დაიმაპა
+
+  void* uaddr;//user_virtual address
+  //მისამართი რომელზეც დამაპეს ფაილი
+  uint32_t size;//file size
+  //ფაილის ზომა (მარტივად იტერაციისთვის ფაილზე)
+  
+};  
+
 ---- ALGORITHMS ----
 
 >> C2: Describe how memory mapped files integrate into your virtual
 >> memory subsystem.  Explain how the page fault and eviction
 >> processes differ between swap pages and other pages.
+მეხსიერება იმაპება ბლოკებად საწყისი პოინტერიდან დაწეყებული PGSIZEების დაშორებით,
+ჩატვირთვა ხდება მხოლოდ მაშინ როცა პოინტერის გამოყენებას შეეცდება ვინმე.
+ჩაწერილ ბლოკებს ამოწმებს unmap-ის დროს და თუ საჭირო წერს ფაილურ სისტემაში.
+გამოძევების ალგორითმს აქვს პრიორიტეტები და იმის მიხედვით ირჩევს გამოსაძევებელს
+სხვა რაიმე ინტერაქცია არ აქვს page-ის ტიპთან, რადგან არ ჭირდება ყველასთვის
+ერთნაირად მუშაობს.
 
 >> C3: Explain how you determine whether a new file mapping overlaps
 >> any existing segment.
+სანამ მეხსიერებაში დამაპვას დავიწყებთ ვამოწმებთ რომელიმე upage რომელიც უნდა
+დავმაპოთ უკვე ხომ არ არი მეხსიერებაში.
 
 ---- RATIONALE ----
 
