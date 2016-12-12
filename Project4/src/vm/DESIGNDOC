@@ -152,6 +152,10 @@ page table-ში მოხდება შესაბამისი ცვლ
 >> invalid virtual address should cause the stack to be extended into
 >> the page that faulted.
 
+ევრისტიკა განსაზღვრულია რამდენიმე პარამეტრით. 
+1) ე.წ. იატაკი, რომელიც სტეკს აძლევს გაზრდის საშუალებას, მაგრამ ზღუდავს ამ ლიმიტს რათა არ მოხდეს code-სეგმენტში შეჭრა.
+2) ვამოწმებთ რომ fault_addr არ არის სტეკ პოინტერს - 32 ბაიტზე დაბლა. 32 იმიტომ რომ pt-grow-pusha ტესტში ერთდროულად ხდება
+სტეკის 32 ბაიტით გაზრდა. შესაბამისად, 32 ბაიტი არის მაქსიმუმი, რამდენითაც ერთ ჯერზე შეიძლება სტეკი გაიზარდოს.
 ---- SYNCHRONIZATION ----
 
 >> B5: Explain the basics of your VM synchronization design.  In
@@ -190,6 +194,9 @@ already implemented...)
 >> possibility for deadlock but allows for high parallelism.  Explain
 >> where your design falls along this continuum and why you chose to
 >> design it this way.
+
+ჩვენ არ გვაქვს ბევრი ლოქი, რაც არ უწყობს ხელს პარალელურობას, მაგრამ იმის გამო რომ დროში შეზღუდულები ვიყავით,
+ვარჩიეთ slowly but truly სტრატეგიით ემუშავა ჩვენს პროგრამას.
 
 			 MEMORY MAPPED FILES
 			 ===================
