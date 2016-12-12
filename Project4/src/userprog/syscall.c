@@ -347,9 +347,10 @@ int munmap(int id){
 	struct mmap_entry* cur_entry = NULL;
 
 	/*find entry*/
+	struct list* mmap_table = &cur_t->mmap_table;
+	struct list_elem* cur_elem = list_begin(mmap_table);
 	{
-		struct list* mmap_table = &cur_t->mmap_table;
-		struct list_elem* cur_elem = list_begin(mmap_table);
+				
 		struct mmap_entry* tmp;
 		for(; cur_elem != list_tail(mmap_table); cur_elem = list_next(cur_elem)){
 			tmp = list_entry(cur_elem, struct mmap_entry, elem);
@@ -388,7 +389,8 @@ int munmap(int id){
 		//
 
 		if(spt->page_type == FROM_MMAP){
-			file_write_at(spt->f, spt->upage, num_bytes, spt->offset);
+			bool dirty = pagedir_is_dirty (cur_t->pagedir, spt->upage); 
+			if(dirty) file_write_at(spt->f, spt->upage, num_bytes, spt->offset);
 		}
 
 		//tmp solution : just remove from page table;
@@ -401,7 +403,8 @@ int munmap(int id){
 
 	}
 
-
+	list_remove(cur_elem);
+	file_close(cur_entry->f);
 
 	return 0;
 }
