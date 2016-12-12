@@ -36,9 +36,6 @@ Sandro Magradze  		<amagh13@freeuni.edu.ge>
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
 
-
-
-
 page.h - ში 
 #define STACK_LIMIT 0x800000  // == 2^23 == 8mb
 struct spt_entry{
@@ -52,10 +49,13 @@ struct spt_entry{
 	struct file* f;
 	off_t offset;
 	size_t swap;
-	bool loaded;
 	struct hash_elem elem;
 	bool isSwap;
 };
+
+ვიყენებთ supplemental page table-ს შექმნისა და მენეჯმენტისთვის. supplemental pate table არის per process სტრუქტურა, რომელიც
+ინახავს ყველა საჭირო ინფორმაციას ვირტუალური და ფიზიკური მეხსიერების მაპინგის შესახებ. ის ასევე მონაწილეობას იღებს 
+lazy loading-სა და სტეკის გაზრდაში.
 
 
 frame.h-ში
@@ -69,6 +69,9 @@ struct frame_entry{
 	struct list_elem elem;
 };
 
+ფრეიმებისა და ფრეიმ ლისტის მთავარი დანიშნულება არის eviction-ის შესრულება. ამისთვის frame_list-ში ვინახავთ
+პალოკით უკვე გამოყოფილ ფრეიმებს. ამასთანავე, frame_list არის საერთო ყველა პროცესისთვის.
+
 
 
 
@@ -77,9 +80,17 @@ struct frame_entry{
 >> A2: In a few paragraphs, describe your code for accessing the data
 >> stored in the SPT about a given page.
 
+გამომდინარე იქიდან, რომ install_page-ში, სადაც ხდება ფეიჯ თეიბლში მაპინგი, ასევე ჩამატებული გვაქვს supplemental page table-ში
+ახალი entry-ს ჩამატება შესაბამისი upage და kpage-სთვის,  მოცემულ ფეიჯს პირდაპირ ვეძებთ supplemental page table-ში find_page_in_supt ფუნქციით.
+თუ მისი შესაბამისი entry ვერ ვიპოვეთ, გვიბრუნდება null.
+
 >> A3: How does your code coordinate accessed and dirty bits between
 >> kernel and user virtual addresses that alias a single frame, or
 >> alternatively how do you avoid the issue?
+
+page_fault ჰენდლერში ისევე როგორც syscall-ის is_valid ფუნქციაში,  გვაქვს შემოწმება, თუ იუზერ ვირტუალ ადრესი არ არის, არ ვეხებით.
+შესაბამისად SPT-ში ვალიდური იუზერ ადრესები გვაქვს, პლუს ამას, ყოველთვის როცა პოინტერს ვეხებით, ჯერ ვახდენთ მის დამრგვალებას
+pg_round_down-ით.
 
 ---- SYNCHRONIZATION ----
 
@@ -99,6 +110,9 @@ struct frame_entry{
 >> A5: Why did you choose the data structure(s) that you did for
 >> representing virtual-to-physical mappings?
 
+წინასწარ განსაზღვრული სტრუქტურები და სტრატეგია არ გვქონია, დავიწყეთ ცარიელი სტრუქტურებით რომლებიც მხოლოდ
+upage და kpage-ს შეიცავდა და შემდეგ უკვე თითოეული feature-ს იმპლემენტაციისას ვამატებდით იმას, რაც დაგვჭირდებოდა.
+შესაბამისად, ის მინიმალური ინფორმაცია გვაქვს შენახული, რასაც იმპლემენტაციაში ვიყენებთ.
 
 
 		       PAGING TO AND FROM DISK

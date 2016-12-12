@@ -28,7 +28,6 @@ struct spt_entry{
 	struct file* f;
 	off_t offset;
 	size_t swap;
-	bool loaded;
 	
 	struct hash_elem elem;
 	bool isSwap;
