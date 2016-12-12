@@ -362,7 +362,9 @@ int munmap(int id){
 
 	if(cur_entry == NULL){
 		return 0;
-	}
+	} 
+
+	//list_remove(cur_entry);
 
 	uint32_t i = 0;
 	uint32_t size = cur_entry->size;
@@ -386,9 +388,7 @@ int munmap(int id){
 		//
 
 		if(spt->page_type == FROM_MMAP){
-			if(spt->isDirty){
-				file_write_at(spt->f, spt->kpage, num_bytes, spt->offset);
-			}
+			file_write_at(spt->f, spt->upage, num_bytes, spt->offset);
 		}
 
 		//tmp solution : just remove from page table;
