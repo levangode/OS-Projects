@@ -156,6 +156,7 @@ page table-ში მოხდება შესაბამისი ცვლ
 1) ე.წ. იატაკი, რომელიც სტეკს აძლევს გაზრდის საშუალებას, მაგრამ ზღუდავს ამ ლიმიტს რათა არ მოხდეს code-სეგმენტში შეჭრა.
 2) ვამოწმებთ რომ fault_addr არ არის სტეკ პოინტერს - 32 ბაიტზე დაბლა. 32 იმიტომ რომ pt-grow-pusha ტესტში ერთდროულად ხდება
 სტეკის 32 ბაიტით გაზრდა. შესაბამისად, 32 ბაიტი არის მაქსიმუმი, რამდენითაც ერთ ჯერზე შეიძლება სტეკი გაიზარდოს.
+3) fault_addr ნაკლები უნდა იყოს PHYS_BASE-ზე
 ---- SYNCHRONIZATION ----
 
 >> B5: Explain the basics of your VM synchronization design.  In
@@ -185,6 +186,11 @@ already implemented...)
 >> in user programs), or do you have a mechanism for "locking" frames
 >> into physical memory, or do you use some other design?  How do you
 >> gracefully handle attempted accesses to invalid virtual addresses?
+
+syscall-ებს და მათ არგუმენტებს რაც შეეხება, მათი ევიქცია არასროს მოხდება, რადგან შესაბამის ფეიჯებს არ ვინახავთ ევიქციის
+frame_list-ში. locking-ის ან რაიმე სხვა მექანიზმი არ გვაქვს, ყველაფერი ხდება ფეიჯ ფოლტში. რაც შეეხება არავალიდურ მისამართებთან
+შეხებას, ასეთ შემთხვევაში ან entry-ს ვერ ვიპოვით და ამის გამო პროგრამა და-exit-დება, ან მისამართი სტეკის დასაშვებ რეგიონში ვერ მოხვდება
+და ამ შემთხვევაშიც ვეღარ გააგრძელებს მუშაობას.
 
 ---- RATIONALE ----
 
