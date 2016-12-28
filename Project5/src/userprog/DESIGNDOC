@@ -1,0 +1,340 @@
+		     +--------------------------+
+       	       	     |		CS 140		|
+		     | PROJECT 2: USER PROGRAMS	|
+		     | 	   DESIGN DOCUMENT     	|
+		     +--------------------------+
+
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+Levan Goderdzishvili  	<lgode14@freeuni.edu.ge>
+Mikheil Metreveli  		<mmetr14@freeuni.edu.ge>
+Papuna Gaprindashvili  	<pgapr14@freeuni.edu.ge> github: papunag209@<papunag209@gmail.com>
+Sandro Magradze  		<amagh13@freeuni.edu.ge>
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+			   ARGUMENT PASSING
+			   ================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+ახალი სტრუქტურები არაფერი დაგვჭირდა.
+ორი სტატიკური ცვლადი აღვწერეთ, init_aloc და argmax_length
+init_aloc არის ხელოვნური(ამ შემთხვევაში არც ისე მნიშვნელოვანი) რიცხვი, რომლითაც შეგვიძლია ვაკონტროლოთ გადაცემადი არგუმენტების რაოდენობა.
+argmax_length მსგავს ფუნქციას ასრულებს თითოეული ბრძანების სიგრძის საკონტროლოდ.
+
+
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  How do
+>> you arrange for the elements of argv[] to be in the right order?
+>> How do you avoid overflowing the stack page?
+
+თავდაპირველად ვპარსავთ მთლიან სტრინგს და ტოკენებად ვინახავთ არაიში(argv), რომელიც დროებითი არაია.
+შემდეგ(push_to_stack მეთოდში) ამ არაის გადავყვებით შებრუნებული ორდერინგით(ბოლოდან თავისკენ) და თითოეულ ტოკენს ვტენით სტეკში -
+რაც გულისხმობს სტეკ ფოინთერით ადგილის გამონთავისუფლებას, შემდეგ კი ამ ადგილში memcpy-ით არგუმენტის გადაკოპირება.
+ამის შემდეგ ვაწესრიგებთ ბოლო შტრიხებს, რომლებიც წინასწარი წესითაა განსაზღვრული, word alignmene(დამრგვალება),  argv, argc, null separatos.
+
+stack-owerflow-ს წინასწარ გაკონტროლება არ ხდება. თუ გადასცდა, ექსეფშენი page_fault-ში შეგვაგდებს, სადაც უკვე მოხდება მისი დამუშავება -
+ამ შემთხვევაში შეცდომის დაფიქსირება და პროცესის გათიშვა exit-ით.
+
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+იმიტომ რომ ტოკენაიზერით პირველი არგუმენტის ამოღება (ბრძანების სახელის) თავიდანვე ხდება, შემდეგ savedPointer-ში სტატიკურ სთეითად
+უკვე დამახსოვრებულია ეს ნაბიჯი და შეგვიძლია აქედან განვაგრძოთ დაჭრა. 
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+1) კერნელში, როგორც მთავარ ოპერატორში და არა შავი სამუშაოს მკეთებელში, არ მოგვიწევს ზედმეტი დროის დაკარგვა.
+2) კერნელს უსაფრთხო პარამეტრები გადაეცემა და რაც უფრო ნაკლები ექსეფშენი გვაქვს კერნელში მით უკეთესი.
+
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+
+struct thread
+  {
+    tid_t tid;                          
+    enum thread_status status;          
+    char name[16];                      
+    uint8_t *stack;                     
+    int priority;                       
+    struct list_elem allelem;           
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+    int child_load;
+    /*parent thread tid*/
+    tid_t parent_id;
+
+    /*file descriptor-ის მთვლელი*/
+    int fd_num;//ვიყენებთ ფაილების გადასანომრად
+
+    /*file descriptor list*/ 
+    struct list fd_list;//ვინახავთ ფაილების დესკრიპტორებს
+
+    /*pointer to parent thread*/
+    struct thread* parent;//ვინახავთ მშობელი პროცესის მისამართს
+    /*status codes list for children*/
+    struct list child_stat_code_list; //შვილების სტატუსების სია.(სია სიაში არის ადგილი ყველა შვილობილი ნაკადის "კოდის" თვის)
+    /*status code elem where current threads status code is submitted*/
+    struct child_stat_code* stat_code_elem; // პოინტერი ელემენტზე სადაც პროცესმა უნდა ჩაწეროს სტატუს კოდი; აღიწერება პროცესის შექმნისას
+
+    /*for parent to wait to see if child started successfully or not*/
+    struct semaphore process_starting_sema; // სემაფორა გამოიყენება პროცესის დაწყებისას სინქრონიზაციისთვის. პროცესის დაწყებას ელოდება მშობელი რათა გაიგოს წარნატებით დაიწყო თუ არა პროცესი.
+    /*for returnin proces start information success/fail*/
+    int process_start_status; // პროცესის დაწყების შემდეგ ერრორ კოდის დაბრუნების ინსტრუმენტი
+
+    //for ensurence of file integrity while executing
+    /*this file is locked so that noone can edit it during execution*/
+    struct file* current_file;// ვინახავთ ფაილს რომელიც ამჟამად გაშვებულია(ამ) პროცესში
+    
+#endif  
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+
+  };
+
+// სტრუქტურა რომელშიც გამოყოფილია ადგილი(int status_code) სტატუს კოდის დასაბრუნებლად ასევე ამ სტატუს კოდის ჩაწერაზე დასალოდებლად გამოყოფილია სემაფორა(semaphore wait_sema);
+struct child_status_code{
+  /*tid of the current element*/
+    tid_t child_tid;
+    /*status code for current element*/
+    int status_code; //კოდის ჩასაწერი ელემენტი
+
+    /*semaphore for waitin to current elemets status code*/
+    struct semaphore wait_sema; // სემაფორა დასალოდებლად(პროცესის დასრულებაზე, ანუ სტატუსის წაკითხვაზე)
+
+    /*list element*/
+    struct list_elem child_status_code_list_elem; // სიის ელემენტი სიაში დასამატებლად(სია აქვს პრცესის გამშვებს ხოლო შვილს მხოლოდ თავის ელემენტზე მიმთითებელი)
+
+};
+
+//სტრუქტურა დესკრიფტორების შესანახად
+struct file_descriptor{
+  /*file descriptor*/
+  int id; // დაგენერირებული იდენთიფიკატორი
+  /*file*/
+  struct file * f; // ფაილის ელემენტი
+  /*list element*/
+  struct list_elem elem; // სიის ელემენტი(დესკრიფტორების სიაში ჩასამატებლად)
+};
+
+
+
+>> B2: Describe how file descriptors are associated with open files.
+>> Are file descriptors unique within the entire OS or just within a
+>> single process?
+
+Each process has a list of file descriptors and current fd number.
+პროცესს აქვს სია რომელშიც დამახსოვრებული აქვს რომელი დესკრიფრორი რა ფაილზე მიუთითებს.
+
+---- ALGORITHMS ----
+
+>> B3: Describe your code for reading and writing user data from the
+>> kernel.
+
+write:
+  სინქრონიზაციის დაცვასთან ერთად (გლობალური ფაილ სისტემის ლოქის გამოყენებით), ვამოწმებთ fd ფაილ დესკრიპტორის ნომერს.
+  თუ stdout-ია, პირდაპირ კონსოლში ვწერთ putbuf მეთდის გამოძახებით. stdin დესკრიპტორს ვაიგნორებთ, დანარჩენ შემთხვევებში კი ვეძებთ ფაილს
+  ფაილ დესკრიპტორის მიხედვით და თუ ვიპოვით, file_write-ს გადავცემთ იმავე buffer-სა და size-ს ამ ფაილისთვის.
+  
+
+read:
+  ვამოწმებთ მიღებული დაილ დესკრიპტორი თუ არის stdin, თუ არის, ვკითხულობთ იუზერ ინპუტიდან input_getc-ს გამოყენებით.
+  სხვა შემთხვევაში ვეძებთ ფაილს დესკრიპტორის მიხედვით, თუ ვიპოვით, file_read-ს ვაკეთებთ და წაკითხული 
+  data-ს ზომას ვაბრუნებთ. (ასევე სინქრონიზაციის დაცვით)
+  
+  
+seek:
+  for each thread we are maintaining the list of file descriptors. When a fd parameter is
+  passed to seek, we check our list for file_descriptor with id == fd, and extract the file element from it.
+  if we couldn't find such descriptor, we do nothing, else we call the preprepeared file_seek.
+  The function will use the global filesystem lock as other syscalls.
+
+filesize:
+  same strategy as in seek, fd is passed, we execute preprepared file_length and return the result to eax.
+
+remove:
+  find the descriptor, get the file, return the value from filesys_remove to eax.
+
+tell:
+  As far as every file descriptor is denoted with positive numbers, we instantly ignore
+  if a wrong descriptor is passed. We use the global system lock to ensure synchronization 
+  and if we find an open descriptor, we call file_tell on it and return the value to eax.
+
+
+>> B4: Suppose a system call causes a full page (4,096 bytes) of data
+>> to be copied from user space into the kernel.  What is the least
+>> and the greatest possible number of inspections of the page table
+>> (e.g. calls to pagedir_get_page()) that might result?  What about
+>> for a system call that only copies 2 bytes of data?  Is there room
+>> for improvement in these numbers, and how much?
+
+100%-ით ვერ მივხვდი კითხვას მაგრამ page table-სთან ინტერქციას რაც შეეხება, თითოეულ ბაიტს ვამოწმებთ ვალიდურობაზე,
+შესაბამისად 2 ბაიტიანისთვის 2 იქნება და სრული ფეიჯისთვის 4,096. 
+
+>> B5: Briefly describe your implementation of the "wait" system call
+>> and how it interacts with process termination.
+
+wait-ი ეძებს შვილის სტრუქტურას რომელიც ზემოთ სტრუქტურების განხილვაში დეტალურადაა განხილული.
+იქიდან ამოიღებს სემაფორას რომლის საშუალებითაც შეუძლია დაიბლოკოს მანამ სანამ შვილი არ დამთავრდება,
+და შესაბამისად არ ჩაწერს სტატუს კოდს შესაბამის სტრუქტურაში, რომელიც მშობელს აქვს სიაში შენახული.
+მშობელი სემაფორით დაელოდება შვილის დამთავრებას წაიკითხავს სტატუს კოდს და გამოათავისუფლებს ამ კოდისა
+და სემაფორისთვის გამოყოფილ რესურსს და ამ სტრუქტურას ამოშლის სიიდან. ყოველი მომდევნო wait გამოძახება
+უკვე დალოდებულ პროცესზე შეცდომას ამოაგდებს რადგან ეს პროცესი შვილების სიაში არ მოიძებნება.
+ამ დალოდებების დროს სწორი სტატუს კოდის დაბრუნება რომ ყოფილიყო საჭირო შვილეის ელემენტებს პროცესის
+დასრულებამდე შევინახავდით მაგრამ ამოცანის მოთხოვნაში ეს არ იყო აქედან გამომდინარე ეს გზა ნამდვილად მუშაობს.
+
+>> B6: Any access to user program memory at a user-specified address
+>> can fail due to a bad pointer value.  Such accesses must cause the
+>> process to be terminated.  System calls are fraught with such
+>> accesses, e.g. a "write" system call requires reading the system
+>> call number from the user stack, then each of the call's three
+>> arguments, then an arbitrary amount of user memory, and any of
+>> these can fail at any point.  This poses a design and
+>> error-handling problem: how do you best avoid obscuring the primary
+>> function of code in a morass of error-handling?  Furthermore, when
+>> an error is detected, how do you ensure that all temporarily
+>> allocated resources (locks, buffers, etc.) are freed?  In a few
+>> paragraphs, describe the strategy or strategies you adopted for
+>> managing these issues.  Give an example.
+
+გვაქვს ფუნქცია is_valid რომელსაც გადაეცემა პოინტერი და იმ შემთხვევაში თუ ის არავალიდურია, პროცესი exit-დება, რაც
+თვითონ exit-ის იპლემენტაციიდან გამომდინარე (როგორც syscall exit ისევე process_exit), უზრუნველყოფს, რომ ყველაფერი რასაც იყენებდა
+(locks, buffers, etc.) თავის ადგილზე დააბრუნოს და მხოლოდ ამის შემდეგ გაითიშოს.
+
+ამ შემმოწმებალ ფუნქციას ვიძახებთ თითოეული არგუმენტისთვის, რასაც სტეკიდან ვკითხულობთ და სრული buffer-ისთვის თუ გვაქვს read ან write.
+შესაბამისად, უმეტესობა შესაძლო ერორების გაკონტროლება წინასწარვე ხდება, მაგრამ არის ისეთებიც, რომლებსაც წინასწარ ვერ დაიჭერ, ამიტომ
+ერორის დაჭერის შემთხვევაშიც მივმართავთ იგივე სტრატეგიას - fault-addrის შემოწმებით ვასრულებთ პროგრამას.
+
+
+---- SYNCHRONIZATION ----
+
+>> B7: The "exec" system call returns -1 if loading the new executable
+>> fails, so it cannot return before the new executable has completed
+>> loading.  How does your code ensure this?  How is the load
+>> success/failure status passed back to the thread that calls "exec"?
+
+
+სინქრონიზაციას უზრუნველყოფს სემაფორა რომელიც იქმნება მშობლის მიერ და იგი ელოდება შვილს სანამ არ მორჩება
+შვილი ინიციალიზაციას(წარმატებით ან წარუმატებლად). როდესაც შვილი "ჩამოყალიბდება", ის უსეტავს მშობელს გაშვების სტატუს კოდს,
+ანუ ამ მომენტიდან მშობელმა იცის მისი შვილი წარმატებით გაეშვა თუ ვერა. შემდეგ შვილი სემაფორას გაუზრდის და მშობელს უკვე შეუძლია ამ 
+სტატუსის წაკითხვა და საჭიროების შემთხვევაში -1-ის დაბრუნება.
+
+>> B8: Consider parent process P with child process C.  How do you
+>> ensure proper synchronization and avoid race conditions when P
+>> calls wait(C) before C exits?  After C exits?  How do you ensure
+>> that all resources are freed in each case?  How about when P
+>> terminates without waiting, before C exits?  After C exits?  Are
+>> there any special cases?
+
+როდესაც მშობელი ქმნის შვილ პროცესს მას "გააყოლებს" მიმთითებელს სტრუქტურაზე რომელშიც
+ინახება სემაფორა სინქრონიზაციისთვის და ცვლადი სტატუს კოდის დასაბრუნებლად, ამ სტრუქტურას
+მშობელი თავისთვისაც ინახავს სიაში.
+როდესაც wait გამოიძახება მშობელი მოძებნის ამ სტრუქტურას(სიაში) რომელიც შვილს გადასცა
+და დაელოდება სემაფორას რომელსაც მხოლოდ შვილი გაზრდის. არ აქვს მნიშვნელობა შვილი
+wait ის გამოძახებამდე გაზრდის თუ არა სემაფორას მშობელი მაინც სწორად დაელოდება ან
+არ დაელოდება შვილის დამთავრებას. 
+note: სტატუს კოდის ჩაწერა შვილის მიერ ხდება ზუსტად სემაფორის აწებამდე(sema_up),
+ხოლო მშობელში ამ სტატუსის წაკითხვა უშუალოდ სემაფორის დადების შემდეგ(sema_down).
+სტატუს კოდის წაკითხვის შემდეგ მშობელი ვალდებულია გაათავისუფლოს გამოყოფილი რესურსები
+(სემაფორა, და თვითონ სტრუქტურა). ამ გამოთავისუფლებას ასევე აკეთებს ყვეკა შვილის სტრუქტურაზე
+თო მასზე exit გამოიძახეს. მუშაობის პრინციპი საკმაოდ მარტივია გამონაკლისები არ აქვს.
+ერთადერთი შემთხვევა რომელიც განმარტებას საჭიროებს არის wait ის რამდენჯერმე გამოძახება,
+რადგანაც რამდენჯერმე დალოდება არ არის დაშვებული ანუ მეორე და შემდეგ დალოდებებზე სწორი
+სტატუს კოდის დაბრუნება არ არის საჭირო შეგვიძლია პირველივე wait ის შემდეგ ამოვაგდოთ შვილის
+სტრუქტურა მშობლის სიიდან და ამ PID ზე დალოდებები პირდაპირ შეცდომად განვიხილოთ.
+
+---- RATIONALE ----
+
+>> B9: Why did you choose to implement access to user memory from the
+>> kernel in the way that you did?
+
+ძირითადად პირობის და hint-ების მიხედვით დავწერეთ იმპლემენტაცია, მაგრამ VM-ის დაწერის შემდეგ უფრო კარგად მივხვდით userprog-ში
+რა და როგორ ხდებოდა, რისთვის გვჭირდებოდა ფოინთერების ვალიდურობის შემოწმება, რა იგულისხმებოდა ფოინთერის ვალიდურობაში
+და რა ალტერნატიული გადაწყვეტები შეიძლება ჰქონდეს ამ პრობლემას, რომელთაგან ერთ-ერთი, page fault handler-ში პრობლემების გადაჭრა
+vm-ში გამოვიყენეთ.
+
+>> B10: What advantages or disadvantages can you see to your design
+>> for file descriptors?
+
+არ გვაქვს რთული დიზაინი, ზედმეტ ინფორმაციას არ ვინახავთ, თავის საქმეს აკეთებს.
+
+=======
+Idk why it should have disadvantages, everyithing is neat and fine.
+
+
+>> B11: The default tid_t to pid_t mapping is the identity mapping.
+>> If you changed it, what advantages are there to your approach?
+
+ჩვენს იმპლემენტაციაში არ დაგვჭირდა ამასთან შეხება.
+
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+დავალება არის საკმაოდ მარტივი მაგრამ ჭირდება დიდი დრო და ღამეების გათენება
+და თუ დააპატარავენთ ან კრედიტებს მოუმატებთ კარგი იქნება. :D
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+დიდად არა ძირითადად ცხადი რაღაცეები იყო.
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+პირობა გასავრცობია ჩემი აზრით, რაც არ უნდა სრულყოფილად დააკმაყოფილო პირობა, ტესტებში მაინც უფრო მეტ რაღაცას აღმოაჩენ რაც
+უნდა გაგეთვალისწინებინა.
+დროზე დაიწყონ წერა, და წინასწარ იყონ მზად რომ ყველაფერი გადადონ და დაწერონ ეს
+თორე ვერ მოასწრებემ.
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+ძალიან კარგი ბიჭები არიან და ესე გააგრძელეთ.  ❤❤❤❤❤❤❤❤
+
+>> Any other comments?
