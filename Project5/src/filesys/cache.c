@@ -39,6 +39,7 @@ void cache_put_block(struct cache_block* block){
 void* cache_read_block(struct cache_block* block){
 	lock_acquire(&cache_lock);
 	struct cache_block* tmp = cache_get_block(block->disk_sector_id);
+
 	
 }
 void* cache_zero_block(struct cache_block* block){

@@ -23,10 +23,11 @@
 //
 struct inode_disk
   {
-    block_sector_t start;               /* First data sector. */
+    block_sector_t direct[123];
+    block_sector_t indirect;
+    block_sector_t doubly_indirect;
     off_t length;                       /* File size in bytes. */
     unsigned magic;                     /* Magic number. */
-    uint32_t unused[125-1];               /* Not used. */
     bool is_directory;
   };
 
@@ -46,7 +47,7 @@ struct inode
     int open_cnt;                       /* Number of openers. */
     bool removed;                       /* True if deleted, false otherwise. */
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
-    struct inode_disk data;             /* Inode content. */
+    //struct inode_disk data;             /* Inode content. */
     //needs to be kept in buffer cache.
     uint32_t indirect_block;
     uint32_t double_indirect_block;
