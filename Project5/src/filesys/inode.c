@@ -6,6 +6,7 @@
 #include "filesys/filesys.h"
 #include "filesys/free-map.h"
 #include "threads/malloc.h"
+#include "filesys/cache.h"
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -14,7 +15,7 @@
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
 struct inode_disk
   {
-    //block_sector_t start;               /* First data sector. */
+    block_sector_t start;               /* First data sector. */
     off_t length;                       /* File size in bytes. */
     unsigned magic;                     /* Magic number. */
     uint32_t unused[125+1-1];               /* Not used. */
@@ -37,8 +38,10 @@ struct inode
     int open_cnt;                       /* Number of openers. */
     bool removed;                       /* True if deleted, false otherwise. */
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
-    //struct inode_disk data;             /* Inode content. */
+    struct inode_disk data;             /* Inode content. */
     //needs to be kept in buffer cache.
+    uint32_t indirect_block;
+    uint32_t double_indirect_block;
 
     bool is_directory;
 
