@@ -2,6 +2,8 @@
 #include "threads/synch.h"
 #include "devices/block.h"
 
+#define CACHE_SIZE 64
+
 struct cache_block{
 	uint8_t data[BLOCK_SECTOR_SIZE];
 	block_sector_t disk_sector_id;
@@ -10,13 +12,14 @@ struct cache_block{
 	bool in_use;
 };
 
-struct cache_block my_cache[64];	//cache sectors size limit
-
+struct cache_block my_cache[CACHE_SIZE];	//cache sectors size limit
+struct cache_block * cache_evit(void);
 struct lock cache_lock;
 
 void cache_init(void);
 void cache_destroy(void);
 struct cache_block* chache_get_block(block_sector_t disk_sector_id);
+void write_block_to_disk(struct cache_block * block);
 void cache_put_block(struct cache_block* block);
 void* cache_read_block(struct cache_block* block);
 void* cache_zero_block(struct cache_block* block);	//fill cache block with zeroes, return pointer to data.
