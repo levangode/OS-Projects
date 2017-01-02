@@ -31,7 +31,10 @@ void halt(void);
 struct file_descriptor* find_my_descriptor(int fd);
 int filesize(int fd);
 struct file_descriptor * findFile(int file_descriptor_id, bool should_remove);
-
+bool chdir(const char* dir);
+bool mkdir(const char* dir);
+bool isdir(int fd);
+int inumber(int fd);
 
 
 
@@ -207,9 +210,57 @@ syscall_handler (struct intr_frame *f UNUSED)
 				close(fd);
 				break;
 			}
+		case SYS_CHDIR:
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				char* dir = *(char**)next;
+				f->eax = chdir(dir);
+			}
+		case SYS_MKDIR:
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				char* dir = *(char**)next;
+				f->eax = mkdir(dir);
+			}
+		case SYS_ISDIR:
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				f->eax = isdir(fd);
+			}
+		case SYS_INUMBER:
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				f->eax=inumber(fd);
+			}
 		default:
 			exit(-1);
 	}
+}
+
+int inumber(int fd){
+	struct file_descriptor* tmpfd = findFile(fd, false);
+	struct file* tmp = tmpfd->f;
+	//TODO get inode inumber
+}
+bool chdir(const char* dir){
+
+}
+
+bool mkdir(const char* dir){
+	return filesys_create(dir, 0);	//TODO define type dir/not;
+}
+
+bool isdir(int fd){
+	struct file_descriptor* tmpfd = findFile(fd, false);
+	struct file* tmp = tmpfd->f;
+	//TODO if inode for this file is directory inode
+	return true;
 }
 
 struct file_descriptor * findFile(int file_descriptor_id, bool should_remove){
