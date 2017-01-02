@@ -28,6 +28,7 @@ struct inode_disk
     block_sector_t doubly_indirect;
     off_t length;                       /* File size in bytes. */
     unsigned magic;                     /* Magic number. */
+    block_sector_t start;
     bool is_directory;
   };
 
@@ -49,9 +50,9 @@ struct inode
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
     //struct inode_disk data;             /* Inode content. */
     //needs to be kept in buffer cache.
+    struct inode_disk data;
     uint32_t indirect_block;
     uint32_t double_indirect_block;
-
     bool is_directory;
 
     //might need synchronization per inode.
