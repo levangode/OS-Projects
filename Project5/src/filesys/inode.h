@@ -7,6 +7,19 @@
 
 struct bitmap;
 
+#define DIRECT_SECTOR_SIZE 123 //WARNING : may need to change this number
+struct inode_disk
+  {
+    block_sector_t direct[DIRECT_SECTOR_SIZE];
+    block_sector_t indirect;
+    block_sector_t doubly_indirect;
+    off_t length;                       /* File size in bytes. */
+    unsigned magic;                     /* Magic number. */
+    block_sector_t start;
+    bool is_directory;
+  };
+
+
 void inode_init (void);
 bool inode_create (block_sector_t, off_t);
 struct inode *inode_open (block_sector_t);
