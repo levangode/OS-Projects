@@ -23,7 +23,6 @@
 //
 struct inode_disk
   {
-    block_sector_t start;
     block_sector_t direct[123];
     block_sector_t indirect;
     block_sector_t doubly_indirect;
@@ -49,7 +48,7 @@ struct inode
     int open_cnt;                       /* Number of openers. */
     bool removed;                       /* True if deleted, false otherwise. */
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
-    struct inode_disk data;             /* Inode content. */
+    //struct inode_disk data;             /* Inode content. */
     //needs to be kept in buffer cache.
     struct inode_disk data;
     uint32_t indirect_block;
