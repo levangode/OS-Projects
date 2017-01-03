@@ -111,6 +111,20 @@ void* cache_read_block(struct cache_block* block){
 }
 
 
+void cache_write_block(struct cache_block* block,void* src){
+	lock_acquire(&cache_lock);
+	struct cache_block* res = cache_get_block(block->disk_sector_id);
+	if(res == NULL){
+		res = cache_evit();
+		ASSERT(res != NULL);
+		fill_block_info_after_eviction(res,block->disk_sector_id,true);
+	}
+	res->dirty = true;
+	res->accessed = true;
+	memcpy(res->data,src,BLOCK_SECTOR_SIZE);
+	lock_release(&cache_lock);
+}
+
 
 void* cache_zero_block(struct cache_block* block){
 	struct inode_disk* res;

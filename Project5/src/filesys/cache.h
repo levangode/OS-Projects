@@ -14,6 +14,8 @@ struct cache_block{
 	bool in_use;
 };
 
+
+void cache_write_block(struct cache_block* block,void* src);
 void fill_block_info_after_eviction(struct cache_block* res,block_sector_t sector_id, bool should_read);
 struct cache_block my_cache[CACHE_SIZE];	//cache sectors size limit
 struct cache_block * cache_evit(void);

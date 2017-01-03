@@ -16,7 +16,7 @@ struct inode_disk
     off_t length;                       /* File size in bytes. */
     unsigned magic;                     /* Magic number. */
     block_sector_t start;
-    bool is_directory;
+    //bool is_directory;
   };
 
 
