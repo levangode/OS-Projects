@@ -279,7 +279,7 @@ bool chdir(const char* dir){
 }
 
 bool mkdir(const char* dir){
-	return filesys_create(dir, 0);	//TODO define type dir/not;
+	return filesys_create(dir, 0, DIRECTORY);	//TODO define type dir/not;
 }
 
 bool isdir(int fd){
