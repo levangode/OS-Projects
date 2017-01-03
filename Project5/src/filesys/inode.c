@@ -357,7 +357,7 @@ inode_length (const struct inode *inode)
 
 
 bool inode_is_directory(struct inode* inode){
-
+  return inode->is_directory;
 }
 
 int inode_inumber(struct inode* inode){

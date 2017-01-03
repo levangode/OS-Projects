@@ -248,7 +248,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 				next = (int*)f->esp+2;
 				is_valid(next);
 				char* name = *(char**)next;
-				f->eax = read_dir(fd, name);
+				f->eax = readdir(fd, name);
 			}
 		default:
 			exit(-1);
@@ -256,7 +256,16 @@ syscall_handler (struct intr_frame *f UNUSED)
 }
 
 bool readdir(int fd, char* name){
-
+	struct file_descriptor* tmpfd = findFile(fd, false);
+	struct file* tmp = tmpfd->f;
+	if(tmp != NULL){
+		struct inode* tmpinode = file_get_inode(tmp);
+		if(inode_is_directory(tmpinode)){
+			return dir_readdir((struct dir*)tmp, name);	
+		}
+		
+	}
+	return false;
 }
 
 int inumber(int fd){
