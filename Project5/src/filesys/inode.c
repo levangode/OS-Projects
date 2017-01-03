@@ -354,3 +354,12 @@ inode_length (const struct inode *inode)
 {
   return inode->data.length;
 }
+
+
+bool inode_is_directory(struct inode* inode){
+
+}
+
+int inode_inumber(struct inode* inode){
+  return inode->sector;
+}

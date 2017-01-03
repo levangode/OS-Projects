@@ -11,6 +11,7 @@
 #include "userprog/process.h"
 #include "devices/shutdown.h"
 #include "devices/input.h"
+#include "filesys/inode.h"
 
 
 static void syscall_handler (struct intr_frame *);
@@ -35,6 +36,7 @@ bool chdir(const char* dir);
 bool mkdir(const char* dir);
 bool isdir(int fd);
 int inumber(int fd);
+bool readdir(int fd, char* name);
 
 
 
@@ -238,15 +240,30 @@ syscall_handler (struct intr_frame *f UNUSED)
 				int fd = *(int*)next;
 				f->eax=inumber(fd);
 			}
+		case SYS_READDIR:
+			{
+				next = (int*)f->esp+1;
+				is_valid(next);
+				int fd = *(int*)next;
+				next = (int*)f->esp+2;
+				is_valid(next);
+				char* name = *(char**)next;
+				f->eax = read_dir(fd, name);
+			}
 		default:
 			exit(-1);
 	}
 }
 
+bool readdir(int fd, char* name){
+
+}
+
 int inumber(int fd){
 	struct file_descriptor* tmpfd = findFile(fd, false);
 	struct file* tmp = tmpfd->f;
-	//TODO get inode inumber
+	struct inode* tmpinode = file_get_inode(tmp);
+	return inode_inumber(tmpinode);
 }
 bool chdir(const char* dir){
 
@@ -259,8 +276,9 @@ bool mkdir(const char* dir){
 bool isdir(int fd){
 	struct file_descriptor* tmpfd = findFile(fd, false);
 	struct file* tmp = tmpfd->f;
-	//TODO if inode for this file is directory inode
-	return true;
+	struct inode* tmpinode = file_get_inode(tmp);
+
+	return inode_is_directory(tmpinode);
 }
 
 struct file_descriptor * findFile(int file_descriptor_id, bool should_remove){
