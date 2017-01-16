@@ -12,11 +12,31 @@
 #include <sys/socket.h>
 #include <assert.h>
 #include <stdbool.h>
+#include "dirent.h"
 
 #define BACKLOG 128
 #define BUFFER_SIZE 2000
 #define POST_GET_BUFFER 5
 void parse(char*);
+void generate_files(void);
+
+void generate_files(){
+	char* pwd = getenv("PWD");
+	DIR *dir = opendir(pwd);
+	if(dir == NULL){
+		perror("Couldn't open directory");
+		exit(-1);
+	}
+	struct dirent *entry;
+	while(true){
+		entry = readdir(dir);
+		if(entry == NULL) break;
+		if(strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0){
+			printf("%s\n", entry->d_name);
+		}
+	}
+	closedir(dir);
+}
 
 void parse(char* buff){
 	printf("%s\n", buff);
@@ -50,6 +70,8 @@ int main(int argc, char *argv[]){
 	unsigned sin_size;
 	char buff[BUFFER_SIZE];
 
+	char* pwd = getenv("PWD");
+	generate_files();
 	int port = 4000;
 	assert(port > 1024 && port <= 65535);
 
