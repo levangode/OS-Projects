@@ -14,26 +14,32 @@
 #include <stdbool.h>
 
 #define BACKLOG 128
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 2000
 #define POST_GET_BUFFER 5
-void parese(char*);
+void parse(char*);
 
 void parse(char* buff){
+	printf("%s\n", buff);
+
+
+
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
 
 	//char method[POST_GET_BUFFER];
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
-	strtok(NULL, " \n"); // throw "\" away
+	char* path = strtok(NULL, " \n"); // throw "\" away
 	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
 
+	printf("%s\n", method);
+	printf("%s\n", path);
+	printf("%s\n", http_version);
 	//if(strncmp(http_version, "HTTP/1.1", 8) == 0)
 	//if(strncmp(method, "GET", 3) == 0)
 	//if(strncmp(method, "POST", 4) == 0)	
 
 	strtok(NULL, " \t\n"); //throw "Host:" away
 	char* host = strtok(NULL, " \t\n");
-	printf("%s\n", host);
 
 }
 
@@ -96,10 +102,12 @@ int main(int argc, char *argv[]){
 			continue;
 		}
 		while(true){
+			memset(buff, '\0', BUFFER_SIZE);
 			int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 			if(read == 0) continue;
 			parse(buff);
-			send(client_fd, "Hello, World!\n", 14, 0);
+			break;
+			//send(client_fd, "Hello, World!\n", 14, 0);
 		}
 	}
 
