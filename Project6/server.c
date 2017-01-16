@@ -14,14 +14,37 @@
 #include <stdbool.h>
 
 #define BACKLOG 128
+#define BUFFER_SIZE 1024
+#define POST_GET_BUFFER 5
+void parese(char*);
+
+void parse(char* buff){
+	char tmpbuff[1024];
+	memcpy(tmpbuff, buff, 1024);
+
+	//char method[POST_GET_BUFFER];
+	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
+	strtok(NULL, " \n"); // throw "\" away
+	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
+
+	//if(strncmp(http_version, "HTTP/1.1", 8) == 0)
+	//if(strncmp(method, "GET", 3) == 0)
+	//if(strncmp(method, "POST", 4) == 0)	
+
+	strtok(NULL, " \t\n"); //throw "Host:" away
+	char* host = strtok(NULL, " \t\n");
+	printf("%s\n", host);
+
+}
 
 
 int main(int argc, char *argv[]){
 	int socket_fd, client_fd = -1;
 	int success;
-	int sin_size;
+	unsigned sin_size;
+	char buff[BUFFER_SIZE];
 
-	int port = 3490;
+	int port = 4000;
 	assert(port > 1024 && port <= 65535);
 
 	struct sockaddr_in my_addr, client_addr;
@@ -63,16 +86,21 @@ int main(int argc, char *argv[]){
 		perror("Could not listen");
 		exit(1);
 	}
-
+	printf("Server Started at port %d\n", port);
 	while(true){
 		sin_size = sizeof(struct sockaddr_in);
 		client_fd = accept(socket_fd, (struct sockaddr*)&client_addr, &sin_size);
+		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
 		if(client_fd == -1){
 			perror("Couldn't accept");
 			continue;
 		}
-		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
-		send(client_fd, "Hello, World!\n", 14, 0);
+		while(true){
+			int read = recv(client_fd, buff, BUFFER_SIZE, 0);
+			if(read == 0) continue;
+			parse(buff);
+			send(client_fd, "Hello, World!\n", 14, 0);
+		}
 	}
 
 
