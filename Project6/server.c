@@ -18,9 +18,10 @@
 #define BUFFER_SIZE 2000
 #define POST_GET_BUFFER 5
 void parse(char*);
-void generate_files(void);
+void generate_files(int client_fd);
 
-void generate_files(){
+
+void generate_files(int client_fd){
 	char* pwd = getenv("PWD");
 	DIR *dir = opendir(pwd);
 	if(dir == NULL){
@@ -28,18 +29,37 @@ void generate_files(){
 		exit(-1);
 	}
 	struct dirent *entry;
+	
+	char generated[1024];
+	char links[1024];
+	memset(links, '\0', 1024);
+
+	sprintf(generated, "HTTP/1.1 200 OK\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+	sprintf(generated, "Content-Type: text/html\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+	sprintf(generated, "<html>\n<body>\r\n");
+	send(client_fd, generated, strlen(generated), 0);
 	while(true){
 		entry = readdir(dir);
 		if(entry == NULL) break;
 		if(strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0){
-			printf("%s\n", entry->d_name);
+			char* name = entry->d_name;		
+			sprintf(links+strlen(links), "<a href='%s'>%s</a><br>\n", name, name);
 		}
 	}
+	sprintf(generated, "Content-Length: %d\r\n\n", strlen(links));
+	send(client_fd, generated, strlen(generated), 0);
+	send(client_fd, links, strlen(links), 0);
+
+	sprintf(generated, "</body>\n</html>\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+
 	closedir(dir);
 }
 
 void parse(char* buff){
-	printf("%s\n", buff);
+	//printf("%s\n", buff);
 
 
 
@@ -51,9 +71,9 @@ void parse(char* buff){
 	char* path = strtok(NULL, " \n"); // throw "\" away
 	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
 
-	printf("%s\n", method);
-	printf("%s\n", path);
-	printf("%s\n", http_version);
+	//printf("%s\n", method);
+	//printf("%s\n", path);
+	//printf("%s\n", http_version);
 	//if(strncmp(http_version, "HTTP/1.1", 8) == 0)
 	//if(strncmp(method, "GET", 3) == 0)
 	//if(strncmp(method, "POST", 4) == 0)	
@@ -71,7 +91,7 @@ int main(int argc, char *argv[]){
 	char buff[BUFFER_SIZE];
 
 	char* pwd = getenv("PWD");
-	generate_files();
+	
 	int port = 4000;
 	assert(port > 1024 && port <= 65535);
 
@@ -128,6 +148,7 @@ int main(int argc, char *argv[]){
 			int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 			if(read == 0) continue;
 			parse(buff);
+			generate_files(client_fd);
 			break;
 			//send(client_fd, "Hello, World!\n", 14, 0);
 		}
