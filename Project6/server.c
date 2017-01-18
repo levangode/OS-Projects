@@ -71,6 +71,10 @@ void handle_request(char* buff, int client_fd){
 		blank_get(client_fd);
 		return;
 	}
+	DIR* dir = opendir(path+1);
+	if(dir != NULL){
+		generate_files(client_fd, dir);
+	}
 
 	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
 
