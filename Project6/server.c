@@ -18,7 +18,7 @@
 #define BUFFER_SIZE 2000
 
 void handle_request(char*, int);
-void generate_files(int client_fd);
+void generate_files(int, DIR*);
 void blank_get(int);
 
 /* Case when request came with "GET / " only */
@@ -26,14 +26,14 @@ void blank_get(int client_fd){
 	if(access("index.html", F_OK) == 0){
 		//send index.html
 	} else {
-		generate_files(client_fd);
+		char* pwd = getenv("PWD");
+		DIR* dir = opendir(pwd);
+		generate_files(client_fd, dir);
 	}
 }
 /* Generates list of files existing in the current directory
  * make html list of them and sends to client */
-void generate_files(int client_fd){
-	char* pwd = getenv("PWD");
-	DIR *dir = opendir(pwd);
+void generate_files(int client_fd, DIR* dir){
 	if(dir == NULL){
 		perror("Couldn't open directory");
 		exit(-1);
@@ -69,7 +69,9 @@ void handle_request(char* buff, int client_fd){
 	char* path = strtok(NULL, " \n"); // throw "\" away
 	if(strcmp(path, "/") == 0){
 		blank_get(client_fd);
+		return;
 	}
+
 	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
 
 	//printf("%s\n", method);
