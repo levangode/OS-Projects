@@ -16,11 +16,21 @@
 
 #define BACKLOG 128
 #define BUFFER_SIZE 2000
-#define POST_GET_BUFFER 5
-void parse(char*);
+
+void handle_request(char*, int);
 void generate_files(int client_fd);
+void blank_get(int);
 
-
+/* Case when request came with "GET / " only */
+void blank_get(int client_fd){
+	if(access("index.html", F_OK) == 0){
+		//send index.html
+	} else {
+		generate_files(client_fd);
+	}
+}
+/* Generates list of files existing in the current directory
+ * make html list of them and sends to client */
 void generate_files(int client_fd){
 	char* pwd = getenv("PWD");
 	DIR *dir = opendir(pwd);
@@ -28,18 +38,15 @@ void generate_files(int client_fd){
 		perror("Couldn't open directory");
 		exit(-1);
 	}
-	struct dirent *entry;
-	
+	struct dirent *entry;	
 	char generated[1024];
 	char links[1024];
 	memset(links, '\0', 1024);
-
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 	sprintf(generated, "Content-Type: text/html\r\n");
 	send(client_fd, generated, strlen(generated), 0);
-	sprintf(generated, "<html>\n<body>\r\n");
-	send(client_fd, generated, strlen(generated), 0);
+	sprintf(links+strlen(links), "<html>\n<body>\r\n");
 	while(true){
 		entry = readdir(dir);
 		if(entry == NULL) break;
@@ -48,27 +55,21 @@ void generate_files(int client_fd){
 			sprintf(links+strlen(links), "<a href='%s'>%s</a><br>\n", name, name);
 		}
 	}
+	sprintf(links+strlen(links), "</body>\n</html>\r\n");
 	sprintf(generated, "Content-Length: %d\r\n\n", strlen(links));
 	send(client_fd, generated, strlen(generated), 0);
 	send(client_fd, links, strlen(links), 0);
-
-	sprintf(generated, "</body>\n</html>\r\n");
-	send(client_fd, generated, strlen(generated), 0);
-
 	closedir(dir);
 }
 
-void parse(char* buff){
-	//printf("%s\n", buff);
-
-
-
+void handle_request(char* buff, int client_fd){
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
-
-	//char method[POST_GET_BUFFER];
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n"); // throw "\" away
+	if(strcmp(path, "/") == 0){
+		blank_get(client_fd);
+	}
 	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
 
 	//printf("%s\n", method);
@@ -88,6 +89,7 @@ int main(int argc, char *argv[]){
 	int socket_fd, client_fd = -1;
 	int success;
 	unsigned sin_size;
+
 	char buff[BUFFER_SIZE];
 
 	char* pwd = getenv("PWD");
@@ -134,7 +136,9 @@ int main(int argc, char *argv[]){
 		perror("Could not listen");
 		exit(1);
 	}
+
 	printf("Server Started at port %d\n", port);
+
 	while(true){
 		sin_size = sizeof(struct sockaddr_in);
 		client_fd = accept(socket_fd, (struct sockaddr*)&client_addr, &sin_size);
@@ -147,8 +151,7 @@ int main(int argc, char *argv[]){
 			memset(buff, '\0', BUFFER_SIZE);
 			int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 			if(read == 0) continue;
-			parse(buff);
-			generate_files(client_fd);
+			handle_request(buff, client_fd);
 			break;
 			//send(client_fd, "Hello, World!\n", 14, 0);
 		}
