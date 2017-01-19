@@ -23,6 +23,20 @@ void handle_request(char*, int);
 void generate_files(int, DIR*);
 void blank_get(int);
 void send_file(char*, int);
+void return_bad_request(int);
+
+void return_bad_request(int client_fd){
+	char generated[1024];
+	memset(generated, '\0', 1024);
+	sprintf(generated, "HTTP/1.1 404 Not Found\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+	char* tmp = "<h1>404 Not Found</h1>\nthe requested file doesn't exist on this server";
+	sprintf(generated, "Content-Type: text/html\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+	sprintf(generated, "Content-Length: %d\r\n\n", strlen(tmp));
+	send(client_fd, generated, strlen(generated), 0);
+	send(client_fd, tmp, strlen(tmp), 0);
+}
 
 void send_file(char* path, int client_fd){
 	char* type;	//content type that goes into response
@@ -63,7 +77,7 @@ void send_file(char* path, int client_fd){
 /* Case when request came with "GET / " only */
 void blank_get(int client_fd){
 	if(access("index.html", F_OK) == 0){
-		//send index.html
+		send_file("index.html", client_fd);
 	} else {
 		char* pwd = getenv("PWD");
 		DIR* dir = opendir(pwd);
@@ -120,6 +134,8 @@ void handle_request(char* buff, int client_fd){
 	//case path is file
 	if(access(path+1, F_OK) == 0){
 		send_file(path+1, client_fd);
+	} else {
+		return_bad_request(client_fd);
 	}
 
 
