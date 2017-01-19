@@ -21,10 +21,25 @@
 
 void handle_request(char*, int);
 void generate_files(int, DIR*);
-void blank_get(int);
-void send_file(char*, int);
+void blank_get(int, char*);
+void send_file(char*, int, char*);
 void return_bad_request(int);
+char* contains_range_header(char*);
+void send_file_range(int, char*, int);
 
+void send_file_range(int client_fd, char* range, int fd){
+
+}
+
+char* contains_range_header(char* buff){
+	char tmpbuff[1024];
+	memcpy(tmpbuff, buff, strlen(buff));
+	char* range = strstr(tmpbuff, "Range: ");
+	if(range == NULL){
+		return NULL;
+	}
+	return range;	//points to-> Range: bytes
+}
 void return_bad_request(int client_fd){
 	char generated[1024];
 	memset(generated, '\0', 1024);
@@ -38,7 +53,7 @@ void return_bad_request(int client_fd){
 	send(client_fd, tmp, strlen(tmp), 0);
 }
 
-void send_file(char* path, int client_fd){
+void send_file(char* path, int client_fd, char* buff){
 	char* type;	//content type that goes into response
 	char tmppath[100];
 	strcpy(tmppath, path);
@@ -71,13 +86,18 @@ void send_file(char* path, int client_fd){
 	off_t offset = 0;
 	sprintf(generated, "Content-Length: %d\r\n\n", size);
 	send(client_fd, generated, strlen(generated), 0);
-	sendfile(client_fd, fd, &offset, size);
+	char* range = contains_range_header(buff);
+	if(range != NULL){
+		send_file_range(client_fd, range, fd);
+	} else {
+		sendfile(client_fd, fd, &offset, size);
+	}
 }
 
 /* Case when request came with "GET / " only */
-void blank_get(int client_fd){
+void blank_get(int client_fd, char* buff){
 	if(access("index.html", F_OK) == 0){
-		send_file("index.html", client_fd);
+		send_file("index.html", client_fd, buff);
 	} else {
 		char* pwd = getenv("PWD");
 		DIR* dir = opendir(pwd);
@@ -123,7 +143,7 @@ void handle_request(char* buff, int client_fd){
 
 	//case blank path
 	if(strcmp(path, "/") == 0){	
-		blank_get(client_fd);
+		blank_get(client_fd, buff);
 		return;
 	}
 	//case path is directory
@@ -132,14 +152,11 @@ void handle_request(char* buff, int client_fd){
 		generate_files(client_fd, dir);
 	}
 	//case path is file
-	if(access(path+1, F_OK) == 0){
-		send_file(path+1, client_fd);
+	else if(access(path+1, F_OK) == 0){
+		send_file(path+1, client_fd, buff);
 	} else {
 		return_bad_request(client_fd);
 	}
-
-
-	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
 
 	//printf("%s\n", method);
 	//printf("%s\n", path);
@@ -147,9 +164,6 @@ void handle_request(char* buff, int client_fd){
 	//if(strncmp(http_version, "HTTP/1.1", 8) == 0)
 	//if(strncmp(method, "GET", 3) == 0)
 	//if(strncmp(method, "POST", 4) == 0)	
-
-	strtok(NULL, " \t\n"); //throw "Host:" away
-	char* host = strtok(NULL, " \t\n");
 
 }
 
@@ -161,7 +175,7 @@ int main(int argc, char *argv[]){
 
 	char buff[BUFFER_SIZE];
 
-	char* pwd = getenv("PWD");
+	//char* pwd = getenv("PWD");
 	
 	int port = 4000;
 	assert(port > 1024 && port <= 65535);
