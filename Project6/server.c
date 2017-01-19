@@ -8,11 +8,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <assert.h>
 #include <stdbool.h>
 #include "dirent.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/sendfile.h>
+
 
 #define BACKLOG 128
 #define BUFFER_SIZE 2000
@@ -20,6 +22,43 @@
 void handle_request(char*, int);
 void generate_files(int, DIR*);
 void blank_get(int);
+void send_file(char*, int);
+
+void send_file(char* path, int client_fd){
+	char* type;	//content type that goes into response
+	char tmppath[100];
+	strcpy(tmppath, path);
+
+	strtok(tmppath, ".");
+	char* ext = strtok(NULL, "\0");	//extract the file extension
+
+	if(strcmp(ext, "jpg") == 0){
+		type = "image/jpg";
+	} else if(strcmp(ext, "mp4") == 0){
+		type = "video/mp4";
+	} else {
+		type = "text/html";
+	}
+	char generated[1024];
+	memset(generated, '\0', 1024);
+	sprintf(generated, "HTTP/1.1 200 OK\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+	sprintf(generated, "Content-Type: %s\r\n", type);
+	send(client_fd, generated, strlen(generated), 0);
+	int fd = -1;
+	fd = open(path, O_RDONLY);
+	if(fd == -1){
+		perror("Couldn't open file to send");
+		exit(-1);
+	}
+	FILE* file = fdopen(fd, "r");
+	fseek(file, 0, SEEK_END);
+	int size = ftell(file);
+	off_t offset = 0;
+	sprintf(generated, "Content-Length: %d\r\n\n", size);
+	send(client_fd, generated, strlen(generated), 0);
+	sendfile(client_fd, fd, &offset, size);
+}
 
 /* Case when request came with "GET / " only */
 void blank_get(int client_fd){
@@ -67,14 +106,22 @@ void handle_request(char* buff, int client_fd){
 	memcpy(tmpbuff, buff, 1024);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n"); // throw "\" away
-	if(strcmp(path, "/") == 0){
+
+	//case blank path
+	if(strcmp(path, "/") == 0){	
 		blank_get(client_fd);
 		return;
 	}
+	//case path is directory
 	DIR* dir = opendir(path+1);
-	if(dir != NULL){
+	if(dir != NULL){	
 		generate_files(client_fd, dir);
 	}
+	//case path is file
+	if(access(path+1, F_OK) == 0){
+		send_file(path+1, client_fd);
+	}
+
 
 	char* http_version = strtok(NULL, "\n");	//http version e.g. HTTP/1.1
 
