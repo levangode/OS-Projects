@@ -25,10 +25,22 @@ void blank_get(int, char*);
 void send_file(char*, int, char*);
 void return_bad_request(int);
 char* contains_range_header(char*);
-void send_file_range(int, char*, int);
+void send_file_range(int, char*, int, int);
 
-void send_file_range(int client_fd, char* range, int fd){
-	
+void send_file_range(int client_fd, char* range, int fd, int size){
+	strtok(range, "=");
+	char* bytes = strtok(NULL, "\r\n");
+	char* first = strtok(bytes, "-");
+	char* second = strtok(NULL, "\n");
+	off_t start = (off_t)atoi(first);
+	if(second == NULL){
+		sendfile(client_fd, fd, &start, (size_t)size);
+	} else {
+		off_t end = (off_t)atoi(second);
+		int s = end - start;
+		sendfile(client_fd, fd, &start, (size_t)s);
+	}
+
 }
 
 char* contains_range_header(char* buff){
@@ -94,9 +106,8 @@ void send_file(char* path, int client_fd, char* buff){
 	send(client_fd, generated, strlen(generated), 0);
 	char* range = contains_range_header(buff);
 	if(range != NULL){
-		send_file_range(client_fd, range, fd);
+		send_file_range(client_fd, range, fd, size);
 	} else {
-		printf("%s\n", "GG");
 		sendfile(client_fd, fd, &offset, size);
 	}
 }
