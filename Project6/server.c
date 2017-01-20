@@ -17,10 +17,10 @@
 
 
 #define BACKLOG 128
-#define BUFFER_SIZE 2000
+#define BUFFER_SIZE 2048
 
 void handle_request(char*, int);
-void generate_files(int, DIR*);
+void generate_files(int, DIR*, char*);
 void blank_get(int, char*);
 void send_file(char*, int, char*);
 void return_bad_request(int);
@@ -28,12 +28,12 @@ char* contains_range_header(char*);
 void send_file_range(int, char*, int);
 
 void send_file_range(int client_fd, char* range, int fd){
-
+	
 }
 
 char* contains_range_header(char* buff){
-	char tmpbuff[1024];
-	memcpy(tmpbuff, buff, strlen(buff));
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
 	char* range = strstr(tmpbuff, "Range: ");
 	if(range == NULL){
 		return NULL;
@@ -61,13 +61,18 @@ void send_file(char* path, int client_fd, char* buff){
 	strtok(tmppath, ".");
 	char* ext = strtok(NULL, "\0");	//extract the file extension
 
+	assert(ext != NULL);
+
 	if(strcmp(ext, "jpg") == 0){
 		type = "image/jpg";
 	} else if(strcmp(ext, "mp4") == 0){
 		type = "video/mp4";
-	} else {
+	} else if(strcmp(ext, "html") == 0) {
 		type = "text/html";
+	} else {
+		assert(false);
 	}
+
 	char generated[1024];
 	memset(generated, '\0', 1024);
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -75,6 +80,7 @@ void send_file(char* path, int client_fd, char* buff){
 	sprintf(generated, "Content-Type: %s\r\n", type);
 	send(client_fd, generated, strlen(generated), 0);
 	int fd = -1;
+
 	fd = open(path, O_RDONLY);
 	if(fd == -1){
 		perror("Couldn't open file to send");
@@ -90,6 +96,7 @@ void send_file(char* path, int client_fd, char* buff){
 	if(range != NULL){
 		send_file_range(client_fd, range, fd);
 	} else {
+		printf("%s\n", "GG");
 		sendfile(client_fd, fd, &offset, size);
 	}
 }
@@ -101,12 +108,12 @@ void blank_get(int client_fd, char* buff){
 	} else {
 		char* pwd = getenv("PWD");
 		DIR* dir = opendir(pwd);
-		generate_files(client_fd, dir);
+		generate_files(client_fd, dir, "");
 	}
 }
 /* Generates list of files existing in the current directory
  * make html list of them and sends to client */
-void generate_files(int client_fd, DIR* dir){
+void generate_files(int client_fd, DIR* dir, char* path){
 	if(dir == NULL){
 		perror("Couldn't open directory");
 		exit(-1);
@@ -125,7 +132,7 @@ void generate_files(int client_fd, DIR* dir){
 		if(entry == NULL) break;
 		if(strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0){
 			char* name = entry->d_name;		
-			sprintf(links+strlen(links), "<a href='%s'>%s</a><br>\n", name, name);
+			sprintf(links+strlen(links), "<a href='%s/%s'>%s</a><br>\n", path, name, name);
 		}
 	}
 	sprintf(links+strlen(links), "</body>\n</html>\r\n");
@@ -136,6 +143,7 @@ void generate_files(int client_fd, DIR* dir){
 }
 
 void handle_request(char* buff, int client_fd){
+	printf("%s\n", buff);
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
@@ -149,7 +157,7 @@ void handle_request(char* buff, int client_fd){
 	//case path is directory
 	DIR* dir = opendir(path+1);
 	if(dir != NULL){	
-		generate_files(client_fd, dir);
+		generate_files(client_fd, dir, path);
 	}
 	//case path is file
 	else if(access(path+1, F_OK) == 0){
@@ -230,14 +238,13 @@ int main(int argc, char *argv[]){
 			perror("Couldn't accept");
 			continue;
 		}
-		while(true){
-			memset(buff, '\0', BUFFER_SIZE);
-			int read = recv(client_fd, buff, BUFFER_SIZE, 0);
-			if(read == 0) continue;
-			handle_request(buff, client_fd);
-			break;
+		memset(buff, '\0', BUFFER_SIZE);
+		int read = recv(client_fd, buff, BUFFER_SIZE, 0);
+		if(read == 0) continue;
+		handle_request(buff, client_fd);
+		close(client_fd);
+		//return 0;
 			//send(client_fd, "Hello, World!\n", 14, 0);
-		}
 	}
 
 
