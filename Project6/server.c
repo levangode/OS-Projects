@@ -26,6 +26,64 @@ void send_file(char*, int, char*);
 void return_bad_request(int);
 char* contains_range_header(char*);
 void send_file_range(int, char*, int, int);
+bool check_cache(char*, char*);
+void send_not_modified(int);
+void send_ok(char*, char*, int, char*);
+
+void send_ok(char* generated, char* path, int client_fd, char* type){
+	sprintf(generated, "HTTP/1.1 200 OK\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+	sprintf(generated, "Content-Type: %s\r\n", type);
+	send(client_fd, generated, strlen(generated), 0);
+	sprintf(generated, "Cache-Control: max-age=5\r\n");
+	send(client_fd, generated, strlen(generated), 0);
+
+	struct stat file_stat;
+	if(strlen(path) == 0){
+		stat("/", &file_stat);
+	} else {
+		stat(path, &file_stat);
+	}
+	char current_hash[1024];
+	sprintf(current_hash, "%d/%d/%d", (int)file_stat.st_ino, (int)file_stat.st_mtime, (int)file_stat.st_size);
+
+	sprintf(generated, "ETag: %s\r\n", current_hash);
+	send(client_fd, generated, strlen(generated), 0);
+}
+
+void send_not_modified(int client_fd){
+	char generated[1024];
+	sprintf(generated, "HTTP/1.1 304 Not Modified\r\n\n");
+	send(client_fd, generated, strlen(generated), 0);
+}
+
+
+bool check_cache(char* buff, char* path){
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
+	char* etag = strstr(tmpbuff, "If-None-Match:");
+	if(etag == NULL){
+		return false;
+	}
+	strtok(etag, " ");
+	char* old_hash = strtok(NULL, " \r\n");
+	//compare old_hash and current_hash
+	struct stat file_stat;
+	if(strlen(path) == 0){
+		stat("/", &file_stat);
+	} else {
+		stat(path, &file_stat);
+	}
+	char current_hash[1024];
+	sprintf(current_hash, "%d/%d/%d", (int)file_stat.st_ino, (int)file_stat.st_mtime, (int)file_stat.st_size);
+	//this hash generation triple got from stack overflow
+
+	if(strcmp(old_hash, current_hash) == 0){
+		return true;
+	}
+
+	return false;
+}
 
 void send_file_range(int client_fd, char* range, int fd, int size){
 	strtok(range, "=");
@@ -92,10 +150,8 @@ void send_file(char* path, int client_fd, char* buff){
 
 	char generated[1024];
 	memset(generated, '\0', 1024);
-	sprintf(generated, "HTTP/1.1 200 OK\r\n");
-	send(client_fd, generated, strlen(generated), 0);
-	sprintf(generated, "Content-Type: %s\r\n", type);
-	send(client_fd, generated, strlen(generated), 0);
+	send_ok(generated, path, client_fd, type);
+
 	int fd = -1;
 
 	fd = open(path, O_RDONLY);
@@ -138,10 +194,7 @@ void generate_files(int client_fd, DIR* dir, char* path){
 	char generated[1024];
 	char links[1024];
 	memset(links, '\0', 1024);
-	sprintf(generated, "HTTP/1.1 200 OK\r\n");
-	send(client_fd, generated, strlen(generated), 0);
-	sprintf(generated, "Content-Type: text/html\r\n");
-	send(client_fd, generated, strlen(generated), 0);
+	send_ok(generated, path, client_fd, "text/html");
 	sprintf(links+strlen(links), "<html>\n<body>\r\n");
 	while(true){
 		entry = readdir(dir);
@@ -163,21 +216,26 @@ void handle_request(char* buff, int client_fd){
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
-	char* path = strtok(NULL, " \n"); // throw "\" away
+	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
+
+	if(check_cache(buff, path)){
+		send_not_modified(client_fd);
+		return;
+	}
 	//case blank path
-	if(strcmp(path, "/") == 0){	
+	if(strcmp(path, "") == 0){	
 		blank_get(client_fd, buff);
 		return;
 	}
 	//case path is directory
-	DIR* dir = opendir(path+1);
+	DIR* dir = opendir(path);
 	if(dir != NULL){	
 		generate_files(client_fd, dir, path);
 	}
 	//case path is file
-	else if(access(path+1, F_OK) == 0){
-		send_file(path+1, client_fd, buff);
+	else if(access(path, F_OK) == 0){
+		send_file(path, client_fd, buff);
 	} else {
 		return_bad_request(client_fd);
 	}
