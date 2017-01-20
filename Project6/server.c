@@ -34,10 +34,15 @@ void send_file_range(int client_fd, char* range, int fd, int size){
 	char* second = strtok(NULL, "\n");
 	off_t start = (off_t)atoi(first);
 	if(second == NULL){
-		sendfile(client_fd, fd, &start, (size_t)size);
+		int s = size - (int)start + 1;
+		printf("%d\n", (int)start);
+		printf("%d\n", s);
+		sendfile(client_fd, fd, &start, (size_t)s);
 	} else {
 		off_t end = (off_t)atoi(second);
-		int s = end - start;
+		int s = end - start + 1;
+		printf("%d\n", (int)start);
+		printf("%d\n", s);
 		sendfile(client_fd, fd, &start, (size_t)s);
 	}
 
