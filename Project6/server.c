@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <sys/sendfile.h>
 #include <pthread.h>
+#include <errno.h>
 
 
 #define BACKLOG 128
@@ -31,7 +32,7 @@ bool check_cache(char*, char*);
 void send_not_modified(int);
 void send_ok(char*, char*, int, char*);
 bool keep_alive(char*);
-void receive_and_respond(int, char*);
+void receive_and_respond(int, char*, bool*);
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -268,17 +269,35 @@ bool keep_alive(char* buff){
 	return false;
 }
 
-void receive_and_respond(int client_fd, char* buff){
+void receive_and_respond(int client_fd, char* buff, bool* timeout){
+	printf("%d\n", client_fd);
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
-	if(read == 0) {//an kido racxa moxda
+	printf("%s\n", "recieve");
+	if(read <= 0) {//an kido racxa moxda
+		printf("%s\n", "timeout");
 		close(client_fd);
 		return;
 	}	
 	handle_request(buff, client_fd);
 	if(keep_alive(buff)){
-		receive_and_respond(client_fd, buff);
+		printf("%s\n", "keep alive");
+		struct timeval t;
+		t.tv_sec = 5;
+		t.tv_usec = 0; 
+		if(!*timeout){
+			if(setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval)) == 0){
+				*timeout = true;
+				printf("%s\n", "daseta");
+			} else {
+				printf("%s\n", "ver daseta amchemisam");
+				printf("%d,%d,%d,%d,%d,%d,%d,%d,///%d\n", EBADF, EDOM, EINVAL, EISCONN, ENOPROTOOPT, ENOTSOCK, ENOMEM, ENOBUFS, errno);
+			}
+			
+		}
+		receive_and_respond(client_fd, buff, timeout);
 	} else {
+		printf("%s\n", "close");
 		close(client_fd);
 	}
 }
@@ -297,7 +316,8 @@ void* handle_client(void* arg){
 			continue;
 		}
 		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
-		receive_and_respond(client_fd, buff);
+		bool timeout = false;
+		receive_and_respond(client_fd, buff, &timeout);
 	}
 	return NULL;
 }
