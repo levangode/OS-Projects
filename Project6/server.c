@@ -256,44 +256,42 @@ typedef struct{
 
 } handler_args;
 
-void Y(){
-
-	//sleep(1);
-}
 
 void* handle_client(void* arg){
+	int socket_fd = *(int*)arg;
+	struct sockaddr_in client_addr;
+	int client_fd = -1;
 	char buff[BUFFER_SIZE];
-	int client_fd =  ( (handler_args*) arg)->client_fd;
-	struct sockaddr_in client_addr = ( (handler_args*) arg)->client_addr;
 
-	printf("handler called\n");
-
-	//Y();
-
-	printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
-		
+	unsigned sin_size;
+	while(true){
+		sin_size = sizeof(struct sockaddr_in);
+		client_fd = accept(socket_fd, (struct sockaddr*)&client_addr, &sin_size);
+		if(client_fd == -1){
+			perror("Couldn't accept");
+			continue;
+		}
+		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
 		memset(buff, '\0', BUFFER_SIZE);
 		int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 		if(read == 0) return NULL;
 		handle_request(buff, client_fd);
 		close(client_fd);
-
+	}
 	return NULL;
 }
 
 int main(int argc, char *argv[]){
-	int socket_fd, client_fd = -1;
+	int socket_fd = -1;
 	int success;
-	unsigned sin_size;
-
-	char buff[BUFFER_SIZE];
+	
 
 	//char* pwd = getenv("PWD");
 	
 	int port = 4000;
 	assert(port > 1024 && port <= 65535);
 
-	struct sockaddr_in my_addr, client_addr;
+	struct sockaddr_in my_addr;
 
 
 	socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -335,31 +333,16 @@ int main(int argc, char *argv[]){
 
 	printf("Server Started at port %d\n", port);
 
-	while(true){
-		sin_size = sizeof(struct sockaddr_in);
-		client_fd = accept(socket_fd, (struct sockaddr*)&client_addr, &sin_size);
-		if(client_fd == -1){
-			perror("Couldn't accept");
-			continue;
-		}
 
+	int i;
+	for(i=0; i<1024; i++){
 		pthread_t thread;
-		handler_args args;
-		args.client_fd = client_fd;
-		args.client_addr = client_addr;
-
-		pthread_create(&thread, NULL, handle_client, &args);
-
-		
-		//return 0;
-			//send(client_fd, "Hello, World!\n", 14, 0);
+		pthread_create(&thread, NULL, handle_client, &socket_fd);
+		pthread_join(thread, NULL);
 	}
 
 
-
-
-
-
+	close(socket_fd);
 
 
 
