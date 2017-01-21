@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/sendfile.h>
+#include <pthread.h>
 
 
 #define BACKLOG 128
@@ -249,6 +250,13 @@ void handle_request(char* buff, int client_fd){
 
 }
 
+typedef struct handler_arg{
+	
+}
+
+void* handle_client(void* arg){
+	
+}
 
 int main(int argc, char *argv[]){
 	int socket_fd, client_fd = -1;
