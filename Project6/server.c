@@ -250,12 +250,35 @@ void handle_request(char* buff, int client_fd){
 
 }
 
-typedef struct handler_arg{
-	
+typedef struct{
+	int client_fd;
+	struct sockaddr_in client_addr; 
+
+} handler_args;
+
+void Y(){
+
+	//sleep(1);
 }
 
 void* handle_client(void* arg){
-	
+	char buff[BUFFER_SIZE];
+	int client_fd =  ( (handler_args*) arg)->client_fd;
+	struct sockaddr_in client_addr = ( (handler_args*) arg)->client_addr;
+
+	printf("handler called\n");
+
+	//Y();
+
+	printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
+		
+		memset(buff, '\0', BUFFER_SIZE);
+		int read = recv(client_fd, buff, BUFFER_SIZE, 0);
+		if(read == 0) return NULL;
+		// handle_request(buff, client_fd);
+		close(client_fd);
+
+	return NULL;
 }
 
 int main(int argc, char *argv[]){
@@ -315,16 +338,19 @@ int main(int argc, char *argv[]){
 	while(true){
 		sin_size = sizeof(struct sockaddr_in);
 		client_fd = accept(socket_fd, (struct sockaddr*)&client_addr, &sin_size);
-		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
 		if(client_fd == -1){
 			perror("Couldn't accept");
 			continue;
 		}
-		memset(buff, '\0', BUFFER_SIZE);
-		int read = recv(client_fd, buff, BUFFER_SIZE, 0);
-		if(read == 0) continue;
-		handle_request(buff, client_fd);
-		close(client_fd);
+
+		pthread_t thread;
+		handler_args args;
+		args.client_fd = client_fd;
+		args.client_addr = client_addr;
+
+		pthread_create(&thread, NULL, handle_client, &args);
+
+		
 		//return 0;
 			//send(client_fd, "Hello, World!\n", 14, 0);
 	}
