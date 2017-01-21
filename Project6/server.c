@@ -275,7 +275,7 @@ void* handle_client(void* arg){
 		memset(buff, '\0', BUFFER_SIZE);
 		int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 		if(read == 0) return NULL;
-		// handle_request(buff, client_fd);
+		handle_request(buff, client_fd);
 		close(client_fd);
 
 	return NULL;
