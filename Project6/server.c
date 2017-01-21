@@ -270,34 +270,28 @@ bool keep_alive(char* buff){
 }
 
 void receive_and_respond(int client_fd, char* buff, bool* timeout){
-	printf("%d\n", client_fd);
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
-	printf("%s\n", "recieve");
-	if(read <= 0) {//an kido racxa moxda
-		printf("%s\n", "timeout");
+	if(read <= 0) {
 		close(client_fd);
 		return;
 	}	
 	handle_request(buff, client_fd);
 	if(keep_alive(buff)){
-		printf("%s\n", "keep alive");
 		struct timeval t;
 		t.tv_sec = 5;
 		t.tv_usec = 0; 
 		if(!*timeout){
 			if(setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval)) == 0){
 				*timeout = true;
-				printf("%s\n", "daseta");
 			} else {
-				printf("%s\n", "ver daseta amchemisam");
-				printf("%d,%d,%d,%d,%d,%d,%d,%d,///%d\n", EBADF, EDOM, EINVAL, EISCONN, ENOPROTOOPT, ENOTSOCK, ENOMEM, ENOBUFS, errno);
+				perror("Couldn't set socket options");
+				exit(1);
 			}
 			
 		}
 		receive_and_respond(client_fd, buff, timeout);
 	} else {
-		printf("%s\n", "close");
 		close(client_fd);
 	}
 }
