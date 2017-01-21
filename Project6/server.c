@@ -30,6 +30,8 @@ void send_file_range(int, char*, int, int);
 bool check_cache(char*, char*);
 void send_not_modified(int);
 void send_ok(char*, char*, int, char*);
+bool keep_alive(char*);
+void receive_and_respond(int, char*);
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -257,6 +259,29 @@ typedef struct{
 } handler_args;
 
 
+bool keep_alive(char* buff){
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
+	if(strstr(tmpbuff, "Connection: keep-alive") != NULL){
+		return true;
+	}
+	return false;
+}
+
+void receive_and_respond(int client_fd, char* buff){
+	memset(buff, '\0', BUFFER_SIZE);
+	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
+	if(read == 0) {//an kido racxa moxda
+		close(client_fd);
+		return;
+	}	
+	handle_request(buff, client_fd);
+	if(keep_alive(buff)){
+		receive_and_respond(client_fd, buff);
+	} else {
+		close(client_fd);
+	}
+}
 void* handle_client(void* arg){
 	int socket_fd = *(int*)arg;
 	struct sockaddr_in client_addr;
@@ -272,11 +297,7 @@ void* handle_client(void* arg){
 			continue;
 		}
 		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
-		memset(buff, '\0', BUFFER_SIZE);
-		int read = recv(client_fd, buff, BUFFER_SIZE, 0);
-		if(read == 0) return NULL;
-		handle_request(buff, client_fd);
-		close(client_fd);
+		receive_and_respond(client_fd, buff);
 	}
 	return NULL;
 }
