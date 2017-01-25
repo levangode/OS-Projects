@@ -20,6 +20,18 @@
 
 #define BACKLOG 128
 #define BUFFER_SIZE 2048
+#define MAX_CONFIGFILE_SIZE 5000
+
+struct virtual_server{
+	char* vhost;
+	char* documentroot;
+	char* cgi_bin;
+	char* ip;
+	char* port;
+	char* logg;
+	struct sockaddr_in my_addr;
+	int socket_fd;
+};
 
 void handle_request(char*, int);
 void generate_files(int, DIR*, char*);
@@ -35,7 +47,7 @@ bool keep_alive(char*);
 void receive_and_respond(int, char*, bool*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
-void launch_server(char*, char*, char*, char*, char*, char*);
+void launch_server(struct virtual_server*);
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -301,7 +313,8 @@ void receive_and_respond(int client_fd, char* buff, bool* timeout){
 	}
 }
 void* handle_client(void* arg){
-	int socket_fd = *(int*)arg;
+	struct virtual_server server = *(struct virtual_server*)arg;
+	int socket_fd = server.socket_fd;
 	struct sockaddr_in client_addr;
 	int client_fd = -1;
 	char buff[BUFFER_SIZE];
@@ -332,7 +345,7 @@ char* extract_header_token(char* buff, char* token){
 }
 
 void read_config_file(char* path_to_config_file){
-	char buff[BUFFER_SIZE];
+	char buff[MAX_CONFIGFILE_SIZE];
 	FILE* file;
 	int length;
 
@@ -347,26 +360,22 @@ void read_config_file(char* path_to_config_file){
 	fclose(file);
 
 
-	char* vhost = extract_header_token(buff, "vhost = ");
-	char* documentroot = extract_header_token(buff, "documentroot = ");
-	char* cgi_bin = extract_header_token(buff, "cgi-bin = ");
-	char* ip = extract_header_token(buff, "ip = ");
-	char* port = extract_header_token(buff, "port = ");
-	char* logg = extract_header_token(buff, "log = ");
-	printf("%s\n", vhost);
-	printf("%s\n", documentroot);
-	printf("%s\n", cgi_bin);
-	printf("%s\n", ip);
-	printf("%s\n", port);
-	printf("%s\n", logg);
-	launch_server(vhost, documentroot, cgi_bin, ip, port, logg);
-	free(vhost);
-	free(documentroot);
-	free(cgi_bin);
-	free(ip);
-	free(port);
-	free(logg);
+	struct virtual_server server;
 
+	server.vhost = extract_header_token(buff, "vhost = ");
+	server.documentroot = extract_header_token(buff, "documentroot = ");
+	server.cgi_bin = extract_header_token(buff, "cgi-bin = ");
+	server.ip = extract_header_token(buff, "ip = ");
+	server.port = extract_header_token(buff, "port = ");
+	server.logg = extract_header_token(buff, "log = ");
+	printf("%s\n", server.vhost);
+	printf("%s\n", server.documentroot);
+	printf("%s\n", server.cgi_bin);
+	printf("%s\n", server.ip);
+	printf("%s\n", server.port);
+	printf("%s\n", server.logg);
+	launch_server(&server);
+	
 
 
 }
@@ -423,41 +432,39 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 
 }
 
-void launch_server(char* vhost, char* documentroot, char* cgi_bin, char* ip, char* port_s, char* logg){
-	int socket_fd = -1;
+void launch_server(struct virtual_server* server){
+	server->socket_fd = -1;
 	int success;
-	char* pwd = documentroot;
-	int port = atoi(port_s);
+	int port = atoi(server->port);
 	assert(port > 1024 && port <= 65535);
-	struct sockaddr_in my_addr;
-	socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if(socket_fd == -1){
+	server->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if(server->socket_fd == -1){
 		perror("Socket initialization error on socket() call");
 		exit(1);
 	}
 	int opt_val = 1;
-	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(int)) == -1) {
+	if (setsockopt(server->socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(int)) == -1) {
 		perror("setsockopt");
 		exit(1);
 	}
 	//myport and myip to be defined
-	my_addr.sin_family = AF_INET;	//host byte order
-	my_addr.sin_port = htons(port);	//short, network byte order
-	my_addr.sin_addr.s_addr = inet_addr(ip);
-	memset(&(my_addr.sin_zero), '\0', 8);
+	server->my_addr.sin_family = AF_INET;	//host byte order
+	server->my_addr.sin_port = htons(port);	//short, network byte order
+	server->my_addr.sin_addr.s_addr = inet_addr(server->ip);
+	memset(&(server->my_addr.sin_zero), '\0', 8);
 	//ERRORCHEKING
-	if(my_addr.sin_addr.s_addr == -1){
+	if(server->my_addr.sin_addr.s_addr == -1){
 		perror( "255.255.255.255 Happened :(" );
 	}
 	////
-	success = bind(socket_fd, (struct sockaddr*)&my_addr, sizeof(struct sockaddr));
+	success = bind(server->socket_fd, (struct sockaddr*)&(server->my_addr), sizeof(struct sockaddr));
 	//ERRORCHECKING
 	if(success == -1){
 		perror("Couldn't bind");
 		exit(1);
 	}
 	////
-	success = listen(socket_fd, BACKLOG);
+	success = listen(server->socket_fd, BACKLOG);
 	if(success == -1){
 		perror("Could not listen");
 		exit(1);
@@ -466,10 +473,10 @@ void launch_server(char* vhost, char* documentroot, char* cgi_bin, char* ip, cha
 	int i;
 	for(i=0; i<1024; i++){
 		pthread_t thread;
-		pthread_create(&thread, NULL, handle_client, &socket_fd);
+		pthread_create(&thread, NULL, handle_client, server);
 		pthread_join(thread, NULL);
 	}
-	close(socket_fd);
+	close(server->socket_fd);
 }
 
 
