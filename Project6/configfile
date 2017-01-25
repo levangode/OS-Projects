@@ -1,0 +1,6 @@
+vhost = example1.com
+documentroot = /path/to/example1/
+cgi-bin = /path/to/example1/cgi-bin/
+ip = 127.0.0.1
+port = 4000
+log = /path/to/logs/example1.log

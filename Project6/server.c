@@ -288,7 +288,6 @@ void receive_and_respond(int client_fd, char* buff, bool* timeout){
 				perror("Couldn't set socket options");
 				exit(1);
 			}
-			
 		}
 		receive_and_respond(client_fd, buff, timeout);
 	} else {
@@ -316,7 +315,65 @@ void* handle_client(void* arg){
 	return NULL;
 }
 
+char* extract_header_token(char* buff, char* token){
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
+	char* token_p = strstr(tmpbuff, token);
+
+	char* res = strtok(token_p+strlen(token), " \r\n");
+	char* ret = strdup(res);
+	return ret;
+}
+
+void read_config_file(char* path_to_config_file){
+	char buff[BUFFER_SIZE];
+	FILE* file;
+	size_t nread;
+
+	file = fopen(path_to_config_file, "r");
+	if(file == NULL){
+		perror("Couldn't open config file for reading");
+	}
+	while(true){
+		nread = fread(buff, 1, sizeof(buff), file);
+		if(nread <= 0) break;
+	}
+	fclose(file);
+
+
+	char* vhost = extract_header_token(buff, "vhost = ");
+	char* documentroot = extract_header_token(buff, "documentroot = ");
+	char* cgi_bin = extract_header_token(buff, "cgi-bin = ");
+	char* ip = extract_header_token(buff, "ip = ");
+	char* port = extract_header_token(buff, "port = ");
+	char* logg = extract_header_token(buff, "log = ");
+	printf("%s\n", vhost);
+	printf("%s\n", documentroot);
+	printf("%s\n", cgi_bin);
+	printf("%s\n", ip);
+	printf("%s\n", port);
+	printf("%s\n", logg);
+	free(vhost);
+	free(documentroot);
+	free(cgi_bin);
+	free(ip);
+	free(port);
+	free(logg);
+
+
+
+}
+
+
 int main(int argc, char *argv[]){
+	if(argc	 <= 1){
+		printf("%s\n", "You need to specify path to the config file.");
+		exit(-1);
+	}
+	char* path_to_config_file = argv[1];
+	read_config_file(path_to_config_file);
+	//return 0;
+
 	int socket_fd = -1;
 	int success;
 	
