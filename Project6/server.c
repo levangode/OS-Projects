@@ -272,6 +272,9 @@ bool keep_alive(char* buff){
 	return false;
 }
 
+
+
+
 void receive_and_respond(int client_fd, char* buff, bool* timeout){
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
@@ -365,6 +368,58 @@ void read_config_file(char* path_to_config_file){
 	free(logg);
 
 
+
+}
+
+void check_get_post_case(char* method,char* query,char* query_environment,int len,char * contentl_environment){
+	if(strcasecmp("GET",method) == 0){
+		sprintf(query_environment,"QUERY_STRING=%s",query);
+		putenv(query_environment);
+	}else{
+		sprintf(contentl_environment,"CONTENT_LENGTH=%d",len);
+		putenv(contentl_environment);
+	}
+}
+
+
+void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read cgi programming manual
+	int output[2],input[2];//for cgi pipes
+	char* content_length_ptr = extract_header_token(buffer,"Content-Length: ");
+	int content_length = atoi(content_length_ptr);
+	free(content_length_ptr);
+
+
+	if(pipe(output) < 0 || pipe(input) < 0){
+		//print error
+		return;
+	}
+
+	pid_t pid = fork();
+	if(pid < 0){
+		//print error
+		return;
+	}
+
+	char query_environment[256],method_environment[256],contentl_environment[256];
+
+
+	if(pid == 0){//child case
+		close(1);
+		close(0);
+		dup(output[1]);
+		dup(input[0]);
+		close(input[1]);
+		close(output[0]);
+		sprintf(method_environment,"REQUEST_METHOD=%s",method);
+		putenv(method_environment);
+		check_get_post_case(method,query,query_environment,content_length,contentl_environment);
+		execl(path,path,NULL);
+		exit(0);
+	}else{//parent case
+		
+
+
+	}
 
 }
 
