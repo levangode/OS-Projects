@@ -425,9 +425,24 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 		execl(path,path,NULL);
 		exit(0);
 	}else{//parent case
-		
-
-
+		char rec_buff;
+		close(input[0]);
+		close(output[1]);
+		if(strcasecmp("POST",method)==0){
+			recv(client_fd,&rec_buff,content_length,0);
+			write(input[1],&rec_buff,content_length);
+		}
+		while(true){
+			ssize_t res = read(output[0],&rec_buff,1);
+			if(res <= 0)
+				break;
+			send(client_fd,&rec_buff,1,0);
+		}
+		close(input[1]);
+		close(output[0]);
+		int tmp = 0;
+		waitpid(pid,tmp,0);
+		//wait(tmp);
 	}
 
 }
