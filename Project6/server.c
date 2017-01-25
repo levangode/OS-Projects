@@ -269,6 +269,22 @@ bool keep_alive(char* buff){
 	return false;
 }
 
+
+void cgi(char* buffer,char* path,char* method,char* query,int client_fd){
+	int output[2],input[2];//for cgi pipes
+	char tmpBuffer[BUFFER_SIZE];
+	memcpy(tmpBuffer,buffer,BUFFER_SIZE);
+	
+
+
+	if(pipe(output) < 0 || pipe(input) < 0){
+		//print error
+		return;
+	}
+}
+
+
+
 void receive_and_respond(int client_fd, char* buff, bool* timeout){
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
