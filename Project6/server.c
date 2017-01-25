@@ -33,6 +33,9 @@ void send_not_modified(int);
 void send_ok(char*, char*, int, char*);
 bool keep_alive(char*);
 void receive_and_respond(int, char*, bool*);
+char* extract_header_token(char*, char*);
+void read_config_file(char*);
+void launch_server(char*, char*, char*, char*, char*, char*);
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -328,15 +331,15 @@ char* extract_header_token(char* buff, char* token){
 void read_config_file(char* path_to_config_file){
 	char buff[BUFFER_SIZE];
 	FILE* file;
-	size_t nread;
+	int length;
 
 	file = fopen(path_to_config_file, "r");
 	if(file == NULL){
 		perror("Couldn't open config file for reading");
 	}
 	while(true){
-		nread = fread(buff, 1, sizeof(buff), file);
-		if(nread <= 0) break;
+		length = fread(buff, 1, sizeof(buff), file);
+		if(length <= 0) break;
 	}
 	fclose(file);
 
@@ -353,6 +356,7 @@ void read_config_file(char* path_to_config_file){
 	printf("%s\n", ip);
 	printf("%s\n", port);
 	printf("%s\n", logg);
+	launch_server(vhost, documentroot, cgi_bin, ip, port, logg);
 	free(vhost);
 	free(documentroot);
 	free(cgi_bin);
@@ -364,52 +368,33 @@ void read_config_file(char* path_to_config_file){
 
 }
 
-
-int main(int argc, char *argv[]){
-	if(argc	 <= 1){
-		printf("%s\n", "You need to specify path to the config file.");
-		exit(-1);
-	}
-	char* path_to_config_file = argv[1];
-	read_config_file(path_to_config_file);
-	//return 0;
-
+void launch_server(char* vhost, char* documentroot, char* cgi_bin, char* ip, char* port_s, char* logg){
 	int socket_fd = -1;
 	int success;
-	
-
-	//char* pwd = getenv("PWD");
-	
-	int port = 4000;
+	char* pwd = documentroot;
+	int port = atoi(port_s);
 	assert(port > 1024 && port <= 65535);
-
 	struct sockaddr_in my_addr;
-
-
 	socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(socket_fd == -1){
 		perror("Socket initialization error on socket() call");
 		exit(1);
 	}
-
 	int opt_val = 1;
 	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(int)) == -1) {
 		perror("setsockopt");
 		exit(1);
 	}
-
 	//myport and myip to be defined
 	my_addr.sin_family = AF_INET;	//host byte order
 	my_addr.sin_port = htons(port);	//short, network byte order
-	my_addr.sin_addr.s_addr = INADDR_ANY;//inet_addr(MYIP);
+	my_addr.sin_addr.s_addr = inet_addr(ip);
 	memset(&(my_addr.sin_zero), '\0', 8);
-
 	//ERRORCHEKING
 	if(my_addr.sin_addr.s_addr == -1){
 		perror( "255.255.255.255 Happened :(" );
 	}
 	////
-	
 	success = bind(socket_fd, (struct sockaddr*)&my_addr, sizeof(struct sockaddr));
 	//ERRORCHECKING
 	if(success == -1){
@@ -422,21 +407,24 @@ int main(int argc, char *argv[]){
 		perror("Could not listen");
 		exit(1);
 	}
-
 	printf("Server Started at port %d\n", port);
-
-
 	int i;
 	for(i=0; i<1024; i++){
 		pthread_t thread;
 		pthread_create(&thread, NULL, handle_client, &socket_fd);
 		pthread_join(thread, NULL);
 	}
-
-
 	close(socket_fd);
+}
 
 
+int main(int argc, char *argv[]){
+	if(argc	 <= 1){
+		printf("%s\n", "You need to specify path to the config file.");
+		exit(-1);
+	}
+	char* path_to_config_file = argv[1];
+	read_config_file(path_to_config_file);
 
 	return 0;
 }
