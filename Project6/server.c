@@ -230,6 +230,18 @@ void generate_files(int client_fd, DIR* dir, char* path){
 	closedir(dir);
 }
 
+bool is_cgi(char* method,char* path){
+	if(strncmp(method,"POST",4)==0)
+		return true;
+	char tmpPath[1024];
+	memcpy(tmpPath,path,strlen(path));
+	if(strtok(tmpPath,"?")==NULL){
+		return false;
+	}
+	return true;
+}
+
+
 void handle_request(char* buff, int client_fd){
 	printf("%s\n", buff);
 	char tmpbuff[1024];
@@ -247,11 +259,19 @@ void handle_request(char* buff, int client_fd){
 		blank_get(client_fd, buff);
 		return;
 	}
+
+	
+	if(is_cgi(method,path)){
+		cgi(buff,path,method, query,client_fd);
+	}
+
 	//case path is directory
 	DIR* dir = opendir(path);
 	if(dir != NULL){	
 		generate_files(client_fd, dir, path);
 	}
+	
+
 	//case path is file
 	else if(access(path, F_OK) == 0){
 		send_file(path, client_fd, buff);
@@ -381,7 +401,7 @@ void read_config_file(char* path_to_config_file){
 }
 
 void check_get_post_case(char* method,char* query,char* query_environment,int len,char * contentl_environment){
-	if(strcasecmp("GET",method) == 0){
+	if(strncmp("GET",method,3) == 0){
 		sprintf(query_environment,"QUERY_STRING=%s",query);
 		putenv(query_environment);
 	}else{
@@ -428,7 +448,7 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 		char rec_buff;
 		close(input[0]);
 		close(output[1]);
-		if(strcasecmp("POST",method)==0){
+		if(strncmp("POST",method,4)==0){
 			recv(client_fd,&rec_buff,content_length,0);
 			write(input[1],&rec_buff,content_length);
 		}
