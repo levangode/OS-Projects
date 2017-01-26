@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include "dirent.h"
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <sys/sendfile.h>
 #include <pthread.h>
@@ -262,7 +263,7 @@ void handle_request(char* buff, int client_fd){
 
 	
 	if(is_cgi(method,path)){
-		cgi(buff,path,method, query,client_fd);
+		//cgi(buff,path,method, query,client_fd);
 	}
 
 	//case path is directory
@@ -461,7 +462,7 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 		close(input[1]);
 		close(output[0]);
 		int tmp = 0;
-		waitpid(pid,tmp,0);
+		waitpid(pid,&tmp,0);
 		//wait(tmp);
 	}
 
