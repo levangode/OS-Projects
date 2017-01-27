@@ -37,7 +37,6 @@ struct virtual_server{
 
 void handle_request(struct virtual_server*, char*, int);
 void generate_files(int, DIR*, char*);
-void blank_get(struct virtual_server*, int, char*);
 void send_file(char*, int, char*);
 void return_bad_request(int);
 char* contains_range_header(char*);
@@ -50,6 +49,7 @@ void receive_and_respond(struct virtual_server*, int, char*, bool*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
+
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -241,6 +241,10 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
+	char* tmpPath = strdup(path);
+	
+	char* query = strtok(tmpPath,"?");
+	query = strtok(NULL,"?");
 
 	/*if(check_cache(buff, path)){
 		send_not_modified(client_fd);
@@ -250,7 +254,8 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 
 	
 	if(is_cgi(method,path)){
-		//cgi(buff,path,method, query,client_fd);
+		cgi(buff,path,method, query,client_fd);
+		return;
 	}
 
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
@@ -280,13 +285,6 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	} else {
 		return_bad_request(client_fd);
 	}
-
-	//printf("%s\n", method);
-	//printf("%s\n", path);
-	//printf("%s\n", http_version);
-	//if(strncmp(http_version, "HTTP/1.1", 8) == 0)
-	//if(strncmp(method, "GET", 3) == 0)
-	//if(strncmp(method, "POST", 4) == 0)	
 
 }
 
