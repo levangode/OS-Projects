@@ -250,7 +250,10 @@ void handle_request(char* buff, int client_fd){
 	memcpy(tmpbuff, buff, 1024);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
-	char* query = strtok(path,"?");
+
+	char* tmpPath = strdup(path);
+	
+	char* query = strtok(tmpPath,"?");
 	query = strtok(NULL,"?");
 
 	if(check_cache(buff, path)){
