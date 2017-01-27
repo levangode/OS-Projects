@@ -17,6 +17,7 @@
 #include <sys/sendfile.h>
 #include <pthread.h>
 #include <errno.h>
+#include "vector.h"
 
 
 #define BACKLOG 128
@@ -48,7 +49,7 @@ bool keep_alive(char*);
 void receive_and_respond(int, char*, bool*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
-void launch_server(struct virtual_server*);
+void* launch_server(void* arg);
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -365,6 +366,7 @@ char* extract_header_token(char* buff, char* token){
 	return ret;
 }
 
+
 void read_config_file(char* path_to_config_file){
 	char buff[MAX_CONFIGFILE_SIZE];
 	FILE* file;
@@ -379,24 +381,31 @@ void read_config_file(char* path_to_config_file){
 		if(length <= 0) break;
 	}
 	fclose(file);
+	char* rest = buff;
 
-
-	struct virtual_server server;
-
-	server.vhost = extract_header_token(buff, "vhost = ");
-	server.documentroot = extract_header_token(buff, "documentroot = ");
-	server.cgi_bin = extract_header_token(buff, "cgi-bin = ");
-	server.ip = extract_header_token(buff, "ip = ");
-	server.port = extract_header_token(buff, "port = ");
-	server.logg = extract_header_token(buff, "log = ");
-	printf("%s\n", server.vhost);
-	printf("%s\n", server.documentroot);
-	printf("%s\n", server.cgi_bin);
-	printf("%s\n", server.ip);
-	printf("%s\n", server.port);
-	printf("%s\n", server.logg);
-	launch_server(&server);
 	
+	vector servs;
+	VectorNew(&servs, sizeof(pthread_t), NULL, 10);
+	while(true){
+		struct virtual_server* server = malloc(sizeof(struct virtual_server));
+		server->vhost = extract_header_token(rest, "vhost = ");
+		server->documentroot = extract_header_token(rest, "documentroot = ");
+		server->cgi_bin = extract_header_token(rest, "cgi-bin = ");
+		server->ip = extract_header_token(rest, "ip = ");
+		server->port = extract_header_token(rest, "port = ");
+		server->logg = extract_header_token(rest, "log = ");
+
+		pthread_t thread;
+		pthread_create(&thread, NULL, launch_server, server);
+		VectorAppend(&servs, &thread);
+		rest=strstr(rest, "\n\n");
+		if(rest == NULL) break;
+		rest+=2;
+	}
+	int i;
+	for(i=0; i<VectorLength(&servs); i++){
+		pthread_join(*(pthread_t*)VectorNth(&servs, i), NULL);
+	}
 
 
 }
@@ -468,7 +477,14 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 
 }
 
-void launch_server(struct virtual_server* server){
+void* launch_server(void* arg){
+	struct virtual_server* server = (struct virtual_server*)arg;
+	printf("%s\n", server->vhost);
+	printf("%s\n", server->documentroot);
+	printf("%s\n", server->cgi_bin);
+	printf("%s\n", server->ip);
+	printf("%s\n", server->port);
+	printf("%s\n", server->logg);
 	server->socket_fd = -1;
 	int success;
 	int port = atoi(server->port);
@@ -507,12 +523,16 @@ void launch_server(struct virtual_server* server){
 	}
 	printf("Server Started at port %d\n", port);
 	int i;
+	pthread_t workers[1024];
 	for(i=0; i<1024; i++){
-		pthread_t thread;
-		pthread_create(&thread, NULL, handle_client, server);
-		pthread_join(thread, NULL);
+		pthread_create(&workers[i], NULL, handle_client, server);
+	}
+	for(i=0; i<1024; i++){
+		pthread_join(workers[i], NULL);
 	}
 	close(server->socket_fd);
+	free(server);
+	return NULL;
 }
 
 
