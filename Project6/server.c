@@ -49,6 +49,7 @@ void receive_and_respond(struct virtual_server*, int, char*, bool*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
+void cgi(char* buffer,char* path,char* method,char* query,int client_fd);
 
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
@@ -241,10 +242,10 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
-	char* tmpPath = strdup(path);
+	/*char* tmpPath = strdup(path);
 	
 	char* query = strtok(tmpPath,"?");
-	query = strtok(NULL,"?");
+	query = strtok(NULL,"?");*/
 
 	/*if(check_cache(buff, path)){
 		send_not_modified(client_fd);
@@ -254,8 +255,8 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 
 	
 	if(is_cgi(method,path)){
-		cgi(buff,path,method, query,client_fd);
-		return;
+		//cgi(buff,path,method, query,client_fd);
+		//return;
 	}
 
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
