@@ -49,6 +49,7 @@ void receive_and_respond(int, char*, bool*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void launch_server(struct virtual_server*);
+void cgi(char* buffer,char* path,char* method,char* query,int client_fd);
 
 void send_ok(char* generated, char* path, int client_fd, char* type){
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -249,7 +250,8 @@ void handle_request(char* buff, int client_fd){
 	memcpy(tmpbuff, buff, 1024);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
-
+	char* query = strtok(path,"?");
+	query = strtok(NULL,"?");
 
 	if(check_cache(buff, path)){
 		send_not_modified(client_fd);
@@ -263,7 +265,8 @@ void handle_request(char* buff, int client_fd){
 
 	
 	if(is_cgi(method,path)){
-		//cgi(buff,path,method, query,client_fd);
+		cgi(buff,path,method, query,client_fd);
+		return;
 	}
 
 	//case path is directory
