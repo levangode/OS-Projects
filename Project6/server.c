@@ -35,9 +35,9 @@ struct virtual_server{
 	int socket_fd;
 };
 
-void handle_request(char*, int);
+void handle_request(struct virtual_server*, char*, int);
 void generate_files(int, DIR*, char*);
-void blank_get(int, char*);
+void blank_get(struct virtual_server*, int, char*);
 void send_file(char*, int, char*);
 void return_bad_request(int);
 char* contains_range_header(char*);
@@ -46,7 +46,7 @@ bool check_cache(char*, char*);
 void send_not_modified(int);
 void send_ok(char*, char*, int, char*);
 bool keep_alive(char*);
-void receive_and_respond(int, char*, bool*);
+void receive_and_respond(struct virtual_server*, int, char*, bool*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
@@ -194,16 +194,6 @@ void send_file(char* path, int client_fd, char* buff){
 	}
 }
 
-/* Case when request came with "GET / " only */
-void blank_get(int client_fd, char* buff){
-	if(access("index.html", F_OK) == 0){
-		send_file("index.html", client_fd, buff);
-	} else {
-		char* pwd = getenv("PWD");
-		DIR* dir = opendir(pwd);
-		generate_files(client_fd, dir, "");
-	}
-}
 /* Generates list of files existing in the current directory
  * make html list of them and sends to client */
 void generate_files(int client_fd, DIR* dir, char* path){
@@ -244,7 +234,7 @@ bool is_cgi(char* method,char* path){
 }
 
 
-void handle_request(char* buff, int client_fd){
+void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	printf("%s\n", buff);
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
@@ -252,31 +242,41 @@ void handle_request(char* buff, int client_fd){
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
 
-	if(check_cache(buff, path)){
+	/*if(check_cache(buff, path)){
 		send_not_modified(client_fd);
 		return;
-	}
-	//case blank path
-	if(strcmp(path, "") == 0){	
-		blank_get(client_fd, buff);
-		return;
-	}
+	}*/
+
 
 	
 	if(is_cgi(method,path)){
 		//cgi(buff,path,method, query,client_fd);
 	}
 
+	char actualPath[strlen(server->documentroot)-1+strlen(path)];
+	strcpy(actualPath, server->documentroot+1);
+	strcat(actualPath, path);
+
+	char indexPath[strlen(actualPath) + strlen("/index.html")];
+	strcpy(indexPath, actualPath);
+	strcat(indexPath, "/index.html");
+
+
+
+	if(access(indexPath, F_OK) == 0){
+		send_file(indexPath, client_fd, buff);
+	}
+
 	//case path is directory
-	DIR* dir = opendir(path);
+	DIR* dir = opendir((char*)actualPath);
 	if(dir != NULL){	
 		generate_files(client_fd, dir, path);
 	}
 	
 
 	//case path is file
-	else if(access(path, F_OK) == 0){
-		send_file(path, client_fd, buff);
+	else if(access((char*)actualPath, F_OK) == 0){
+		send_file((char*)actualPath, client_fd, buff);
 	} else {
 		return_bad_request(client_fd);
 	}
@@ -309,14 +309,14 @@ bool keep_alive(char* buff){
 
 
 
-void receive_and_respond(int client_fd, char* buff, bool* timeout){
+void receive_and_respond(struct virtual_server* server, int client_fd, char* buff, bool* timeout){
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 	if(read <= 0) {
 		close(client_fd);
 		return;
 	}	
-	handle_request(buff, client_fd);
+	handle_request(server, buff, client_fd);
 	if(keep_alive(buff)){
 		struct timeval t;
 		t.tv_sec = 5;
@@ -329,14 +329,14 @@ void receive_and_respond(int client_fd, char* buff, bool* timeout){
 				exit(1);
 			}
 		}
-		receive_and_respond(client_fd, buff, timeout);
+		receive_and_respond(server, client_fd, buff, timeout);
 	} else {
 		close(client_fd);
 	}
 }
 void* handle_client(void* arg){
-	struct virtual_server server = *(struct virtual_server*)arg;
-	int socket_fd = server.socket_fd;
+	struct virtual_server* server = (struct virtual_server*)arg;
+	int socket_fd = server->socket_fd;
 	struct sockaddr_in client_addr;
 	int client_fd = -1;
 	char buff[BUFFER_SIZE];
@@ -351,7 +351,7 @@ void* handle_client(void* arg){
 		}
 		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
 		bool timeout = false;
-		receive_and_respond(client_fd, buff, &timeout);
+		receive_and_respond(server, client_fd, buff, &timeout);
 	}
 	return NULL;
 }
@@ -360,8 +360,10 @@ char* extract_header_token(char* buff, char* token){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
 	char* token_p = strstr(tmpbuff, token);
-
-	char* res = strtok(token_p+strlen(token), " \r\n");
+	if(*(token_p + strlen(token)) == '\n'){
+		return strdup("");
+	}
+	char* res = strtok(token_p+strlen(token), "\r\n");
 	char* ret = strdup(res);
 	return ret;
 }
