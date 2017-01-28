@@ -6,3 +6,18 @@ accesslog:
 accesslog:
 [Sat Jan 28 22:47:11 2017] 127.0.0.1 / 200 145 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
 
+accesslog:
+[Sat Jan 28 23:02:27 2017] 127.0.0.1 /testvideo.mp4 404 70 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
+
+accesslog:
+[Sat Jan 28 23:02:27 2017] 127.0.0.1 /favicon.ico 404 70 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
+
+accesslog:
+[Sun Jan 29 01:52:17 2017] 127.0.0.1 / 200 145 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Sun Jan 29 01:52:17 2017] 127.0.0.1 /favicon.ico 404 70 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Sun Jan 29 02:30:52 2017] 127.0.0.1 / 200 145 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+

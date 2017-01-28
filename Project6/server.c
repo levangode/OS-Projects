@@ -49,7 +49,7 @@ void receive_and_respond(struct virtual_server*, int, char*, bool*, struct socka
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
-void cgi(char* buffer,char* path,char* method,char* query,int client_fd);
+void cgi(char* buffer,char* path,char* method,int client_fd);
 
 
 void send_ok(char* generated, char* path, int client_fd, char* type, char* logBuff){
@@ -340,9 +340,6 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 		send_not_modified(client_fd, logBuff);
 		return;
 	}*/
-	char* tmpPath = strdup(path);
-	char* query = strtok(tmpPath,"?");
-	query = strtok(NULL,"?");
 
 
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
@@ -355,9 +352,12 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 
 	printf("actualPath=%s\n", actualPath);
 
+	char cgiPath[strlen(server->cgi_bin) - 1 + strlen(path)];
+	memcpy(cgiPath, server->cgi_bin+1, strlen(server->cgi_bin));
+	strcat(cgiPath, path);
 
-	if(is_cgi(method,actualPath)){
-		cgi(buff,actualPath,method, query,client_fd);
+	if(is_cgi(method, cgiPath)){
+		cgi(buff,cgiPath, method, client_fd);
 		return;
 	}
 
@@ -518,7 +518,14 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 }
 
 
-void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read cgi programming manual
+void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi programming manual
+	char* tmpPath = strdup(path);
+	char* location = strtok(tmpPath,"?");
+	char* query = strtok(NULL,"?");
+
+	printf("location=%s\n", location);
+	printf("query=%s\n", query);
+
 	int output[2],input[2];//for cgi pipes
 	char* content_length_ptr;
 	int content_length;
