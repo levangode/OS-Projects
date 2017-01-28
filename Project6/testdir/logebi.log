@@ -1,0 +1,8 @@
+accesslog:
+[Sat Jan 28 22:46:00 2017] 127.0.0.1 / 200 104 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+accesslog:
+[Sat Jan 28 22:47:09 2017] 127.0.0.1 /test1.html 200 0 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+
+accesslog:
+[Sat Jan 28 22:47:11 2017] 127.0.0.1 / 200 145 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+

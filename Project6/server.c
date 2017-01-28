@@ -35,7 +35,7 @@ struct virtual_server{
 	int socket_fd;
 };
 
-void handle_request(struct virtual_server*, char*, int);
+void handle_request(struct virtual_server*, char*, int, struct sockaddr_in*);
 void generate_files(int, DIR*, char*, char*);
 void send_file(char*, int, char*, char*);
 void return_bad_request(int, char*);
@@ -45,7 +45,7 @@ bool check_cache(char*, char*);
 void send_not_modified(int, char*);
 void send_ok(char*, char*, int, char*, char*);
 bool keep_alive(char*);
-void receive_and_respond(struct virtual_server*, int, char*, bool*);
+void receive_and_respond(struct virtual_server*, int, char*, bool*, struct sockaddr_in*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
@@ -242,7 +242,7 @@ bool is_cgi(char* method,char* path){
 	return true;
 }
 
-void make_log(char* buff, struct virtual_server* server, char* path, char* logBuff){
+void make_log(char* buff, struct virtual_server* server, char* path, char* logBuff, struct sockaddr_in* client_addr){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
 
@@ -269,19 +269,64 @@ void make_log(char* buff, struct virtual_server* server, char* path, char* logBu
     *(c_time_string + strlen(c_time_string) - 1) = '\0';
     //end of code
     sprintf(logBuff, "[%s] ", c_time_string);
-   	sprintf(logBuff+strlen(logBuff), "%s ", server->ip);
+   	sprintf(logBuff+strlen(logBuff), "%s ", inet_ntoa(client_addr->sin_addr));
    	//domain name
    	sprintf(logBuff+strlen(logBuff), "/%s ", path);
-   	printf("%s\n", logBuff);
+   	
+}
+void log_error(struct virtual_server* server, struct sockaddr_in* client_addr, char* error_string){
+	char errorBuff[BUFFER_SIZE];
 
 
+	//code from wiki
+	time_t current_time;
+    char* c_time_string;
+    /* Obtain current time. */
+    current_time = time(NULL);
+    if (current_time == ((time_t)-1))
+    {
+        (void) fprintf(stderr, "Failure to obtain the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    /* Convert to local time format. */
+    c_time_string = ctime(&current_time);
+    if (c_time_string == NULL)
+    {
+        (void) fprintf(stderr, "Failure to convert the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    *(c_time_string + strlen(c_time_string) - 1) = '\0';
+    //end of code
+    sprintf(errorBuff, "[%s] ", c_time_string);
+   	sprintf(errorBuff+strlen(errorBuff), "%s ", inet_ntoa(client_addr->sin_addr));
 
-
-
+   	FILE* logfile = fopen(server->logg+1, "a");
+	if(logfile == NULL){
+		perror("Couldn't open log file\n");
+		exit(1);
+	}
+	fprintf(logfile, "errorlog:\n%s\n", errorBuff);
+	fclose(logfile);
 
 }
 
-void handle_request(struct virtual_server* server, char* buff, int client_fd){
+void finish_log(char* logBuff, char* buff, struct virtual_server* server){
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
+	char* user_agent = extract_header_token(tmpbuff, "User-Agent: ");
+	sprintf(logBuff+strlen(logBuff), "\"%s\"\n",user_agent);
+	free(user_agent);
+
+	FILE* logfile = fopen(server->logg+1, "a");
+	if(logfile == NULL){
+		perror("Couldn't open log file\n");
+		exit(1);
+	}
+	fprintf(logfile, "accesslog:\n%s\n", logBuff);
+	fclose(logfile);
+}
+
+void handle_request(struct virtual_server* server, char* buff, int client_fd, struct sockaddr_in* client_addr){
 	printf("%s\n", buff);
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
@@ -289,7 +334,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
 	char logBuff[BUFFER_SIZE];
-	make_log(buff, server, path, logBuff);
+	make_log(buff, server, path, logBuff, client_addr);
 
 	/*if(check_cache(buff, path)){
 		send_not_modified(client_fd, logBuff);
@@ -335,7 +380,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 		return_bad_request(client_fd, logBuff);
 	}
 
-
+	finish_log(logBuff, buff, server);
 
 
 }
@@ -359,14 +404,14 @@ bool keep_alive(char* buff){
 
 
 
-void receive_and_respond(struct virtual_server* server, int client_fd, char* buff, bool* timeout){
+void receive_and_respond(struct virtual_server* server, int client_fd, char* buff, bool* timeout, struct sockaddr_in* client_addr){
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 	if(read <= 0) {
 		close(client_fd);
 		return;
 	}	
-	handle_request(server, buff, client_fd);
+	handle_request(server, buff, client_fd, client_addr);
 	if(keep_alive(buff)){
 		struct timeval t;
 		t.tv_sec = 5;
@@ -379,7 +424,7 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 				exit(1);
 			}
 		}
-		receive_and_respond(server, client_fd, buff, timeout);
+		receive_and_respond(server, client_fd, buff, timeout, client_addr);
 	} else {
 		close(client_fd);
 	}
@@ -401,7 +446,7 @@ void* handle_client(void* arg){
 		}
 		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
 		bool timeout = false;
-		receive_and_respond(server, client_fd, buff, &timeout);
+		receive_and_respond(server, client_fd, buff, &timeout, &client_addr);
 	}
 	return NULL;
 }
