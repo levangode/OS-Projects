@@ -36,14 +36,14 @@ struct virtual_server{
 };
 
 void handle_request(struct virtual_server*, char*, int);
-void generate_files(int, DIR*, char*);
-void send_file(char*, int, char*);
-void return_bad_request(int);
+void generate_files(int, DIR*, char*, char*);
+void send_file(char*, int, char*, char*);
+void return_bad_request(int, char*);
 char* contains_range_header(char*);
 void send_file_range(int, char*, int, int);
 bool check_cache(char*, char*);
-void send_not_modified(int);
-void send_ok(char*, char*, int, char*);
+void send_not_modified(int, char*);
+void send_ok(char*, char*, int, char*, char*);
 bool keep_alive(char*);
 void receive_and_respond(struct virtual_server*, int, char*, bool*);
 char* extract_header_token(char*, char*);
@@ -52,7 +52,8 @@ void* launch_server(void* arg);
 void cgi(char* buffer,char* path,char* method,char* query,int client_fd);
 
 
-void send_ok(char* generated, char* path, int client_fd, char* type){
+void send_ok(char* generated, char* path, int client_fd, char* type, char* logBuff){
+	sprintf(logBuff+strlen(logBuff), "%s ", "200");
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 	sprintf(generated, "Content-Type: %s\r\n", type);
@@ -73,7 +74,8 @@ void send_ok(char* generated, char* path, int client_fd, char* type){
 	send(client_fd, generated, strlen(generated), 0);
 }
 
-void send_not_modified(int client_fd){
+void send_not_modified(int client_fd, char* logBuff){
+	sprintf(logBuff+strlen(logBuff), "%s ", "304");
 	char generated[1024];
 	sprintf(generated, "HTTP/1.1 304 Not Modified\r\n\n");
 	send(client_fd, generated, strlen(generated), 0);
@@ -137,7 +139,8 @@ char* contains_range_header(char* buff){
 	}
 	return range;	//points to-> Range: bytes
 }
-void return_bad_request(int client_fd){
+void return_bad_request(int client_fd, char* logBuff){
+	sprintf(logBuff+strlen(logBuff), "%s ", "404");
 	char generated[1024];
 	memset(generated, '\0', 1024);
 	sprintf(generated, "HTTP/1.1 404 Not Found\r\n");
@@ -146,11 +149,12 @@ void return_bad_request(int client_fd){
 	sprintf(generated, "Content-Type: text/html\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 	sprintf(generated, "Content-Length: %d\r\n\n", strlen(tmp));
+	sprintf(logBuff+strlen(logBuff), "%d ", strlen(tmp));
 	send(client_fd, generated, strlen(generated), 0);
 	send(client_fd, tmp, strlen(tmp), 0);
 }
 
-void send_file(char* path, int client_fd, char* buff){
+void send_file(char* path, int client_fd, char* buff, char* logBuff){
 	char* type;	//content type that goes into response
 	char tmppath[100];
 	strcpy(tmppath, path);
@@ -172,7 +176,9 @@ void send_file(char* path, int client_fd, char* buff){
 
 	char generated[1024];
 	memset(generated, '\0', 1024);
-	send_ok(generated, path, client_fd, type);
+	
+	send_ok(generated, path, client_fd, type, logBuff);
+
 
 	int fd = -1;
 
@@ -186,6 +192,7 @@ void send_file(char* path, int client_fd, char* buff){
 	int size = ftell(file);
 	off_t offset = 0;
 	sprintf(generated, "Content-Length: %d\r\n\n", size);
+	sprintf(logBuff+strlen(logBuff), "%d ", size);
 	send(client_fd, generated, strlen(generated), 0);
 	char* range = contains_range_header(buff);
 	if(range != NULL){
@@ -197,7 +204,7 @@ void send_file(char* path, int client_fd, char* buff){
 
 /* Generates list of files existing in the current directory
  * make html list of them and sends to client */
-void generate_files(int client_fd, DIR* dir, char* path){
+void generate_files(int client_fd, DIR* dir, char* path, char* logBuff){
 	if(dir == NULL){
 		perror("Couldn't open directory");
 		exit(-1);
@@ -206,7 +213,7 @@ void generate_files(int client_fd, DIR* dir, char* path){
 	char generated[1024];
 	char links[1024];
 	memset(links, '\0', 1024);
-	send_ok(generated, path, client_fd, "text/html");
+	send_ok(generated, path, client_fd, "text/html", logBuff);
 	sprintf(links+strlen(links), "<html>\n<body>\r\n");
 	while(true){
 		entry = readdir(dir);
@@ -218,6 +225,7 @@ void generate_files(int client_fd, DIR* dir, char* path){
 	}
 	sprintf(links+strlen(links), "</body>\n</html>\r\n");
 	sprintf(generated, "Content-Length: %d\r\n\n", strlen(links));
+	sprintf(logBuff+strlen(logBuff), "%d ", strlen(links));
 	send(client_fd, generated, strlen(generated), 0);
 	send(client_fd, links, strlen(links), 0);
 	closedir(dir);
@@ -234,6 +242,44 @@ bool is_cgi(char* method,char* path){
 	return true;
 }
 
+void make_log(char* buff, struct virtual_server* server, char* path, char* logBuff){
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
+
+	//code from wiki
+	time_t current_time;
+    char* c_time_string;
+
+    /* Obtain current time. */
+    current_time = time(NULL);
+
+    if (current_time == ((time_t)-1))
+    {
+        (void) fprintf(stderr, "Failure to obtain the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    /* Convert to local time format. */
+    c_time_string = ctime(&current_time);
+
+    if (c_time_string == NULL)
+    {
+        (void) fprintf(stderr, "Failure to convert the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    *(c_time_string + strlen(c_time_string) - 1) = '\0';
+    //end of code
+    sprintf(logBuff, "[%s] ", c_time_string);
+   	sprintf(logBuff+strlen(logBuff), "%s ", server->ip);
+   	//domain name
+   	sprintf(logBuff+strlen(logBuff), "/%s ", path);
+   	printf("%s\n", logBuff);
+
+
+
+
+
+
+}
 
 void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	printf("%s\n", buff);
@@ -242,13 +288,11 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
-	/*char* tmpPath = strdup(path);
-	
-	char* query = strtok(tmpPath,"?");
-	query = strtok(NULL,"?");*/
+	char logBuff[BUFFER_SIZE];
+	make_log(buff, server, path, logBuff);
 
 	/*if(check_cache(buff, path)){
-		send_not_modified(client_fd);
+		send_not_modified(client_fd, logBuff);
 		return;
 	}*/
 
@@ -259,33 +303,37 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 		//return;
 	}
 
+
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
-	strcpy(actualPath, server->documentroot+1);
+	memcpy(actualPath, server->documentroot+1, strlen(server->documentroot));
 	strcat(actualPath, path);
 
 	char indexPath[strlen(actualPath) + strlen("/index.html")];
-	strcpy(indexPath, actualPath);
+	memcpy(indexPath, actualPath+1, strlen(actualPath));
 	strcat(indexPath, "/index.html");
 
-
+	printf("actualPath=%s\n", actualPath);
 
 	if(access(indexPath, F_OK) == 0){
-		send_file(indexPath, client_fd, buff);
+		send_file(indexPath, client_fd, buff, logBuff);
 	}
 
 	//case path is directory
 	DIR* dir = opendir((char*)actualPath);
 	if(dir != NULL){	
-		generate_files(client_fd, dir, path);
+		generate_files(client_fd, dir, path, logBuff);
 	}
 	
 
 	//case path is file
 	else if(access((char*)actualPath, F_OK) == 0){
-		send_file((char*)actualPath, client_fd, buff);
+		send_file((char*)actualPath, client_fd, buff, logBuff);
 	} else {
-		return_bad_request(client_fd);
+		return_bad_request(client_fd, logBuff);
 	}
+
+
+
 
 }
 
