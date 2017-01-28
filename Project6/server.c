@@ -232,11 +232,11 @@ void generate_files(int client_fd, DIR* dir, char* path, char* logBuff){
 }
 
 bool is_cgi(char* method,char* path){
-	if(strncmp(method,"POST",4)==0)
+	if(strcasecmp(method,"POST")==0)
 		return true;
 	char tmpPath[1024];
-	memcpy(tmpPath,path,strlen(path));
-	if(strtok(tmpPath,"?")==NULL){
+	strcpy(tmpPath,path);
+	if(strstr(tmpPath,"?")==NULL){
 		return false;
 	}
 	return true;
@@ -295,13 +295,9 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 		send_not_modified(client_fd, logBuff);
 		return;
 	}*/
-
-
-	
-	if(is_cgi(method,path)){
-		//cgi(buff,path,method, query,client_fd);
-		//return;
-	}
+	char* tmpPath = strdup(path);
+	char* query = strtok(tmpPath,"?");
+	query = strtok(NULL,"?");
 
 
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
@@ -313,6 +309,13 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	strcat(indexPath, "/index.html");
 
 	printf("actualPath=%s\n", actualPath);
+
+
+	if(is_cgi(method,actualPath)){
+		cgi(buff,actualPath,method, query,client_fd);
+		return;
+	}
+
 
 	if(access(indexPath, F_OK) == 0){
 		send_file(indexPath, client_fd, buff, logBuff);
@@ -472,9 +475,15 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 
 void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read cgi programming manual
 	int output[2],input[2];//for cgi pipes
-	char* content_length_ptr = extract_header_token(buffer,"Content-Length: ");
-	int content_length = atoi(content_length_ptr);
-	free(content_length_ptr);
+	char* content_length_ptr;
+	int content_length;
+	if(strcasecmp("POST",method)==0){
+		content_length_ptr = extract_header_token(buffer,"Content-Length: ");
+		content_length = atoi(content_length_ptr);
+		free(content_length_ptr);
+	}
+
+
 
 
 	if(pipe(output) < 0 || pipe(input) < 0){
