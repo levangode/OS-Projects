@@ -484,7 +484,7 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 	}
 
 
-
+	printf("\n-------im here in cgi--------\n");
 
 	if(pipe(output) < 0 || pipe(input) < 0){
 		//print error
@@ -501,21 +501,24 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 
 
 	if(pid == 0){//child case
-		close(1);
-		close(0);
-		dup(output[1]);
-		dup(input[0]);
-		close(input[1]);
-		close(output[0]);
+
+
+		dup2(output[1], 1);
+  		close(output[0]);
+  		dup2(input[0], 0);
+  		close(input[1]);
+
 		sprintf(method_environment,"REQUEST_METHOD=%s",method);
 		putenv(method_environment);
 		check_get_post_case(method,query,query_environment,content_length,contentl_environment);
-		execl(path,path,NULL);
+		printf("Printing path: %s\n", path);
+		execl("/bin/ls", "ls", NULL);
+		//execl(path,path,NULL);
 		exit(0);
 	}else{//parent case
 		char rec_buff;
-		close(input[0]);
 		close(output[1]);
+  		close(input[0]);
 		if(strncmp("POST",method,4)==0){
 			recv(client_fd,&rec_buff,content_length,0);
 			write(input[1],&rec_buff,content_length);
@@ -526,13 +529,14 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 				break;
 			send(client_fd,&rec_buff,1,0);
 		}
-		close(input[1]);
 		close(output[0]);
+		close(input[1]);
 		int tmp = 0;
 		waitpid(pid,&tmp,0);
+		printf("printing status: %d\n", tmp );
 		//wait(tmp);
 	}
-
+	printf("\n-------cgi done--------\n");
 }
 
 void* launch_server(void* arg){
