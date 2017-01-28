@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <strings.h>
 #include <assert.h>
 #include <stdbool.h>
 #include "dirent.h"
@@ -224,11 +225,14 @@ void generate_files(int client_fd, DIR* dir, char* path){
 }
 
 bool is_cgi(char* method,char* path){
-	if(strncmp(method,"POST",4)==0)
+	if(strcasecmp(method,"POST")==0){
 		return true;
+	}
 	char tmpPath[1024];
-	memcpy(tmpPath,path,strlen(path));
-	if(strtok(tmpPath,"?")==NULL){
+	strcpy(tmpPath,path);
+	printf("path is %s\n",path );
+	printf("tmppath is %s\n",tmpPath );
+	if(strstr(tmpPath,"?") == NULL){
 		return false;
 	}
 	return true;
@@ -236,16 +240,16 @@ bool is_cgi(char* method,char* path){
 
 
 void handle_request(struct virtual_server* server, char* buff, int client_fd){
-	printf("%s\n", buff);
+	printf("printing buffer%s\n", buff);
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
-	/*char* tmpPath = strdup(path);
+	char* tmpPath = strdup(path);
 	
 	char* query = strtok(tmpPath,"?");
-	query = strtok(NULL,"?");*/
+	query = strtok(NULL,"?");
 
 	/*if(check_cache(buff, path)){
 		send_not_modified(client_fd);
@@ -253,12 +257,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	}*/
 
 
-	
-	if(is_cgi(method,path)){
-		//cgi(buff,path,method, query,client_fd);
-		//return;
-	}
-
+	printf("printing query %s\n", query );
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
 	strcpy(actualPath, server->documentroot+1);
 	strcat(actualPath, path);
@@ -267,6 +266,11 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd){
 	strcpy(indexPath, actualPath);
 	strcat(indexPath, "/index.html");
 
+	if(is_cgi(method,actualPath)){
+		printf("aq var\n");
+		cgi(buff,actualPath,method, query,client_fd);
+		return;
+	}
 
 
 	if(access(indexPath, F_OK) == 0){
@@ -424,11 +428,18 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 
 void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read cgi programming manual
 	int output[2],input[2];//for cgi pipes
-	char* content_length_ptr = extract_header_token(buffer,"Content-Length: ");
-	int content_length = atoi(content_length_ptr);
-	free(content_length_ptr);
+	char* content_length_ptr;
+	int content_length;
+	if(strcasecmp(method,"POST")==0){
+		content_length_ptr = extract_header_token(buffer,"Content-Length: ");
+		content_length = atoi(content_length_ptr);
+		free(content_length_ptr);
+	}
+	
+	 
+	printf("im here in cgi\n");
 
-
+	
 	if(pipe(output) < 0 || pipe(input) < 0){
 		//print error
 		return;
@@ -442,7 +453,7 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 
 	char query_environment[256],method_environment[256],contentl_environment[256];
 
-
+	
 	if(pid == 0){//child case
 		close(1);
 		close(0);
@@ -475,7 +486,7 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 		waitpid(pid,&tmp,0);
 		//wait(tmp);
 	}
-
+	printf("CGI DONE \n" );
 }
 
 void* launch_server(void* arg){
