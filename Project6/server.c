@@ -679,7 +679,12 @@ void* handle_a_request(void* aux){
 
 	char buff[BUFFER_SIZE];
 	bool timeout = false;
-	receive_and_respond(server, client_fd, buff, &timeout);
+
+	struct sockaddr_in addr;
+	socklen_t addr_size = sizeof(struct sockaddr_in);
+	getpeername(client_fd, (struct sockaddr *)&addr, &addr_size);
+
+	receive_and_respond(server, client_fd, buff, &timeout, &addr);
 
 
 
