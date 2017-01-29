@@ -148,8 +148,8 @@ void return_bad_request(int client_fd, char* logBuff){
 	char* tmp = "<h1>404 Not Found</h1>\nthe requested file doesn't exist on this server";
 	sprintf(generated, "Content-Type: text/html\r\n");
 	send(client_fd, generated, strlen(generated), 0);
-	sprintf(generated, "Content-Length: %d\r\n\n", strlen(tmp));
-	sprintf(logBuff+strlen(logBuff), "%d ", strlen(tmp));
+	sprintf(generated, "Content-Length: %d\r\n\n", (int)strlen(tmp));
+	sprintf(logBuff+strlen(logBuff), "%d ", (int)strlen(tmp));
 	send(client_fd, generated, strlen(generated), 0);
 	send(client_fd, tmp, strlen(tmp), 0);
 }
