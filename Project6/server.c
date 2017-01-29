@@ -224,8 +224,8 @@ void generate_files(int client_fd, DIR* dir, char* path, char* logBuff){
 		}
 	}
 	sprintf(links+strlen(links), "</body>\n</html>\r\n");
-	sprintf(generated, "Content-Length: %d\r\n\n", strlen(links));
-	sprintf(logBuff+strlen(logBuff), "%d ", strlen(links));
+	sprintf(generated, "Content-Length: %d\r\n\n", (int)strlen(links));
+	sprintf(logBuff+strlen(logBuff), "%d ", (int)strlen(links));
 
 	send(client_fd, generated, strlen(generated), 0);
 	send(client_fd, links, strlen(links), 0);
