@@ -518,7 +518,7 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 }
 
 
-void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi programming manual
+void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi programming manual	
 	char* tmpPath = strdup(path);
 	char* location = strtok(tmpPath,"?");
 	char* query = strtok(NULL,"?");
@@ -530,21 +530,29 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 	char* content_length_ptr;
 	int content_length;
 	if(strcasecmp("POST",method)==0){
+		printf("method=%s\n", method);
 		content_length_ptr = extract_header_token(buffer,"Content-Length: ");
 		content_length = atoi(content_length_ptr);
+		char * finder = strstr(buffer,"\r\n\r\n");
+		if(finder != NULL){
+			finder = finder + 4;
+			query = strdup(finder);//to be freed later
+		}
+		printf("postquery=%s\n", query);
 		free(content_length_ptr);
 	}
-
 
 	printf("\n-------im here in cgi--------\n");
 
 	if(pipe(output) < 0 || pipe(input) < 0){
+		printf("%s\n", "GG");
 		//print error
 		return;
 	}
 
 	pid_t pid = fork();
 	if(pid < 0){
+		printf("%s\n", "ZZ");
 		//print error
 		return;
 	}
@@ -553,8 +561,6 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 
 
 	if(pid == 0){//child case
-
-
 		dup2(output[1], 1);
   		close(output[0]);
   		dup2(input[0], 0);
@@ -563,8 +569,9 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 		sprintf(method_environment,"REQUEST_METHOD=%s",method);
 		putenv(method_environment);
 		check_get_post_case(method,query,query_environment,content_length,contentl_environment);
-		printf("Printing path: %s\n", path);
-		execl("/bin/ls", "ls", NULL);
+		//printf("Printing path: %s\n", path);
+		//execl("/bin/ls", "ls","-l", NULL);
+		execl("cgiTest.cgi", "cgiTest.cgi", (char*)NULL);
 		//execl(path,path,NULL);
 		exit(0);
 	}else{//parent case
@@ -572,8 +579,8 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 		close(output[1]);
   		close(input[0]);
 		if(strncmp("POST",method,4)==0){
-			recv(client_fd,&rec_buff,content_length,0);
-			write(input[1],&rec_buff,content_length);
+			//recv(client_fd,&rec_buff,content_length,0);
+			//write(input[1],&query,strlen(query));
 		}
 		while(true){
 			ssize_t res = read(output[0],&rec_buff,1);
@@ -581,11 +588,12 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 				break;
 			send(client_fd,&rec_buff,1,0);
 		}
+
 		close(output[0]);
 		close(input[1]);
 		int tmp = 0;
 		waitpid(pid,&tmp,0);
-		printf("printing status: %d\n", tmp );
+		//printf("printing status: %d\n", tmp );
 		//wait(tmp);
 	}
 	printf("\n-------cgi done--------\n");
