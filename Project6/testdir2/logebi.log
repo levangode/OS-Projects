@@ -1,0 +1,23 @@
+accesslog:
+[Sat Jan 28 22:46:04 2017] 127.0.0.1 / 200 245 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+accesslog:
+[Sat Jan 28 22:47:01 2017] 127.0.0.1 / 200 286 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+
+accesslog:
+[Sat Jan 28 22:47:04 2017] 127.0.0.1 /testvideo.mp4 200 540049 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+
+accesslog:
+[Sat Jan 28 22:47:05 2017] 127.0.0.1 /testfile.html 200 18 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+
+accesslog:
+[Sat Jan 28 23:02:04 2017] 127.0.0.1 / 200 286 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:50.0) Gecko/20100101 Firefox/50.0"
+
+accesslog:
+[Sat Jan 28 23:02:31 2017] 127.0.0.1 / 200 286 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
+
+accesslog:
+[Sat Jan 28 23:02:31 2017] 127.0.0.1 /favicon.ico 404 70 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
+
+accesslog:
+[Sat Jan 28 23:02:39 2017] 127.0.0.1 /queen.mp4 200 23628425 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
+

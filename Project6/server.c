@@ -35,24 +35,25 @@ struct virtual_server{
 	int socket_fd;
 };
 
-void handle_request(struct virtual_server*, char*, int);
-void generate_files(int, DIR*, char*);
-void send_file(char*, int, char*);
-void return_bad_request(int);
+void handle_request(struct virtual_server*, char*, int, struct sockaddr_in*);
+void generate_files(int, DIR*, char*, char*);
+void send_file(char*, int, char*, char*);
+void return_bad_request(int, char*);
 char* contains_range_header(char*);
 void send_file_range(int, char*, int, int);
 bool check_cache(char*, char*);
-void send_not_modified(int);
-void send_ok(char*, char*, int, char*);
+void send_not_modified(int, char*);
+void send_ok(char*, char*, int, char*, char*);
 bool keep_alive(char*);
-void receive_and_respond(struct virtual_server*, int, char*, bool*);
+void receive_and_respond(struct virtual_server*, int, char*, bool*, struct sockaddr_in*);
 char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
-void cgi(char* buffer,char* path,char* method,char* query,int client_fd);
 int poll_and_serve(void*);
+void cgi(char* buffer,char* path,char* method,int client_fd);
 
-void send_ok(char* generated, char* path, int client_fd, char* type){
+void send_ok(char* generated, char* path, int client_fd, char* type, char* logBuff){
+	sprintf(logBuff+strlen(logBuff), "%s ", "200");
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 	sprintf(generated, "Content-Type: %s\r\n", type);
@@ -73,7 +74,8 @@ void send_ok(char* generated, char* path, int client_fd, char* type){
 	send(client_fd, generated, strlen(generated), 0);
 }
 
-void send_not_modified(int client_fd){
+void send_not_modified(int client_fd, char* logBuff){
+	sprintf(logBuff+strlen(logBuff), "%s ", "304");
 	char generated[1024];
 	sprintf(generated, "HTTP/1.1 304 Not Modified\r\n\n");
 	send(client_fd, generated, strlen(generated), 0);
@@ -137,7 +139,8 @@ char* contains_range_header(char* buff){
 	}
 	return range;	//points to-> Range: bytes
 }
-void return_bad_request(int client_fd){
+void return_bad_request(int client_fd, char* logBuff){
+	sprintf(logBuff+strlen(logBuff), "%s ", "404");
 	char generated[1024];
 	memset(generated, '\0', 1024);
 	sprintf(generated, "HTTP/1.1 404 Not Found\r\n");
@@ -145,12 +148,13 @@ void return_bad_request(int client_fd){
 	char* tmp = "<h1>404 Not Found</h1>\nthe requested file doesn't exist on this server";
 	sprintf(generated, "Content-Type: text/html\r\n");
 	send(client_fd, generated, strlen(generated), 0);
-	sprintf(generated, "Content-Length: %d\r\n\n", (int)strlen(tmp));
+	sprintf(generated, "Content-Length: %d\r\n\n", strlen(tmp));
+	sprintf(logBuff+strlen(logBuff), "%d ", strlen(tmp));
 	send(client_fd, generated, strlen(generated), 0);
 	send(client_fd, tmp, strlen(tmp), 0);
 }
 
-void send_file(char* path, int client_fd, char* buff){
+void send_file(char* path, int client_fd, char* buff, char* logBuff){
 	char* type;	//content type that goes into response
 	char tmppath[100];
 	strcpy(tmppath, path);
@@ -172,7 +176,9 @@ void send_file(char* path, int client_fd, char* buff){
 
 	char generated[1024];
 	memset(generated, '\0', 1024);
-	send_ok(generated, path, client_fd, type);
+	
+	send_ok(generated, path, client_fd, type, logBuff);
+
 
 	int fd = -1;
 
@@ -186,6 +192,7 @@ void send_file(char* path, int client_fd, char* buff){
 	int size = ftell(file);
 	off_t offset = 0;
 	sprintf(generated, "Content-Length: %d\r\n\n", size);
+	sprintf(logBuff+strlen(logBuff), "%d ", size);
 	send(client_fd, generated, strlen(generated), 0);
 	char* range = contains_range_header(buff);
 	if(range != NULL){
@@ -197,7 +204,7 @@ void send_file(char* path, int client_fd, char* buff){
 
 /* Generates list of files existing in the current directory
  * make html list of them and sends to client */
-void generate_files(int client_fd, DIR* dir, char* path){
+void generate_files(int client_fd, DIR* dir, char* path, char* logBuff){
 	if(dir == NULL){
 		perror("Couldn't open directory");
 		exit(-1);
@@ -206,7 +213,7 @@ void generate_files(int client_fd, DIR* dir, char* path){
 	char generated[1024];
 	char links[1024];
 	memset(links, '\0', 1024);
-	send_ok(generated, path, client_fd, "text/html");
+	send_ok(generated, path, client_fd, "text/html", logBuff);
 	sprintf(links+strlen(links), "<html>\n<body>\r\n");
 	while(true){
 		entry = readdir(dir);
@@ -217,75 +224,165 @@ void generate_files(int client_fd, DIR* dir, char* path){
 		}
 	}
 	sprintf(links+strlen(links), "</body>\n</html>\r\n");
-	sprintf(generated, "Content-Length: %i\r\n\n", (int)strlen(links));
+	sprintf(generated, "Content-Length: %d\r\n\n", strlen(links));
+	sprintf(logBuff+strlen(logBuff), "%d ", strlen(links));
+
 	send(client_fd, generated, strlen(generated), 0);
 	send(client_fd, links, strlen(links), 0);
 	closedir(dir);
 }
 
 bool is_cgi(char* method,char* path){
-	if(strncmp(method,"POST",4)==0)
+	if(strcasecmp(method,"POST")==0)
 		return true;
 	char tmpPath[1024];
-	memcpy(tmpPath,path,strlen(path));
-	if(strtok(tmpPath,"?")==NULL){
+	strcpy(tmpPath,path);
+	if(strstr(tmpPath,"?")==NULL){
 		return false;
 	}
 	return true;
 }
 
+void make_log(char* buff, struct virtual_server* server, char* path, char* logBuff, struct sockaddr_in* client_addr){
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
 
-void handle_request(struct virtual_server* server, char* buff, int client_fd){
+	//code from wiki
+	time_t current_time;
+    char* c_time_string;
+
+    /* Obtain current time. */
+    current_time = time(NULL);
+
+    if (current_time == ((time_t)-1))
+    {
+        (void) fprintf(stderr, "Failure to obtain the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    /* Convert to local time format. */
+    c_time_string = ctime(&current_time);
+
+    if (c_time_string == NULL)
+    {
+        (void) fprintf(stderr, "Failure to convert the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    *(c_time_string + strlen(c_time_string) - 1) = '\0';
+    //end of code
+    sprintf(logBuff, "[%s] ", c_time_string);
+   	sprintf(logBuff+strlen(logBuff), "%s ", inet_ntoa(client_addr->sin_addr));
+   	//domain name
+   	sprintf(logBuff+strlen(logBuff), "/%s ", path);
+   	
+}
+void log_error(struct virtual_server* server, struct sockaddr_in* client_addr, char* error_string){
+	char errorBuff[BUFFER_SIZE];
+
+
+	//code from wiki
+	time_t current_time;
+    char* c_time_string;
+    /* Obtain current time. */
+    current_time = time(NULL);
+    if (current_time == ((time_t)-1))
+    {
+        (void) fprintf(stderr, "Failure to obtain the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    /* Convert to local time format. */
+    c_time_string = ctime(&current_time);
+    if (c_time_string == NULL)
+    {
+        (void) fprintf(stderr, "Failure to convert the current time.\n");
+        exit(EXIT_FAILURE);
+    }
+    *(c_time_string + strlen(c_time_string) - 1) = '\0';
+    //end of code
+    sprintf(errorBuff, "[%s] ", c_time_string);
+   	sprintf(errorBuff+strlen(errorBuff), "%s ", inet_ntoa(client_addr->sin_addr));
+
+   	FILE* logfile = fopen(server->logg+1, "a");
+	if(logfile == NULL){
+		perror("Couldn't open log file\n");
+		exit(1);
+	}
+	fprintf(logfile, "errorlog:\n%s\n", errorBuff);
+	fclose(logfile);
+
+}
+
+void finish_log(char* logBuff, char* buff, struct virtual_server* server){
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
+	char* user_agent = extract_header_token(tmpbuff, "User-Agent: ");
+	sprintf(logBuff+strlen(logBuff), "\"%s\"\n",user_agent);
+	free(user_agent);
+
+	FILE* logfile = fopen(server->logg+1, "a");
+	if(logfile == NULL){
+		perror("Couldn't open log file\n");
+		exit(1);
+	}
+	fprintf(logfile, "accesslog:\n%s\n", logBuff);
+	fclose(logfile);
+}
+
+void handle_request(struct virtual_server* server, char* buff, int client_fd, struct sockaddr_in* client_addr){
 	printf("%s\n", buff);
 	char tmpbuff[1024];
 	memcpy(tmpbuff, buff, 1024);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
-	/*char* tmpPath = strdup(path);
-	
-	char* query = strtok(tmpPath,"?");
-	query = strtok(NULL,"?");*/
+	char logBuff[BUFFER_SIZE];
+	make_log(buff, server, path, logBuff, client_addr);
 
 	/*if(check_cache(buff, path)){
-		send_not_modified(client_fd);
+		send_not_modified(client_fd, logBuff);
 		return;
 	}*/
 
 
-	
-	if(is_cgi(method,path)){
-		//cgi(buff,path,method, query,client_fd);
-		//return;
-	}
-
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
-	strcpy(actualPath, server->documentroot+1);
+	memcpy(actualPath, server->documentroot+1, strlen(server->documentroot));
 	strcat(actualPath, path);
 
 	char indexPath[strlen(actualPath) + strlen("/index.html")];
-	strcpy(indexPath, actualPath);
+	memcpy(indexPath, actualPath+1, strlen(actualPath));
 	strcat(indexPath, "/index.html");
 
+	printf("actualPath=%s\n", actualPath);
+
+	char cgiPath[strlen(server->cgi_bin) - 1 + strlen(path)];
+	memcpy(cgiPath, server->cgi_bin+1, strlen(server->cgi_bin));
+	strcat(cgiPath, path);
+
+	if(is_cgi(method, cgiPath)){
+		cgi(buff,cgiPath, method, client_fd);
+		return;
+	}
 
 
 	if(access(indexPath, F_OK) == 0){
-		send_file(indexPath, client_fd, buff);
+		send_file(indexPath, client_fd, buff, logBuff);
 	}
 
 	//case path is directory
 	DIR* dir = opendir((char*)actualPath);
 	if(dir != NULL){	
-		generate_files(client_fd, dir, path);
+		generate_files(client_fd, dir, path, logBuff);
 	}
 	
 
 	//case path is file
 	else if(access((char*)actualPath, F_OK) == 0){
-		send_file((char*)actualPath, client_fd, buff);
+		send_file((char*)actualPath, client_fd, buff, logBuff);
 	} else {
-		return_bad_request(client_fd);
+		return_bad_request(client_fd, logBuff);
 	}
+
+	finish_log(logBuff, buff, server);
+
 
 }
 
@@ -308,14 +405,14 @@ bool keep_alive(char* buff){
 
 
 
-void receive_and_respond(struct virtual_server* server, int client_fd, char* buff, bool* timeout){
+void receive_and_respond(struct virtual_server* server, int client_fd, char* buff, bool* timeout, struct sockaddr_in* client_addr){
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
 	if(read <= 0) {
 		close(client_fd);
 		return;
 	}	
-	handle_request(server, buff, client_fd);
+	handle_request(server, buff, client_fd, client_addr);
 	if(keep_alive(buff)){
 		struct timeval t;
 		t.tv_sec = 5;
@@ -328,7 +425,7 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 				exit(1);
 			}
 		}
-		receive_and_respond(server, client_fd, buff, timeout);
+		receive_and_respond(server, client_fd, buff, timeout, client_addr);
 	} else {
 		close(client_fd);
 	}
@@ -353,7 +450,7 @@ void* handle_client(void* arg){
 		}
 		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
 		bool timeout = false;
-		receive_and_respond(server, client_fd, buff, &timeout);
+		receive_and_respond(server, client_fd, buff, &timeout, &client_addr);
 	}
 	return NULL;
 }
@@ -426,12 +523,25 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 }
 
 
-void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read cgi programming manual
-	int output[2],input[2];//for cgi pipes
-	char* content_length_ptr = extract_header_token(buffer,"Content-Length: ");
-	int content_length = atoi(content_length_ptr);
-	free(content_length_ptr);
+void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi programming manual
+	char* tmpPath = strdup(path);
+	char* location = strtok(tmpPath,"?");
+	char* query = strtok(NULL,"?");
 
+	printf("location=%s\n", location);
+	printf("query=%s\n", query);
+
+	int output[2],input[2];//for cgi pipes
+	char* content_length_ptr;
+	int content_length;
+	if(strcasecmp("POST",method)==0){
+		content_length_ptr = extract_header_token(buffer,"Content-Length: ");
+		content_length = atoi(content_length_ptr);
+		free(content_length_ptr);
+	}
+
+
+	printf("\n-------im here in cgi--------\n");
 
 	if(pipe(output) < 0 || pipe(input) < 0){
 		//print error
@@ -448,21 +558,24 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 
 
 	if(pid == 0){//child case
-		close(1);
-		close(0);
-		dup(output[1]);
-		dup(input[0]);
-		close(input[1]);
-		close(output[0]);
+
+
+		dup2(output[1], 1);
+  		close(output[0]);
+  		dup2(input[0], 0);
+  		close(input[1]);
+
 		sprintf(method_environment,"REQUEST_METHOD=%s",method);
 		putenv(method_environment);
 		check_get_post_case(method,query,query_environment,content_length,contentl_environment);
-		execl(path,path,NULL);
+		printf("Printing path: %s\n", path);
+		execl("/bin/ls", "ls", NULL);
+		//execl(path,path,NULL);
 		exit(0);
 	}else{//parent case
 		char rec_buff;
-		close(input[0]);
 		close(output[1]);
+  		close(input[0]);
 		if(strncmp("POST",method,4)==0){
 			recv(client_fd,&rec_buff,content_length,0);
 			write(input[1],&rec_buff,content_length);
@@ -473,13 +586,14 @@ void cgi(char* buffer,char* path,char* method,char* query,int client_fd){//read 
 				break;
 			send(client_fd,&rec_buff,1,0);
 		}
-		close(input[1]);
 		close(output[0]);
+		close(input[1]);
 		int tmp = 0;
 		waitpid(pid,&tmp,0);
+		printf("printing status: %d\n", tmp );
 		//wait(tmp);
 	}
-
+	printf("\n-------cgi done--------\n");
 }
 
 void* launch_server(void* arg){
