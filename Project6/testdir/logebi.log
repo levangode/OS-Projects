@@ -48,3 +48,15 @@ accesslog:
 accesslog:
 [Sun Jan 29 20:30:29 2017] 127.0.0.1 / 200 145 "PostmanRuntime/3.0.9"
 
+accesslog:
+[Sun Jan 29 23:31:06 2017] 127.0.0.1 / 200 145 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Sun Jan 29 23:31:06 2017] 127.0.0.1 /favicon.ico 404 70 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Sun Jan 29 23:31:08 2017] 127.0.0.1 /test1.html 200 0 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Sun Jan 29 23:51:37 2017] 127.0.0.1 example1.com / 200 145 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+

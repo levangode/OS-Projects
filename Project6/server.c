@@ -23,6 +23,11 @@
 #define BACKLOG 128
 #define BUFFER_SIZE 2048
 #define MAX_CONFIGFILE_SIZE 5000
+#define SUCCESS 1
+#define PORTS_LOWER_BOUND 1024
+#define PORTS_UPPER_BOUND 65535
+#define HASH_MAX_SIZE 1024
+#define MAX_URL_LENGTH 512
 
 struct virtual_server{
 	char* vhost;
@@ -52,6 +57,8 @@ void* launch_server(void* arg);
 int poll_and_serve(void*);
 void cgi(char* buffer,char* path,char* method,int client_fd);
 
+/* Returns response to client with a success code, adding cache control and etags to it
+ * Also does some logging staff */
 void send_ok(char* generated, char* path, int client_fd, char* type, char* logBuff){
 	sprintf(logBuff+strlen(logBuff), "%s ", "200");
 	sprintf(generated, "HTTP/1.1 200 OK\r\n");
@@ -60,28 +67,28 @@ void send_ok(char* generated, char* path, int client_fd, char* type, char* logBu
 	send(client_fd, generated, strlen(generated), 0);
 	sprintf(generated, "Cache-Control: max-age=5\r\n");
 	send(client_fd, generated, strlen(generated), 0);
-
 	struct stat file_stat;
 	if(strlen(path) == 0){
 		stat("/", &file_stat);
 	} else {
 		stat(path, &file_stat);
 	}
-	char current_hash[1024];
+	char current_hash[HASH_MAX_SIZE];
 	sprintf(current_hash, "%d/%d/%d", (int)file_stat.st_ino, (int)file_stat.st_mtime, (int)file_stat.st_size);
-
 	sprintf(generated, "ETag: %s\r\n", current_hash);
 	send(client_fd, generated, strlen(generated), 0);
 }
 
+/* Returns response to client with a not modified code */
 void send_not_modified(int client_fd, char* logBuff){
 	sprintf(logBuff+strlen(logBuff), "%s ", "304");
-	char generated[1024];
-	sprintf(generated, "HTTP/1.1 304 Not Modified\r\n\n");
+	char generated[BUFFER_SIZE];
+	sprintf(generated, "HTTP/1.1 304 Not Modified\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 }
 
-
+/* Checks the header, if the cache control is enabled, && the hash tags are equal
+ * returns true */
 bool check_cache(char* buff, char* path){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
@@ -98,17 +105,17 @@ bool check_cache(char* buff, char* path){
 	} else {
 		stat(path, &file_stat);
 	}
-	char current_hash[1024];
+	char current_hash[HASH_MAX_SIZE];
 	sprintf(current_hash, "%d/%d/%d", (int)file_stat.st_ino, (int)file_stat.st_mtime, (int)file_stat.st_size);
 	//this hash generation triple got from stack overflow
 
 	if(strcmp(old_hash, current_hash) == 0){
 		return true;
 	}
-
 	return false;
 }
 
+/* Parses the range header and defines byte range to be sent */
 void send_file_range(int client_fd, char* range, int fd, int size){
 	strtok(range, "=");
 	char* bytes = strtok(NULL, "\r\n");
@@ -130,6 +137,7 @@ void send_file_range(int client_fd, char* range, int fd, int size){
 
 }
 
+/* Returns pointer to range header if range header is present */
 char* contains_range_header(char* buff){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
@@ -139,10 +147,13 @@ char* contains_range_header(char* buff){
 	}
 	return range;	//points to-> Range: bytes
 }
+
+/* Returns response to client with not found code
+ * also does some logging staff */
 void return_bad_request(int client_fd, char* logBuff){
 	sprintf(logBuff+strlen(logBuff), "%s ", "404");
-	char generated[1024];
-	memset(generated, '\0', 1024);
+	char generated[BUFFER_SIZE];
+	memset(generated, '\0', BUFFER_SIZE);
 	sprintf(generated, "HTTP/1.1 404 Not Found\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 	char* tmp = "<h1>404 Not Found</h1>\nthe requested file doesn't exist on this server";
@@ -154,14 +165,14 @@ void return_bad_request(int client_fd, char* logBuff){
 	send(client_fd, tmp, strlen(tmp), 0);
 }
 
+/* Sends file requested by path to client. (If the file is available)
+ * Also checks the range of bytes the client requested and responds relatively */
 void send_file(char* path, int client_fd, char* buff, char* logBuff){
 	char* type;	//content type that goes into response
-	char tmppath[100];
+	char tmppath[MAX_URL_LENGTH];
 	strcpy(tmppath, path);
-
 	strtok(tmppath, ".");
 	char* ext = strtok(NULL, "\0");	//extract the file extension
-
 	assert(ext != NULL);
 
 	if(strcmp(ext, "jpg") == 0){
@@ -173,23 +184,19 @@ void send_file(char* path, int client_fd, char* buff, char* logBuff){
 	} else {
 		assert(false);
 	}
+	char generated[BUFFER_SIZE];
+	memset(generated, '\0', BUFFER_SIZE);
 
-	char generated[1024];
-	memset(generated, '\0', 1024);
-	
 	send_ok(generated, path, client_fd, type, logBuff);
-
-
 	int fd = -1;
-
 	fd = open(path, O_RDONLY);
 	if(fd == -1){
 		perror("Couldn't open file to send");
-		exit(-1);
+		exit(SUCCESS);
 	}
 	FILE* file = fdopen(fd, "r");
 	fseek(file, 0, SEEK_END);
-	int size = ftell(file);
+	int size = ftell(file);	//rewind to get file size
 	off_t offset = 0;
 	sprintf(generated, "Content-Length: %d\r\n\n", size);
 	sprintf(logBuff+strlen(logBuff), "%d ", size);
@@ -203,22 +210,23 @@ void send_file(char* path, int client_fd, char* buff, char* logBuff){
 }
 
 /* Generates list of files existing in the current directory
- * make html list of them and sends to client */
+ * make html list of them and sends to client 
+ * + some logging stuff */
 void generate_files(int client_fd, DIR* dir, char* path, char* logBuff){
 	if(dir == NULL){
 		perror("Couldn't open directory");
 		exit(-1);
 	}
 	struct dirent *entry;	
-	char generated[1024];
-	char links[1024];
-	memset(links, '\0', 1024);
+	char generated[BUFFER_SIZE];
+	char links[BUFFER_SIZE];
+	memset(links, '\0', BUFFER_SIZE);
 	send_ok(generated, path, client_fd, "text/html", logBuff);
 	sprintf(links+strlen(links), "<html>\n<body>\r\n");
 	while(true){
 		entry = readdir(dir);
 		if(entry == NULL) break;
-		if(strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0){
+		if(strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0){	//exclude parent directories
 			char* name = entry->d_name;		
 			sprintf(links+strlen(links), "<a href='%s/%s'>%s</a><br>\n", path, name, name);
 		}
@@ -243,6 +251,7 @@ bool is_cgi(char* method,char* path){
 	return true;
 }
 
+/* Starts making the log script, which then will be written to file */
 void make_log(char* buff, struct virtual_server* server, char* path, char* logBuff, struct sockaddr_in* client_addr){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
@@ -250,7 +259,6 @@ void make_log(char* buff, struct virtual_server* server, char* path, char* logBu
 	//code from wiki
 	time_t current_time;
     char* c_time_string;
-
     /* Obtain current time. */
     current_time = time(NULL);
 
@@ -272,12 +280,15 @@ void make_log(char* buff, struct virtual_server* server, char* path, char* logBu
     sprintf(logBuff, "[%s] ", c_time_string);
    	sprintf(logBuff+strlen(logBuff), "%s ", inet_ntoa(client_addr->sin_addr));
    	//domain name
+   	sprintf(logBuff+strlen(logBuff), "%s ", server->vhost);
+
    	sprintf(logBuff+strlen(logBuff), "/%s ", path);
    	
 }
+
+/* Helper function for logging the errors which happen inside the server */
 void log_error(struct virtual_server* server, struct sockaddr_in* client_addr, char* error_string){
 	char errorBuff[BUFFER_SIZE];
-
 
 	//code from wiki
 	time_t current_time;
@@ -311,6 +322,7 @@ void log_error(struct virtual_server* server, struct sockaddr_in* client_addr, c
 
 }
 
+/* Finishes the log after responding to client and writes it to the log file */
 void finish_log(char* logBuff, char* buff, struct virtual_server* server){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
@@ -329,8 +341,8 @@ void finish_log(char* logBuff, char* buff, struct virtual_server* server){
 
 void handle_request(struct virtual_server* server, char* buff, int client_fd, struct sockaddr_in* client_addr){
 	printf("%s\n", buff);
-	char tmpbuff[1024];
-	memcpy(tmpbuff, buff, 1024);
+	char tmpbuff[BUFFER_SIZE];
+	memcpy(tmpbuff, buff, BUFFER_SIZE);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
 	char* path = strtok(NULL, " \n")+1; // throw "\" away
 
@@ -380,10 +392,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	} else {
 		return_bad_request(client_fd, logBuff);
 	}
-
 	finish_log(logBuff, buff, server);
-
-
 }
 
 typedef struct{
@@ -402,9 +411,8 @@ bool keep_alive(char* buff){
 	return false;
 }
 
-
-
-
+/* Recieves the request and responds relatively. this is a reccursive function and calls again if
+ * the client asked us to keep-alive the connection. (we limit the repeated connection for 5 secs) */
 void receive_and_respond(struct virtual_server* server, int client_fd, char* buff, bool* timeout, struct sockaddr_in* client_addr){
 	memset(buff, '\0', BUFFER_SIZE);
 	int read = recv(client_fd, buff, BUFFER_SIZE, 0);
@@ -418,11 +426,11 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 		t.tv_sec = 5;
 		t.tv_usec = 0; 
 		if(!*timeout){
-			if(setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval)) == 0){
+			if(setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval)) == 0){	//found this option on the web
 				*timeout = true;
 			} else {
 				perror("Couldn't set socket options");
-				exit(1);
+				exit(SUCCESS);
 			}
 		}
 		receive_and_respond(server, client_fd, buff, timeout, client_addr);
@@ -437,8 +445,6 @@ void* handle_client(void* arg){
 	struct sockaddr_in client_addr;
 	int client_fd = -1;
 	char buff[BUFFER_SIZE];
-
-
 
 	unsigned sin_size;
 	while(true){
@@ -455,6 +461,9 @@ void* handle_client(void* arg){
 	return NULL;
 }
 
+/* Extracts value token given key
+ * Returns resulting string.
+ * User should maintain the allocated memory after use. */
 char* extract_header_token(char* buff, char* token){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
@@ -467,15 +476,16 @@ char* extract_header_token(char* buff, char* token){
 	return ret;
 }
 
-
+/* Reads the config file, parses vhosts and launches threads which will then 
+ * start servers for each vhost. */
 void read_config_file(char* path_to_config_file){
 	char buff[MAX_CONFIGFILE_SIZE];
 	FILE* file;
 	int length;
-
 	file = fopen(path_to_config_file, "r");
 	if(file == NULL){
 		perror("Couldn't open config file for reading");
+		exit(SUCCESS);
 	}
 	while(true){
 		length = fread(buff, 1, sizeof(buff), file);
@@ -483,20 +493,16 @@ void read_config_file(char* path_to_config_file){
 	}
 	fclose(file);
 	char* rest = buff;
-
-	
-	vector servs;
+	vector servs;	//to keep track of virtual servers whose max number is not defined.
 	VectorNew(&servs, sizeof(pthread_t), NULL, 10);
-	int k;
-	for (k=0; k<10; k++){
-		struct virtual_server* server = malloc(sizeof(struct virtual_server));
+	while (true){
+		struct virtual_server* server = malloc(sizeof(struct virtual_server));	//free called from thread.
 		server->vhost = extract_header_token(rest, "vhost = ");
 		server->documentroot = extract_header_token(rest, "documentroot = ");
 		server->cgi_bin = extract_header_token(rest, "cgi-bin = ");
 		server->ip = extract_header_token(rest, "ip = ");
 		server->port = extract_header_token(rest, "port = ");
 		server->logg = extract_header_token(rest, "log = ");
-
 		pthread_t thread;
 		pthread_create(&thread, NULL, launch_server, server);
 		VectorAppend(&servs, &thread);
@@ -508,8 +514,7 @@ void read_config_file(char* path_to_config_file){
 	for(i=0; i<VectorLength(&servs); i++){
 		pthread_join(*(pthread_t*)VectorNth(&servs, i), NULL);
 	}
-
-
+	VectorDispose(&servs);
 }
 
 void check_get_post_case(char* method,char* query,char* query_environment,int len,char * contentl_environment){
@@ -606,25 +611,23 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 
 void* launch_server(void* arg){
 	struct virtual_server* server = (struct virtual_server*)arg;
-	printf("%s\n", server->vhost);
-	printf("%s\n", server->documentroot);
-	printf("%s\n", server->cgi_bin);
-	printf("%s\n", server->ip);
-	printf("%s\n", server->port);
-	printf("%s\n", server->logg);
 	server->socket_fd = -1;
 	int success;
 	int port = atoi(server->port);
-	assert(port > 1024 && port <= 65535);
+	if(port <= PORTS_LOWER_BOUND || port > PORTS_UPPER_BOUND){
+		printf("%s\n", "Illegal port number");
+		//log
+		exit(SUCCESS);
+	}	
 	server->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(server->socket_fd == -1){
 		perror("Socket initialization error on socket() call");
-		exit(1);
+		exit(SUCCESS);
 	}
 	int opt_val = 1;
 	if (setsockopt(server->socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(int)) == -1) {
 		perror("setsockopt");
-		exit(1);
+		exit(SUCCESS);
 	}
 	//myport and myip to be defined
 	server->my_addr.sin_family = AF_INET;	//host byte order
@@ -634,39 +637,28 @@ void* launch_server(void* arg){
 	//ERRORCHEKING
 	if(server->my_addr.sin_addr.s_addr == -1){
 		perror( "255.255.255.255 Happened :(" );
+		exit(SUCCESS);
 	}
 	////
 	success = bind(server->socket_fd, (struct sockaddr*)&(server->my_addr), sizeof(struct sockaddr));
 	//ERRORCHECKING
 	if(success == -1){
 		perror("Couldn't bind");
-		exit(1);
+		exit(SUCCESS);
 	}
 	////
 	success = listen(server->socket_fd, BACKLOG);
 	if(success == -1){
 		perror("Could not listen");
-		exit(1);
+		exit(SUCCESS);
 	}
 	printf("Server Started at port %d\n", port);
-	
 	int server_run_status = poll_and_serve(server);
 	if (!server_run_status){
 		printf("server exited successfully");
 	} else {
 		perror("server exitted with error");
 	}
-
-	// pthread_t workers[10];
-	// int i;
-	// for(i=0; i<10; i++){
-	// 	pthread_create(&workers[i], NULL, handle_client, server);
-	// }
-	// for(i=0; i<10; i++){
-	// 	pthread_join(workers[i], NULL);
-	// }
-
-
 	close(server->socket_fd);
 	free(server);
 	return NULL;
@@ -785,7 +777,7 @@ int poll_and_serve(void* server){
 int main(int argc, char *argv[]){
 	if(argc	 <= 1){
 		printf("%s\n", "You need to specify path to the config file.");
-		exit(-1);
+		exit(SUCCESS);
 	}
 	char* path_to_config_file = argv[1];
 	read_config_file(path_to_config_file);
