@@ -710,6 +710,17 @@ void* launch_server(void* arg){
 	} else {
 		perror("server exitted with error");
 	}
+	/*int i;
+	pthread_t workers[1024];
+ 	for(i=0; i<1024; i++){
+		pthread_t thread;
+		pthread_create(&thread, NULL, handle_client, server);
+		pthread_join(thread, NULL);
+		pthread_create(&workers[i], NULL, handle_client, server);
+	}
+	for(i=0; i<1024; i++){
+		pthread_join(workers[i], NULL);
+ 	}*/
 	close(server->socket_fd);
 	server_destroy(server);
 	free(server);

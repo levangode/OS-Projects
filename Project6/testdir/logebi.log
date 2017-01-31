@@ -1,9 +1,0 @@
-accesslog:
-[Tue Jan 31 02:54:30 2017] 127.0.0.1 example1.com /testvideo.mp4 404 70 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
-
-accesslog:
-[Tue Jan 31 02:54:30 2017] 127.0.0.1 example1.com /favicon.ico 404 70 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
-
-accesslog:
-[Tue Jan 31 02:54:36 2017] 127.0.0.1 example1.com / 200 145 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
-
