@@ -50,8 +50,8 @@ void server_destroy(struct virtual_server* serv){
 
 
 void handle_request(struct virtual_server*, char*, int, struct sockaddr_in*);
-void generate_files(int, DIR*, char*, char*);
-void send_file(char*, int, char*, char*);
+void generate_files(struct virtual_server*, struct sockaddr_in*, int, DIR*, char*, char*);
+void send_file(struct virtual_server*, struct sockaddr_in*, char*, int, char*, char*);
 void return_bad_request(int, char*);
 char* contains_range_header(char*);
 void send_file_range(int, char*, int, int, char*, char*);
@@ -65,6 +65,7 @@ void read_config_file(char*);
 void* launch_server(void* arg);
 int poll_and_serve(void*);
 void cgi(char* buffer,char* path,char* method,int client_fd);
+void log_error(struct virtual_server*, struct sockaddr_in*, char*);
 
 /* Returns response to client with a success code, adding cache control and etags to it
  * Also does some logging staff */
@@ -205,7 +206,7 @@ void return_bad_request(int client_fd, char* logBuff){
 
 /* Sends file requested by path to client. (If the file is available)
  * Also checks the range of bytes the client requested and responds relatively */
-void send_file(char* path, int client_fd, char* buff, char* logBuff){
+void send_file(struct virtual_server* serv, struct sockaddr_in* client, char* path, int client_fd, char* buff, char* logBuff){
 	char* type;	//content type that goes into response
 	char tmppath[MAX_URL_LENGTH];
 	strcpy(tmppath, path);
@@ -229,6 +230,7 @@ void send_file(char* path, int client_fd, char* buff, char* logBuff){
 	int fd = -1;
 	fd = open(path, O_RDONLY);
 	if(fd == -1){
+		log_error(serv, client, "Couldn't open file to send");
 		perror("Couldn't open file to send");
 		exit(SUCCESS);
 	}
@@ -255,10 +257,11 @@ void send_file(char* path, int client_fd, char* buff, char* logBuff){
 /* Generates list of files existing in the current directory
  * make html list of them and sends to client 
  * + some logging stuff */
-void generate_files(int client_fd, DIR* dir, char* path, char* logBuff){
+void generate_files(struct virtual_server* serv, struct sockaddr_in* client, int client_fd, DIR* dir, char* path, char* logBuff){
 	if(dir == NULL){
+		log_error(serv, client, "Couldn't open directory");
 		perror("Couldn't open directory");
-		exit(-1);
+		exit(SUCCESS);
 	}
 	struct dirent *entry;	
 	char generated[BUFFER_SIZE];
@@ -352,13 +355,11 @@ void log_error(struct virtual_server* server, struct sockaddr_in* client_addr, c
     }
     *(c_time_string + strlen(c_time_string) - 1) = '\0';
     //end of code
-    sprintf(errorBuff, "[%s] ", c_time_string);
-   	sprintf(errorBuff+strlen(errorBuff), "%s ", inet_ntoa(client_addr->sin_addr));
-
+    sprintf(errorBuff, "[%s] %s \"%s\"\n", c_time_string,  inet_ntoa(client_addr->sin_addr), error_string);
    	FILE* logfile = fopen(server->logg+1, "a");
 	if(logfile == NULL){
 		perror("Couldn't open log file\n");
-		exit(1);
+		exit(SUCCESS);
 	}
 	fprintf(logfile, "errorlog:\n%s\n", errorBuff);
 	fclose(logfile);
@@ -376,7 +377,7 @@ void finish_log(char* logBuff, char* buff, struct virtual_server* server){
 	FILE* logfile = fopen(server->logg+1, "a");
 	if(logfile == NULL){
 		perror("Couldn't open log file\n");
-		exit(1);
+		exit(SUCCESS);
 	}
 	fprintf(logfile, "accesslog:\n%s\n", logBuff);
 	fclose(logfile);
@@ -420,19 +421,19 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 
 	if(access(indexPath, F_OK) == 0){
 
-		send_file(indexPath, client_fd, buff, logBuff);
+		send_file(server, client_addr, indexPath, client_fd, buff, logBuff);
 	}
 
 	//case path is directory
 	DIR* dir = opendir((char*)actualPath);
 	if(dir != NULL){	
-		generate_files(client_fd, dir, path, logBuff);
+		generate_files(server, client_addr, client_fd, dir, path, logBuff);
 	}
 	
 
 	//case path is file
 	else if(access((char*)actualPath, F_OK) == 0){
-		send_file((char*)actualPath, client_fd, buff, logBuff);
+		send_file(server, client_addr, (char*)actualPath, client_fd, buff, logBuff);
 	} else {
 		return_bad_request(client_fd, logBuff);
 	}
@@ -467,6 +468,8 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 
 
 	handle_request(server, buff, client_fd, client_addr);
+
+	
 	if(keep_alive(buff)){
 		struct timeval t;
 		t.tv_sec = 5;
@@ -475,6 +478,7 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 			if(setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval)) == 0){	//found this option on the web
 				*timeout = true;
 			} else {
+				log_error(server, client_addr, "Couldn't ser socket options");
 				perror("Couldn't set socket options");
 				exit(SUCCESS);
 			}
@@ -762,7 +766,7 @@ int poll_and_serve(void* server){
 	int epoll_error = epoll_ctl (efd, EPOLL_CTL_ADD, sfd, &event);
 	if (epoll_error == -1){
 		perror ("epoll_ctl failed");
-		exit(1);
+		exit(SUCCESS);
 	}
 
 	//allocate buffer for

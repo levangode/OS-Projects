@@ -214,3 +214,37 @@ accesslog:
 accesslog:
 [Tue Jan 31 04:02:19 2017] 127.0.0.1 example2.com /queen.mp4 200 21628425 "PostmanRuntime/3.0.9"
 
+accesslog:
+[Tue Jan 31 04:09:31 2017] 127.0.0.1 example2.com / 200 286 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+errorlog:
+[Tue Jan 31 04:09:31 2017] 127.0.0.1 
+accesslog:
+[Tue Jan 31 04:09:31 2017] 127.0.0.1 example2.com /favicon.ico 404 70 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+errorlog:
+[Tue Jan 31 04:09:31 2017] 127.0.0.1 
+accesslog:
+[Tue Jan 31 04:12:46 2017] 127.0.0.1 example2.com / 200 286 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+errorlog:
+[Tue Jan 31 04:12:46 2017] 127.0.0.1 "Couldn't ser socket options"
+
+accesslog:
+[Tue Jan 31 04:13:08 2017] 127.0.0.1 example2.com / 200 286 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+errorlog:
+[Tue Jan 31 04:13:08 2017] 127.0.0.1 "Couldn't ser socket options"
+
+accesslog:
+[Tue Jan 31 04:22:37 2017] 127.0.0.1 example2.com / 200 286 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Tue Jan 31 04:22:41 2017] 127.0.0.1 example2.com /testvideo.mp4 200 540049 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Tue Jan 31 04:22:44 2017] 127.0.0.1 example2.com /testfile.html 200 18 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Tue Jan 31 04:22:56 2017] 127.0.0.1 example2.com /queen.mp4 200 23628425 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
