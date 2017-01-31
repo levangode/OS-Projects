@@ -388,7 +388,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
-	char* path = strtok(NULL, " \n")+1; // throw "\" away
+	char* path = strtok(NULL, " ")+1; // throw "\" away
 
 	char logBuff[BUFFER_SIZE];
 	make_log(buff, server, path, logBuff, client_addr);
@@ -398,14 +398,20 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 		return;
 	}*/
 
-
+	printf("path=%s\n", path);
+	printf("documentroot=%s\n", server->documentroot);
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
 	memcpy(actualPath, server->documentroot+1, strlen(server->documentroot));
 	strcat(actualPath, path);
 
+	if(actualPath[strlen(actualPath) - 1] == '/'){
+		printf("%s\n", "Vah");
+		actualPath[strlen(actualPath) - 1] = '\0';
+	}
 	char indexPath[strlen(actualPath) + strlen("/index.html")];
-	memcpy(indexPath, actualPath+1, strlen(actualPath));
+	memcpy(indexPath, actualPath, strlen(actualPath)+1);
 	strcat(indexPath, "/index.html");
+
 
 	printf("actualPath=%s\n", actualPath);
 
@@ -419,15 +425,17 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	}*/
 
 
-	if(access(indexPath, F_OK) == 0){
-
-		send_file(server, client_addr, indexPath, client_fd, buff, logBuff);
-	}
+	
 
 	//case path is directory
 	DIR* dir = opendir((char*)actualPath);
-	if(dir != NULL){	
-		generate_files(server, client_addr, client_fd, dir, path, logBuff);
+	if(dir != NULL){
+		printf("%s\n", indexPath);
+		if(access(indexPath, F_OK) == 0){
+			send_file(server, client_addr, indexPath, client_fd, buff, logBuff);
+		} else {
+			generate_files(server, client_addr, client_fd, dir, path, logBuff);			
+		}
 	}
 	
 
@@ -713,9 +721,6 @@ void* launch_server(void* arg){
 	/*int i;
 	pthread_t workers[1024];
  	for(i=0; i<1024; i++){
-		pthread_t thread;
-		pthread_create(&thread, NULL, handle_client, server);
-		pthread_join(thread, NULL);
 		pthread_create(&workers[i], NULL, handle_client, server);
 	}
 	for(i=0; i<1024; i++){
