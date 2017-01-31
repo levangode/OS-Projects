@@ -538,7 +538,6 @@ char* extract_header_token(char* buff, char* token){
 /* Reads the config file, parses vhosts and launches threads which will then 
  * start servers for each vhost. */
 void read_config_file(char* path_to_config_file){
-	char buff[MAX_CONFIGFILE_SIZE];
 	FILE* file;
 	int length;
 	file = fopen(path_to_config_file, "r");
@@ -546,6 +545,12 @@ void read_config_file(char* path_to_config_file){
 		perror("Couldn't open config file for reading");
 		exit(SUCCESS);
 	}
+
+	fseek(file, 0L, SEEK_END);
+	int sz = ftell(file);
+	fseek(file, 0L, SEEK_SET);
+	char buff[sz];
+
 	while(true){
 		length = fread(buff, 1, sizeof(buff), file);
 		if(length <= 0) break;
