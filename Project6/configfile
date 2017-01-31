@@ -11,3 +11,10 @@ cgi-bin = /path/to/example2/cgi-bin/
 ip = 127.0.0.1
 port = 5000
 log = /testdir2/logebi.log
+
+vhost = example3.com
+documentroot = /testdir3/
+cgi-bin = /path/to/example2/cgi-bin/
+ip = 127.0.0.1
+port = 5001
+log = /testdir3/logebi.log

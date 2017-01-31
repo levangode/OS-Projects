@@ -1,0 +1,12 @@
+accesslog:
+[Tue Jan 31 01:43:26 2017] 127.0.0.1 example3.com / 200 71 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Tue Jan 31 01:43:26 2017] 127.0.0.1 example3.com /favicon.ico 404 70 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Tue Jan 31 01:43:26 2017] 127.0.0.1 example3.com /favicon.ico 404 70 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+
+accesslog:
+[Tue Jan 31 01:43:32 2017] 127.0.0.1 example3.com /hehe.html 200 0 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:51.0) Gecko/20100101 Firefox/51.0"
+

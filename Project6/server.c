@@ -39,13 +39,22 @@ struct virtual_server{
 	struct sockaddr_in my_addr;
 	int socket_fd;
 };
+void server_destroy(struct virtual_server* serv){
+	free(serv->vhost);
+	free(serv->documentroot);
+	free(serv->cgi_bin);
+	free(serv->ip);
+	free(serv->port);
+	free(serv->logg);
+}
+
 
 void handle_request(struct virtual_server*, char*, int, struct sockaddr_in*);
 void generate_files(int, DIR*, char*, char*);
 void send_file(char*, int, char*, char*);
 void return_bad_request(int, char*);
 char* contains_range_header(char*);
-void send_file_range(int, char*, int, int);
+void send_file_range(int, char*, int, int, char*, char*);
 bool check_cache(char*, char*);
 void send_not_modified(int, char*);
 void send_ok(char*, char*, int, char*, char*);
@@ -116,22 +125,51 @@ bool check_cache(char* buff, char* path){
 }
 
 /* Parses the range header and defines byte range to be sent */
-void send_file_range(int client_fd, char* range, int fd, int size){
-	strtok(range, "=");
-	char* bytes = strtok(NULL, "\r\n");
+void send_file_range(int client_fd, char* range, int fd, int size, char* generated, char* logBuff){
+
+	printf("range=%s\n", range);
+	char tmpString[100];
+	memset(tmpString, '\0', 100);
+	memcpy(tmpString, range, strlen(range)+1);
+	char* bytes=strstr(tmpString, "bytes=")+strlen("bytes=");
 	char* first = strtok(bytes, "-");
+	printf("first=%s\n", first);
+	printf("totalsize=%d\n", size);
 	char* second = strtok(NULL, "\n");
 	off_t start = (off_t)atoi(first);
+
 	if(second == NULL){
-		int s = size - (int)start + 1;
-		printf("%d\n", (int)start);
-		printf("%d\n", s);
+		printf("%s\n", "WTF");
+		int s = size - (int)start;
+		printf("start=%d\n", (int)start);
+		printf("size=%d\n", s);
+
+		sprintf(generated, "Accept-Ranges: bytes\r\n");
+		send(client_fd, generated, strlen(generated), 0);
+		sprintf(generated, "Content-Range: bytes %d-\r\n", (int)start);
+		send(client_fd, generated, strlen(generated), 0);
+		
+
+		sprintf(generated, "Content-Length: %d\r\n\n", s);
+		sprintf(logBuff+strlen(logBuff), "%d ", s);
+		send(client_fd, generated, strlen(generated), 0);
 		sendfile(client_fd, fd, &start, (size_t)s);
 	} else {
 		off_t end = (off_t)atoi(second);
 		int s = end - start + 1;
-		printf("%d\n", (int)start);
-		printf("%d\n", s);
+		sprintf(generated, "Accept-Ranges: bytes\r\n");
+		send(client_fd, generated, strlen(generated), 0);
+		sprintf(generated, "Content-Range: bytes %d-%d\r\n", (int)start, (int)end);
+		send(client_fd, generated, strlen(generated), 0);
+
+
+		sprintf(generated, "Content-Length: %d\r\n\n", s);
+		sprintf(logBuff+strlen(logBuff), "%d ", s);
+		send(client_fd, generated, strlen(generated), 0);
+
+		printf("start=%d\n", (int)start);
+		printf("size=%d\n", s);
+		printf("end=%d\n", (int)end);
 		sendfile(client_fd, fd, &start, (size_t)s);
 	}
 
@@ -198,15 +236,20 @@ void send_file(char* path, int client_fd, char* buff, char* logBuff){
 	fseek(file, 0, SEEK_END);
 	int size = ftell(file);	//rewind to get file size
 	off_t offset = 0;
-	sprintf(generated, "Content-Length: %d\r\n\n", size);
-	sprintf(logBuff+strlen(logBuff), "%d ", size);
-	send(client_fd, generated, strlen(generated), 0);
-	char* range = contains_range_header(buff);
+	
+	
+	char* range = extract_header_token(buff, "Range: ");
+
+
 	if(range != NULL){
-		send_file_range(client_fd, range, fd, size);
+		send_file_range(client_fd, range, fd, size, generated, logBuff);
 	} else {
+		sprintf(generated, "Content-Length: %d\r\n\n", size);
+		sprintf(logBuff+strlen(logBuff), "%d ", size);
+		send(client_fd, generated, strlen(generated), 0);
 		sendfile(client_fd, fd, &offset, size);
 	}
+	free(range);
 }
 
 /* Generates list of files existing in the current directory
@@ -369,13 +412,14 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	memcpy(cgiPath, server->cgi_bin+1, strlen(server->cgi_bin));
 	strcat(cgiPath, path);
 
-	if(is_cgi(method, cgiPath)){
+	/*if(is_cgi(method, cgiPath)){
 		cgi(buff,cgiPath, method, client_fd);
 		return;
-	}
+	}*/
 
 
 	if(access(indexPath, F_OK) == 0){
+
 		send_file(indexPath, client_fd, buff, logBuff);
 	}
 
@@ -419,7 +463,9 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 	if(read <= 0) {
 		close(client_fd);
 		return;
-	}	
+	}
+
+
 	handle_request(server, buff, client_fd, client_addr);
 	if(keep_alive(buff)){
 		struct timeval t;
@@ -468,6 +514,7 @@ char* extract_header_token(char* buff, char* token){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
 	char* token_p = strstr(tmpbuff, token);
+	if(token_p == NULL) return NULL;
 	if(*(token_p + strlen(token)) == '\n'){
 		return strdup("");
 	}
@@ -660,7 +707,9 @@ void* launch_server(void* arg){
 		perror("server exitted with error");
 	}
 	close(server->socket_fd);
+	server_destroy(server);
 	free(server);
+
 	return NULL;
 }
 
@@ -676,6 +725,7 @@ void* handle_a_request(void* aux){
 	struct virtual_server* server = ((struct request_info*)aux)->v_server;
 	int client_fd = ((struct request_info*)aux)->client_fd;
 	free(aux);
+	printf("%s\n", "GAASUFTAVA");
 
 	char buff[BUFFER_SIZE];
 	bool timeout = false;
@@ -692,7 +742,7 @@ void* handle_a_request(void* aux){
 }
 
 int poll_and_serve(void* server){
-	int MAXEVENTS = 512;
+	int MAXEVENTS = 1024;
 
 	struct virtual_server* v_server = (struct virtual_server*)server;
 	int efd; // epool file descriptor
@@ -762,8 +812,10 @@ int poll_and_serve(void* server){
                 aux->client_fd = client_fd;
 
                 int thread_creat_error = pthread_create(&t, NULL, handle_a_request, aux);
+
                 if(thread_creat_error){
                 	perror("creating thread failed in poll_and_serve()!");
+                	printf("%d\n", thread_creat_error);
                 }
 			}
 		}
