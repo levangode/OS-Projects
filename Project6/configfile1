@@ -1,6 +1,0 @@
-vhost = example1.com
-documentroot = /testdir2/
-cgi-bin = /path/to/example1/cgi-bin/
-ip = 192.168.2.6
-port = 4000
-log = /path/to/logs/example1.log
