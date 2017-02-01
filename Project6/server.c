@@ -193,7 +193,7 @@ void return_bad_request(int client_fd, char* logBuff){
 	memset(generated, '\0', BUFFER_SIZE);
 	sprintf(generated, "HTTP/1.1 404 Not Found\r\n");
 	send(client_fd, generated, strlen(generated), 0);
-	char* tmp = "<h1>404 Not Found</h1>\nthe requested file doesn't exist on this server";
+	char* tmp = "<h1>404 Not Found</h1>\nthe requested file or domain doesn't exist on this server";
 	sprintf(generated, "Content-Type: text/html\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 	sprintf(generated, "Content-Length: %d\r\n\n", (int)strlen(tmp));
