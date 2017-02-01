@@ -324,8 +324,13 @@ void make_log(char* buff, struct virtual_server* server, char* path, char* logBu
     sprintf(logBuff, "[%s] ", c_time_string);
    	sprintf(logBuff+strlen(logBuff), "%s ", inet_ntoa(client_addr->sin_addr));
    	//domain name
-   	sprintf(logBuff+strlen(logBuff), "%s ", server->vhost);
-
+   	char* tmp = extract_header_token(buff, "Host: ");
+   	if(tmp == NULL){
+   		printf("%s\n", "Client didn't send host name");
+   		assert(false);
+   	}
+   	sprintf(logBuff+strlen(logBuff), "%s ", tmp);
+   	free(tmp);
    	sprintf(logBuff+strlen(logBuff), "/%s ", path);
    	
 }
@@ -381,8 +386,21 @@ void finish_log(char* logBuff, char* buff, struct virtual_server* server){
 	fclose(logfile);
 }
 
-void handle_request(struct virtual_server* server, char* buff, int client_fd, struct sockaddr_in* client_addr){
+bool domains_match(struct virtual_server* server, char* buff){
 	printf("%s\n", buff);
+	char* tmp = extract_header_token(buff, "Host: ");
+	bool res = false;
+	if(tmp == NULL){
+		res = false;
+	} else if(strcmp(tmp, server->vhost) == 0){
+		res = true;
+	}
+	free(tmp);
+	return res;
+}
+
+void handle_request(struct virtual_server* server, char* buff, int client_fd, struct sockaddr_in* client_addr){
+	//printf("%s\n", buff);
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
@@ -391,7 +409,10 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	char logBuff[BUFFER_SIZE];
 	make_log(buff, server, path, logBuff, client_addr);
 
-
+	if(!domains_match(server, buff)){
+		return_bad_request(client_fd, logBuff);
+		return;
+	}
 	printf("path=%s\n", path);
 	printf("documentroot=%s\n", server->documentroot);
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
@@ -399,7 +420,6 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	strcat(actualPath, path);
 
 	if(actualPath[strlen(actualPath) - 1] == '/'){
-		printf("%s\n", "Vah");
 		actualPath[strlen(actualPath) - 1] = '\0';
 	}
 	char indexPath[strlen(actualPath) + strlen("/index.html")];
@@ -415,12 +435,13 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 
 	if(is_cgi(method, cgiPath)){
 		cgi(buff,cgiPath, method, client_fd, logBuff);
+		finish_log(logBuff, buff, server);
 		return;
 	}
 
 	if(check_cache(buff, actualPath)){
-		printf("caheaaaaa\n");
 		send_not_modified(client_fd, logBuff);
+		finish_log(logBuff, buff, server);
 		return;
 	}
 
@@ -471,11 +492,7 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 		close(client_fd);
 		return;
 	}
-
-
 	handle_request(server, buff, client_fd, client_addr);
-
-	
 	if(keep_alive(buff)){
 		struct timeval t;
 		t.tv_sec = 5;
