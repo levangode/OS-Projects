@@ -50,7 +50,7 @@ void server_destroy(struct virtual_server* serv){
 
 
 void handle_request(struct virtual_server*, char*, int, struct sockaddr_in*);
-void generate_files(struct virtual_server*, struct sockaddr_in*, int, DIR*, char*, char*);
+void generate_files(struct virtual_server*, struct sockaddr_in*, int, DIR*, char*, char*, char*);
 void send_file(struct virtual_server*, struct sockaddr_in*, char*, int, char*, char*);
 void return_bad_request(int, char*);
 char* contains_range_header(char*);
@@ -64,7 +64,7 @@ char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
 int poll_and_serve(void*);
-void cgi(char* buffer,char* path,char* method,int client_fd);
+void cgi(char* buffer,char* path,char* method,int client_fd, char* logBuff);
 void log_error(struct virtual_server*, struct sockaddr_in*, char*);
 
 /* Returns response to client with a success code, adding cache control and etags to it
@@ -93,7 +93,7 @@ void send_ok(char* generated, char* path, int client_fd, char* type, char* logBu
 void send_not_modified(int client_fd, char* logBuff){
 	sprintf(logBuff+strlen(logBuff), "%s ", "304");
 	char generated[BUFFER_SIZE];
-	sprintf(generated, "HTTP/1.1 304 Not Modified\r\n");
+	sprintf(generated, "HTTP/1.1 304 Not Modified\r\n\r\n");
 	send(client_fd, generated, strlen(generated), 0);
 }
 
@@ -118,7 +118,6 @@ bool check_cache(char* buff, char* path){
 	char current_hash[HASH_MAX_SIZE];
 	sprintf(current_hash, "%d/%d/%d", (int)file_stat.st_ino, (int)file_stat.st_mtime, (int)file_stat.st_size);
 	//this hash generation triple got from stack overflow
-
 	if(strcmp(old_hash, current_hash) == 0){
 		return true;
 	}
@@ -127,7 +126,6 @@ bool check_cache(char* buff, char* path){
 
 /* Parses the range header and defines byte range to be sent */
 void send_file_range(int client_fd, char* range, int fd, int size, char* generated, char* logBuff){
-
 	printf("range=%s\n", range);
 	char tmpString[100];
 	memset(tmpString, '\0', 100);
@@ -257,7 +255,7 @@ void send_file(struct virtual_server* serv, struct sockaddr_in* client, char* pa
 /* Generates list of files existing in the current directory
  * make html list of them and sends to client 
  * + some logging stuff */
-void generate_files(struct virtual_server* serv, struct sockaddr_in* client, int client_fd, DIR* dir, char* path, char* logBuff){
+void generate_files(struct virtual_server* serv, struct sockaddr_in* client, int client_fd, DIR* dir, char* path, char* actualPath, char* logBuff){
 	if(dir == NULL){
 		log_error(serv, client, "Couldn't open directory");
 		perror("Couldn't open directory");
@@ -267,7 +265,7 @@ void generate_files(struct virtual_server* serv, struct sockaddr_in* client, int
 	char generated[BUFFER_SIZE];
 	char links[BUFFER_SIZE];
 	memset(links, '\0', BUFFER_SIZE);
-	send_ok(generated, path, client_fd, "text/html", logBuff);
+	send_ok(generated, actualPath, client_fd, "text/html", logBuff);
 	sprintf(links+strlen(links), "<html>\n<body>\r\n");
 	while(true){
 		entry = readdir(dir);
@@ -393,10 +391,6 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	char logBuff[BUFFER_SIZE];
 	make_log(buff, server, path, logBuff, client_addr);
 
-	/*if(check_cache(buff, path)){
-		send_not_modified(client_fd, logBuff);
-		return;
-	}*/
 
 	printf("path=%s\n", path);
 	printf("documentroot=%s\n", server->documentroot);
@@ -419,13 +413,17 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	memcpy(cgiPath, server->cgi_bin+1, strlen(server->cgi_bin));
 	strcat(cgiPath, path);
 
-	/*if(is_cgi(method, cgiPath)){
-		cgi(buff,cgiPath, method, client_fd);
+	if(is_cgi(method, cgiPath)){
+		cgi(buff,cgiPath, method, client_fd, logBuff);
 		return;
-	}*/
+	}
 
+	if(check_cache(buff, actualPath)){
+		printf("caheaaaaa\n");
+		send_not_modified(client_fd, logBuff);
+		return;
+	}
 
-	
 
 	//case path is directory
 	DIR* dir = opendir((char*)actualPath);
@@ -434,7 +432,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 		if(access(indexPath, F_OK) == 0){
 			send_file(server, client_addr, indexPath, client_fd, buff, logBuff);
 		} else {
-			generate_files(server, client_addr, client_fd, dir, path, logBuff);			
+			generate_files(server, client_addr, client_fd, dir, path, actualPath, logBuff);			
 		}
 	}
 	
@@ -592,9 +590,13 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 }
 
 
-void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi programming manual	
+void cgi(char* buffer,char* path,char* method, int client_fd, char* logBuff){//read cgi programming manual	
 	char* tmpPath = strdup(path);
 	char* location = strtok(tmpPath,"?");
+	if(access(location, F_OK) != 0){
+		return_bad_request(client_fd, logBuff);
+		return;
+	}
 	char* query = strtok(NULL,"?");
 
 	printf("location=%s\n", location);
@@ -619,14 +621,12 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 	printf("\n-------im here in cgi--------\n");
 
 	if(pipe(output) < 0 || pipe(input) < 0){
-		printf("%s\n", "GG");
 		//print error
 		return;
 	}
 
 	pid_t pid = fork();
 	if(pid < 0){
-		printf("%s\n", "ZZ");
 		//print error
 		return;
 	}
@@ -643,9 +643,8 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 		sprintf(method_environment,"REQUEST_METHOD=%s",method);
 		putenv(method_environment);
 		check_get_post_case(method,query,query_environment,content_length,contentl_environment);
-		//printf("Printing path: %s\n", path);
 		//execl("/bin/ls", "ls","-l", NULL);
-		execl("cgiTest.cgi", "cgiTest.cgi", (char*)NULL);
+		execl(location, location, (char*)NULL);
 		//execl(path,path,NULL);
 		exit(0);
 	}else{//parent case
@@ -667,7 +666,6 @@ void cgi(char* buffer,char* path,char* method, int client_fd){//read cgi program
 		close(input[1]);
 		int tmp = 0;
 		waitpid(pid,&tmp,0);
-		//printf("printing status: %d\n", tmp );
 		//wait(tmp);
 	}
 	printf("\n-------cgi done--------\n");
@@ -750,7 +748,6 @@ void* handle_a_request(void* aux){
 	struct virtual_server* server = ((struct request_info*)aux)->v_server;
 	int client_fd = ((struct request_info*)aux)->client_fd;
 	free(aux);
-	printf("%s\n", "GAASUFTAVA");
 
 	char buff[BUFFER_SIZE];
 	bool timeout = false;

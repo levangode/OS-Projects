@@ -1,6 +1,6 @@
 vhost = example1.com
 documentroot = /testdir/
-cgi-bin = /path/to/example1/cgi-bin/
+cgi-bin = /testdir/
 ip = 127.0.0.1
 port = 4000
 log = /testdir/logebi.log
