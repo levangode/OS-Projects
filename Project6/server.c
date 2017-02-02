@@ -389,6 +389,8 @@ void finish_log(char* logBuff, char* buff, struct virtual_server* server){
 bool domains_match(struct virtual_server* server, char* buff){
 	printf("%s\n", buff);
 	char* tmp = extract_header_token(buff, "Host: ");
+	printf("host=%s\n", tmp);
+	printf("real=%s\n", server->vhost);
 	bool res = false;
 	if(tmp == NULL){
 		res = false;
@@ -411,6 +413,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 
 	if(!domains_match(server, buff)){
 		return_bad_request(client_fd, logBuff);
+		finish_log(logBuff, buff, server);
 		return;
 	}
 	printf("path=%s\n", path);
@@ -776,7 +779,8 @@ void* handle_a_request(void* aux){
 	receive_and_respond(server, client_fd, buff, &timeout, &addr);
 
 
-
+	printf("%s\n", "GG");
+	pthread_exit(NULL);
 	return NULL;
 }
 
@@ -806,6 +810,9 @@ int poll_and_serve(void* server){
 
 	//allocate buffer for
 	events = calloc (MAXEVENTS, sizeof event);
+
+	pthread_t workers[1024];
+ 	int pz = 0;
 
 	while (1){
 		int i, num_events;
@@ -845,12 +852,15 @@ int poll_and_serve(void* server){
 				int client_fd = event_fd;
 				epoll_error = epoll_ctl (efd, EPOLL_CTL_DEL, client_fd, &event);
                 
-                pthread_t t;
+                //pthread_t t;
                 struct request_info* aux = malloc(sizeof(struct request_info));
                 aux->v_server = v_server;
                 aux->client_fd = client_fd;
 
-                int thread_creat_error = pthread_create(&t, NULL, handle_a_request, aux);
+                int thread_creat_error = pthread_create(&workers[pz % 1024], NULL, handle_a_request, aux);
+                pthread_join(workers[pz % 1024], NULL);
+                pz++;
+                printf("%d\n", pz);
 
                 if(thread_creat_error){
                 	perror("creating thread failed in poll_and_serve()!");
