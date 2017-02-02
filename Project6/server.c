@@ -64,7 +64,7 @@ char* extract_header_token(char*, char*);
 void read_config_file(char*);
 void* launch_server(void* arg);
 int poll_and_serve(void*);
-void cgi(char* buffer,char* path,char* method,int client_fd, char* logBuff);
+void cgi(struct virtual_server* server,char* buffer,char* path,char* method,int client_fd, char* logBuff,struct sockaddr_in* client_addr);
 void log_error(struct virtual_server*, struct sockaddr_in*, char*);
 
 /* Returns response to client with a success code, adding cache control and etags to it
@@ -123,6 +123,7 @@ bool check_cache(char* buff, char* path){
 	}
 	return false;
 }
+
 
 /* Parses the range header and defines byte range to be sent */
 void send_file_range(int client_fd, char* range, int fd, int size, char* generated, char* logBuff){
@@ -434,7 +435,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	strcat(cgiPath, path);
 
 	if(is_cgi(method, cgiPath)){
-		cgi(buff,cgiPath, method, client_fd, logBuff);
+		cgi(server,buff,cgiPath, method, client_fd, logBuff,client_addr);
 		finish_log(logBuff, buff, server);
 		return;
 	}
@@ -607,25 +608,11 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 }
 
 
-void cgi(char* buffer,char* path,char* method, int client_fd, char* logBuff){//read cgi programming manual	
-	char* tmpPath = strdup(path);
-	char* location = strtok(tmpPath,"?");
-	if(access(location, F_OK) != 0){
-		return_bad_request(client_fd, logBuff);
-		return;
-	}
-	char* query = strtok(NULL,"?");
-
-	printf("location=%s\n", location);
-	printf("query=%s\n", query);
-
-	int output[2],input[2];//for cgi pipes
-	char* content_length_ptr;
-	int content_length;
+int post_case(char* method,char* buffer,char* query){
 	if(strcasecmp("POST",method)==0){
 		printf("method=%s\n", method);
-		content_length_ptr = extract_header_token(buffer,"Content-Length: ");
-		content_length = atoi(content_length_ptr);
+		char* content_length_ptr = extract_header_token(buffer,"Content-Length: ");
+		int content_length = atoi(content_length_ptr);
 		char * finder = strstr(buffer,"\r\n\r\n");
 		if(finder != NULL){
 			finder = finder + 4;
@@ -633,24 +620,32 @@ void cgi(char* buffer,char* path,char* method, int client_fd, char* logBuff){//r
 		}
 		printf("postquery=%s\n", query);
 		free(content_length_ptr);
+		return content_length;
 	}
+	return -1;
+}
 
-	printf("\n-------im here in cgi--------\n");
 
-	if(pipe(output) < 0 || pipe(input) < 0){
-		//print error
+void cgi(struct virtual_server* server, char* buffer,char* path,char* method, int client_fd, char* logBuff,struct sockaddr_in* client_addr){//read cgi programming manual. further decomposition would make this function less readable	
+	char* tmpPath = strdup(path);
+	char* location = strtok(tmpPath,"?");
+	if(access(location, F_OK) != 0){
+		return_bad_request(client_fd, logBuff);
 		return;
 	}
-
+	char* query = strtok(NULL,"?");
+	int output[2],input[2];//for cgi pipes
+	int content_length = post_case(method,buffer,query);
+	if(pipe(output) < 0 || pipe(input) < 0){
+		log_error(server,client_addr,"Couldn't do pipes");
+		return;
+	}
 	pid_t pid = fork();
 	if(pid < 0){
-		//print error
+		log_error(server,client_addr,"Fork Failed");
 		return;
 	}
-
 	char query_environment[256],method_environment[256],contentl_environment[256];
-
-
 	if(pid == 0){//child case
 		dup2(output[1], 1);
   		close(output[0]);
@@ -660,32 +655,26 @@ void cgi(char* buffer,char* path,char* method, int client_fd, char* logBuff){//r
 		sprintf(method_environment,"REQUEST_METHOD=%s",method);
 		putenv(method_environment);
 		check_get_post_case(method,query,query_environment,content_length,contentl_environment);
-		//execl("/bin/ls", "ls","-l", NULL);
 		execl(location, location, (char*)NULL);
-		//execl(path,path,NULL);
 		exit(0);
 	}else{//parent case
 		char rec_buff;
 		close(output[1]);
   		close(input[0]);
-		if(strncmp("POST",method,4)==0){
-			//recv(client_fd,&rec_buff,content_length,0);
-			//write(input[1],&query,strlen(query));
-		}
+  		int counter = 0;
 		while(true){
 			ssize_t res = read(output[0],&rec_buff,1);
 			if(res <= 0)
 				break;
+			counter++;
 			send(client_fd,&rec_buff,1,0);
 		}
 
 		close(output[0]);
 		close(input[1]);
-		int tmp = 0;
+		int tmp = 0;//for testing
 		waitpid(pid,&tmp,0);
-		//wait(tmp);
 	}
-	printf("\n-------cgi done--------\n");
 }
 
 void* launch_server(void* arg){

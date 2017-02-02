@@ -1,9 +1,9 @@
 vhost = localhost:4000
-documentroot = /testdir/
-cgi-bin = /testdir/
+documentroot = /testdir1/
+cgi-bin = /testdir1/
 ip = 127.0.0.1
 port = 4000
-log = /testdir/logebi.log
+log = /testdir1/logebi.log
 
 vhost = localhost:5000
 documentroot = /testdir2/
