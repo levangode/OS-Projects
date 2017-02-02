@@ -20,14 +20,16 @@
 #include "vector.h"
 
 
+
+#define MAXEVENTS 1024
 #define BACKLOG 128
 #define BUFFER_SIZE 2048
-#define MAX_CONFIGFILE_SIZE 5000
 #define SUCCESS 1
 #define PORTS_LOWER_BOUND 1024
 #define PORTS_UPPER_BOUND 65535
 #define HASH_MAX_SIZE 1024
 #define MAX_URL_LENGTH 512
+#define EPOLL 1
 
 struct virtual_server{
 	char* vhost;
@@ -654,7 +656,6 @@ void cgi(struct virtual_server* server, char* buffer,char* path,char* method, in
   		close(output[0]);
   		dup2(input[0], 0);
   		close(input[1]);
-
 		sprintf(method_environment,"REQUEST_METHOD=%s",method);
 		putenv(method_environment);
 		check_get_post_case(method,query,query_environment,content_length,contentl_environment);
@@ -672,7 +673,6 @@ void cgi(struct virtual_server* server, char* buffer,char* path,char* method, in
 			counter++;
 			send(client_fd,&rec_buff,1,0);
 		}
-
 		close(output[0]);
 		close(input[1]);
 		int tmp = 0;//for testing
@@ -687,7 +687,6 @@ void* launch_server(void* arg){
 	int port = atoi(server->port);
 	if(port <= PORTS_LOWER_BOUND || port > PORTS_UPPER_BOUND){
 		printf("%s\n", "Illegal port number");
-		//log
 		exit(SUCCESS);
 	}	
 	server->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -700,48 +699,46 @@ void* launch_server(void* arg){
 		perror("setsockopt");
 		exit(SUCCESS);
 	}
-	//myport and myip to be defined
 	server->my_addr.sin_family = AF_INET;	//host byte order
 	server->my_addr.sin_port = htons(port);	//short, network byte order
 	server->my_addr.sin_addr.s_addr = inet_addr(server->ip);
 	memset(&(server->my_addr.sin_zero), '\0', 8);
-	//ERRORCHEKING
 	if(server->my_addr.sin_addr.s_addr == -1){
 		perror( "255.255.255.255 Happened :(" );
 		exit(SUCCESS);
 	}
-	////
 	success = bind(server->socket_fd, (struct sockaddr*)&(server->my_addr), sizeof(struct sockaddr));
-	//ERRORCHECKING
 	if(success == -1){
 		perror("Couldn't bind");
 		exit(SUCCESS);
 	}
-	////
 	success = listen(server->socket_fd, BACKLOG);
 	if(success == -1){
 		perror("Could not listen");
 		exit(SUCCESS);
 	}
 	printf("Server Started at port %d\n", port);
-	int server_run_status = poll_and_serve(server);
-	if (!server_run_status){
-		printf("server exited successfully");
+	
+	if(EPOLL){
+		int server_run_status = poll_and_serve(server);
+		if (!server_run_status){
+			printf("server exited successfully");
+		} else {
+			perror("server exitted with error");
+		}
 	} else {
-		perror("server exitted with error");
+		int i;
+		pthread_t workers[1024];
+ 		for(i=0; i<1024; i++){
+			pthread_create(&workers[i], NULL, handle_client, server);
+		}
+		for(i=0; i<1024; i++){
+			pthread_join(workers[i], NULL);
+ 		}
 	}
-	/*int i;
-	pthread_t workers[1024];
- 	for(i=0; i<1024; i++){
-		pthread_create(&workers[i], NULL, handle_client, server);
-	}
-	for(i=0; i<1024; i++){
-		pthread_join(workers[i], NULL);
- 	}*/
 	close(server->socket_fd);
 	server_destroy(server);
 	free(server);
-
 	return NULL;
 }
 
@@ -751,9 +748,6 @@ struct request_info{
 };
 
 void* handle_a_request(void* aux){
-
-	printf("handleing a request on descriptor %d\n", ((struct request_info*)aux)->client_fd);
-
 	struct virtual_server* server = ((struct request_info*)aux)->v_server;
 	int client_fd = ((struct request_info*)aux)->client_fd;
 	free(aux);
@@ -768,26 +762,23 @@ void* handle_a_request(void* aux){
 	receive_and_respond(server, client_fd, buff, &timeout, &addr);
 
 
-	printf("%s\n", "GG");
 	pthread_exit(NULL);
 	return NULL;
 }
 
 int poll_and_serve(void* server){
-	int MAXEVENTS = 1024;
 
 	struct virtual_server* v_server = (struct virtual_server*)server;
 	int efd; // epool file descriptor
 	int sfd = v_server->socket_fd; // socket(server) file descriptor
 	struct epoll_event event; // epoll event
-  	struct epoll_event *events; // epoll returned event buffer
+  	struct epoll_event* events; // epoll returned event buffer
 
 	efd = epoll_create1 (0);
 	if (efd == -1){
 		perror ("epoll_create");
-		abort ();
+		exit(SUCCESS);
 	}
-
 	event.data.fd = sfd;
 	event.events = EPOLLIN;
 
@@ -796,68 +787,47 @@ int poll_and_serve(void* server){
 		perror ("epoll_ctl failed");
 		exit(SUCCESS);
 	}
-
 	//allocate buffer for
 	events = calloc (MAXEVENTS, sizeof event);
-
-	pthread_t workers[1024];
- 	int pz = 0;
-
-	while (1){
-		int i, num_events;
-
+	int num_events;
+	while (true){
+		int i;
 		num_events = epoll_wait(efd, events, MAXEVENTS, -1);
-
 		for(i=0;i<num_events; i++){
-			int event_fd = events[i].data.fd;
-			//error parsing ignored
-			if(event_fd == sfd){
-				printf("connection request(1 or more) on server descriptor %d\n", event_fd);
-				
-				int z=1;
-				while(z){// accept all pending requests
-					z=0;
+			if(events[i].events & EPOLLIN) {
+				int event_fd = events[i].data.fd;
+				struct epoll_event* current = &events[i];
+				if(event_fd == sfd){
 					struct sockaddr in_addr;
 					socklen_t in_len = sizeof(struct sockaddr);
 					int client_fd;
-					//char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-
 					client_fd = accept (sfd, &in_addr, &in_len);
-
-					printf("accepted connection request with descriptor %i\n", event_fd);
-
 					event.data.fd = client_fd;
-                  	event.events = EPOLLIN | EPOLLET;
-                  	epoll_error = epoll_ctl (efd, EPOLL_CTL_ADD, client_fd, &event);
-                  	if (epoll_error == -1){
-                      perror ("epoll_ctl failed in poll_and_serve()!");
-                    }
+	               	event.events = EPOLLIN;
+	               	epoll_error = epoll_ctl (efd, EPOLL_CTL_ADD, client_fd, &event);
+	               	if (epoll_error == -1){
+	                    perror ("epoll_ctl failed in poll_and_serve()!");
+	                    exit(SUCCESS);
+	               	}
+				} else {
+					//remove from listeners it no longer requred
+					//rest is handled by thread which serves the request
+					int client_fd = event_fd;
+					epoll_error = epoll_ctl (efd, EPOLL_CTL_DEL, event_fd, current);
+	                
+	                struct request_info* aux = malloc(sizeof(struct request_info));
+	                aux->v_server = v_server;
+	                aux->client_fd = client_fd;
+	               	pthread_t t;
 
+	                int thread_creat_error = pthread_create(&t, NULL, handle_a_request, aux);  
+	                if(thread_creat_error){
+	                	perror("creating thread failed in poll_and_serve()!");
+	                	exit(SUCCESS);
+	                }
 				}
-			} else {
-				printf("data pending on handler socket descriptor %d\n", events[i].data.fd);
-				//remove from listeners it no longer requred
-				//rest is handled by thread which serves the request
-				int client_fd = event_fd;
-				epoll_error = epoll_ctl (efd, EPOLL_CTL_DEL, client_fd, &event);
-                
-                //pthread_t t;
-                struct request_info* aux = malloc(sizeof(struct request_info));
-                aux->v_server = v_server;
-                aux->client_fd = client_fd;
-
-                int thread_creat_error = pthread_create(&workers[pz % 1024], NULL, handle_a_request, aux);
-                pthread_join(workers[pz % 1024], NULL);
-                pz++;
-                printf("%d\n", pz);
-
-                if(thread_creat_error){
-                	perror("creating thread failed in poll_and_serve()!");
-                	printf("%d\n", thread_creat_error);
-                }
 			}
 		}
-
 	}
 	
 	return 0;
