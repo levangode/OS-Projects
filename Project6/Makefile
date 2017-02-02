@@ -1,5 +1,5 @@
 all: 
-	gcc -g -Wall -o ServerLauncher vector.c server.c blocking_queue.c -pthread
+	gcc -g -Wall -o ServerLauncher vector.c server.c -pthread
 
 clean: 
 	$(RM) ServerLauncher
