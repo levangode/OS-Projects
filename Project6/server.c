@@ -22,6 +22,7 @@
 
 
 #define MAXEVENTS 1024
+#define NUMWORKERS 1024
 #define BACKLOG 128
 #define BUFFER_SIZE 2048
 #define SUCCESS 1
@@ -272,7 +273,7 @@ void generate_files(struct virtual_server* serv, struct sockaddr_in* client, int
 bool is_cgi(char* method,char* path){
 	if(strcasecmp(method,"POST")==0)
 		return true;
-	char tmpPath[1024];
+	char tmpPath[BUFFER_SIZE];
 	strcpy(tmpPath,path);
 	if(strstr(tmpPath,"?")==NULL){
 		return false;
@@ -425,7 +426,6 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	}
 	DIR* dir = opendir((char*)actualPath);
 	if(dir != NULL){	//case directory
-		printf("%s\n", indexPath);
 		if(access(indexPath, F_OK) == 0){
 			send_file(server, client_addr, indexPath, client_fd, buff, logBuff);
 		} else {
@@ -698,11 +698,11 @@ void* launch_server(void* arg){
 		}
 	} else {
 		int i;
-		pthread_t workers[1024];
- 		for(i=0; i<1024; i++){
+		pthread_t workers[NUMWORKERS];
+ 		for(i=0; i<NUMWORKERS; i++){
 			pthread_create(&workers[i], NULL, handle_client, server);
 		}
-		for(i=0; i<1024; i++){
+		for(i=0; i<NUMWORKERS; i++){
 			pthread_join(workers[i], NULL);
  		}
 	}
@@ -800,7 +800,6 @@ int poll_and_serve(void* server){
 			}
 		}
 	}
-	
 	return 0;
 }
 
