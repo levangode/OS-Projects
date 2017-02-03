@@ -647,6 +647,7 @@ void cgi(struct virtual_server* server, char* buffer,char* path,char* method, in
 		close(input[1]);
 		int tmp = 0;//for testing
 		waitpid(pid,&tmp,0);
+		sprintf(logBuff+strlen(logBuff), "%d ", counter);
 	}
 }
 
