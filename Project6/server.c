@@ -225,10 +225,7 @@ void send_file(struct virtual_server* serv, struct sockaddr_in* client, char* pa
 	int size = ftell(file);	//rewind to get file size
 	off_t offset = 0;
 	
-	
 	char* range = extract_header_token(buff, "Range: ");
-
-
 	if(range != NULL){
 		send_file_range(client_fd, range, fd, size, generated, logBuff);
 	} else {
@@ -374,6 +371,7 @@ void finish_log(char* logBuff, char* buff, struct virtual_server* server){
 	fclose(logfile);
 }
 
+/* Returns true if the domain sent by client and my server domain match each other */
 bool domains_match(struct virtual_server* server, char* buff){
 	char* tmp = extract_header_token(buff, "Host: ");
 	bool res = false;
@@ -395,7 +393,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	char logBuff[BUFFER_SIZE];
 	make_log(buff, server, path, logBuff, client_addr);
 
-	if(!domains_match(server, buff)){
+	if(!domains_match(server, buff)){	//if the domain sent by client didn't match our server domain, we cant serve him.
 		return_bad_request(client_fd, logBuff);
 		finish_log(logBuff, buff, server);
 		return;
@@ -415,19 +413,18 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	memcpy(cgiPath, server->cgi_bin+1, strlen(server->cgi_bin));
 	strcat(cgiPath, path);
 
-	if(is_cgi(method, cgiPath)){
+	if(is_cgi(method, cgiPath)){	//case cgi
 		cgi(server,buff,cgiPath, method, client_fd, logBuff,client_addr);
 		finish_log(logBuff, buff, server);
 		return;
 	}
-	if(check_cache(buff, actualPath)){
+	if(check_cache(buff, actualPath)){	//case cache
 		send_not_modified(client_fd, logBuff);
 		finish_log(logBuff, buff, server);
 		return;
 	}
-	//case path is directory
 	DIR* dir = opendir((char*)actualPath);
-	if(dir != NULL){
+	if(dir != NULL){	//case directory
 		printf("%s\n", indexPath);
 		if(access(indexPath, F_OK) == 0){
 			send_file(server, client_addr, indexPath, client_fd, buff, logBuff);
@@ -435,10 +432,7 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 			generate_files(server, client_addr, client_fd, dir, path, actualPath, logBuff);			
 		}
 	}
-	
-
-	//case path is file
-	else if(access((char*)actualPath, F_OK) == 0){
+	else if(access((char*)actualPath, F_OK) == 0){	//case file
 		send_file(server, client_addr, (char*)actualPath, client_fd, buff, logBuff);
 	} else {
 		return_bad_request(client_fd, logBuff);
@@ -453,6 +447,7 @@ typedef struct{
 } handler_args;
 
 
+/* Checks if request contains keep-alive header */
 bool keep_alive(char* buff){
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
@@ -491,6 +486,7 @@ void receive_and_respond(struct virtual_server* server, int client_fd, char* buf
 	}
 }
 
+/* Handles clients in the loop */
 void* handle_client(void* arg){
 	struct virtual_server* server = (struct virtual_server*)arg;
 	int socket_fd = server->socket_fd;
@@ -574,6 +570,7 @@ void read_config_file(char* path_to_config_file){
 	VectorDispose(&servs);
 }
 
+/* Chechs whether the cgi call is get or post */
 void check_get_post_case(char* method,char* query,char* query_environment,int len,char * contentl_environment){
 	if(strncmp("GET",method,3) == 0){
 		sprintf(query_environment,"QUERY_STRING=%s",query);
@@ -584,7 +581,7 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 	}
 }
 
-
+/* For POST case parses the buffer and returns the length of the body */
 int post_case(char* method,char* buffer,char* query){
 	if(strcasecmp("POST",method)==0){
 		char* content_length_ptr = extract_header_token(buffer,"Content-Length: ");
@@ -600,7 +597,10 @@ int post_case(char* method,char* buffer,char* query){
 	return -1;
 }
 
-
+/* Serves as the CGI interface. parses url for arguments of the program.
+ * if the CGI is called with a POST method, reads it from the content body.
+ * the program is executed and swapping the input and outputs with pipe, so we send the input to it and get its output.
+ * which is then returned to the caller client */
 void cgi(struct virtual_server* server, char* buffer,char* path,char* method, int client_fd, char* logBuff,struct sockaddr_in* client_addr){//read cgi programming manual. further decomposition would make this function less readable	
 	char* tmpPath = strdup(path);
 	char* location = strtok(tmpPath,"?");
@@ -650,6 +650,7 @@ void cgi(struct virtual_server* server, char* buffer,char* path,char* method, in
 	}
 }
 
+/* Sets up a server. this function is passed to each thread where the virtual host will be held. */
 void* launch_server(void* arg){
 	struct virtual_server* server = (struct virtual_server*)arg;
 	server->socket_fd = -1;
@@ -716,6 +717,7 @@ struct request_info{
 	int client_fd;
 };
 
+/* Handles single request */
 void* handle_a_request(void* aux){
 	struct virtual_server* server = ((struct request_info*)aux)->v_server;
 	int client_fd = ((struct request_info*)aux)->client_fd;
@@ -735,8 +737,8 @@ void* handle_a_request(void* aux){
 	return NULL;
 }
 
+/* Creates epoll and serves each event. different requests are served in different threads. */
 int poll_and_serve(void* server){
-
 	struct virtual_server* v_server = (struct virtual_server*)server;
 	int efd; // epool file descriptor
 	int sfd = v_server->socket_fd; // socket(server) file descriptor
