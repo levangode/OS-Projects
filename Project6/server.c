@@ -129,29 +129,20 @@ bool check_cache(char* buff, char* path){
 
 /* Parses the range header and defines byte range to be sent */
 void send_file_range(int client_fd, char* range, int fd, int size, char* generated, char* logBuff){
-	printf("range=%s\n", range);
 	char tmpString[100];
 	memset(tmpString, '\0', 100);
 	memcpy(tmpString, range, strlen(range)+1);
 	char* bytes=strstr(tmpString, "bytes=")+strlen("bytes=");
 	char* first = strtok(bytes, "-");
-	printf("first=%s\n", first);
-	printf("totalsize=%d\n", size);
 	char* second = strtok(NULL, "\n");
 	off_t start = (off_t)atoi(first);
 
 	if(second == NULL){
-		printf("%s\n", "WTF");
 		int s = size - (int)start;
-		printf("start=%d\n", (int)start);
-		printf("size=%d\n", s);
-
 		sprintf(generated, "Accept-Ranges: bytes\r\n");
 		send(client_fd, generated, strlen(generated), 0);
 		sprintf(generated, "Content-Range: bytes %d-\r\n", (int)start);
 		send(client_fd, generated, strlen(generated), 0);
-		
-
 		sprintf(generated, "Content-Length: %d\r\n\n", s);
 		sprintf(logBuff+strlen(logBuff), "%d ", s);
 		send(client_fd, generated, strlen(generated), 0);
@@ -163,15 +154,9 @@ void send_file_range(int client_fd, char* range, int fd, int size, char* generat
 		send(client_fd, generated, strlen(generated), 0);
 		sprintf(generated, "Content-Range: bytes %d-%d\r\n", (int)start, (int)end);
 		send(client_fd, generated, strlen(generated), 0);
-
-
 		sprintf(generated, "Content-Length: %d\r\n\n", s);
 		sprintf(logBuff+strlen(logBuff), "%d ", s);
 		send(client_fd, generated, strlen(generated), 0);
-
-		printf("start=%d\n", (int)start);
-		printf("size=%d\n", s);
-		printf("end=%d\n", (int)end);
 		sendfile(client_fd, fd, &start, (size_t)s);
 	}
 
@@ -390,10 +375,7 @@ void finish_log(char* logBuff, char* buff, struct virtual_server* server){
 }
 
 bool domains_match(struct virtual_server* server, char* buff){
-	printf("%s\n", buff);
 	char* tmp = extract_header_token(buff, "Host: ");
-	printf("host=%s\n", tmp);
-	printf("real=%s\n", server->vhost);
 	bool res = false;
 	if(tmp == NULL){
 		res = false;
@@ -405,7 +387,6 @@ bool domains_match(struct virtual_server* server, char* buff){
 }
 
 void handle_request(struct virtual_server* server, char* buff, int client_fd, struct sockaddr_in* client_addr){
-	//printf("%s\n", buff);
 	char tmpbuff[BUFFER_SIZE];
 	memcpy(tmpbuff, buff, BUFFER_SIZE);
 	char* method = strtok(tmpbuff, " \t\n");	//equals POST or GET
@@ -419,8 +400,6 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 		finish_log(logBuff, buff, server);
 		return;
 	}
-	printf("path=%s\n", path);
-	printf("documentroot=%s\n", server->documentroot);
 	char actualPath[strlen(server->documentroot)-1+strlen(path)];
 	memcpy(actualPath, server->documentroot+1, strlen(server->documentroot));
 	strcat(actualPath, path);
@@ -432,9 +411,6 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 	memcpy(indexPath, actualPath, strlen(actualPath)+1);
 	strcat(indexPath, "/index.html");
 
-
-	printf("actualPath=%s\n", actualPath);
-
 	char cgiPath[strlen(server->cgi_bin) - 1 + strlen(path)];
 	memcpy(cgiPath, server->cgi_bin+1, strlen(server->cgi_bin));
 	strcat(cgiPath, path);
@@ -444,14 +420,11 @@ void handle_request(struct virtual_server* server, char* buff, int client_fd, st
 		finish_log(logBuff, buff, server);
 		return;
 	}
-
 	if(check_cache(buff, actualPath)){
 		send_not_modified(client_fd, logBuff);
 		finish_log(logBuff, buff, server);
 		return;
 	}
-
-
 	//case path is directory
 	DIR* dir = opendir((char*)actualPath);
 	if(dir != NULL){
@@ -533,7 +506,6 @@ void* handle_client(void* arg){
 			perror("Couldn't accept");
 			continue;
 		}
-		printf("server: got connection from %s\n", inet_ntoa(client_addr.sin_addr));
 		bool timeout = false;
 		receive_and_respond(server, client_fd, buff, &timeout, &client_addr);
 	}
@@ -615,7 +587,6 @@ void check_get_post_case(char* method,char* query,char* query_environment,int le
 
 int post_case(char* method,char* buffer,char* query){
 	if(strcasecmp("POST",method)==0){
-		printf("method=%s\n", method);
 		char* content_length_ptr = extract_header_token(buffer,"Content-Length: ");
 		int content_length = atoi(content_length_ptr);
 		char * finder = strstr(buffer,"\r\n\r\n");
@@ -623,7 +594,6 @@ int post_case(char* method,char* buffer,char* query){
 			finder = finder + 4;
 			query = strdup(finder);//to be freed later
 		}
-		printf("postquery=%s\n", query);
 		free(content_length_ptr);
 		return content_length;
 	}
@@ -718,7 +688,6 @@ void* launch_server(void* arg){
 		exit(SUCCESS);
 	}
 	printf("Server Started at port %d\n", port);
-	
 	if(EPOLL){
 		int server_run_status = poll_and_serve(server);
 		if (!server_run_status){
