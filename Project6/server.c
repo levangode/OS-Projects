@@ -60,7 +60,7 @@ char* contains_range_header(char*);
 void send_file_range(int, char*, int, int, char*, char*);
 bool check_cache(char*, char*);
 void send_not_modified(int, char*);
-void send_ok(char*, char*, int, char*, char*);
+void send_ok(char*, char*, int, char*, char*, bool);
 bool keep_alive(char*);
 void receive_and_respond(struct virtual_server*, int, char*, bool*, struct sockaddr_in*);
 char* extract_header_token(char*, char*);
@@ -72,9 +72,13 @@ void log_error(struct virtual_server*, struct sockaddr_in*, char*);
 
 /* Returns response to client with a success code, adding cache control and etags to it
  * Also does some logging staff */
-void send_ok(char* generated, char* path, int client_fd, char* type, char* logBuff){
+void send_ok(char* generated, char* path, int client_fd, char* type, char* logBuff, bool range){
 	sprintf(logBuff+strlen(logBuff), "%s ", "200");
-	sprintf(generated, "HTTP/1.1 200 OK\r\n");
+	if(range){
+		sprintf(generated, "HTTP/1.1 206 Partial Content\r\n");
+	} else {
+		sprintf(generated, "HTTP/1.1 200 OK\r\n");
+	}
 	send(client_fd, generated, strlen(generated), 0);
 	sprintf(generated, "Content-Type: %s\r\n", type);
 	send(client_fd, generated, strlen(generated), 0);
@@ -142,7 +146,7 @@ void send_file_range(int client_fd, char* range, int fd, int size, char* generat
 		int s = size - (int)start;
 		sprintf(generated, "Accept-Ranges: bytes\r\n");
 		send(client_fd, generated, strlen(generated), 0);
-		sprintf(generated, "Content-Range: bytes %d-\r\n", (int)start);
+		sprintf(generated, "Content-Range: bytes %d-%d/%d\r\n", (int)start, size-1, size);
 		send(client_fd, generated, strlen(generated), 0);
 		sprintf(generated, "Content-Length: %d\r\n\n", s);
 		sprintf(logBuff+strlen(logBuff), "%d ", s);
@@ -153,7 +157,7 @@ void send_file_range(int client_fd, char* range, int fd, int size, char* generat
 		int s = end - start + 1;
 		sprintf(generated, "Accept-Ranges: bytes\r\n");
 		send(client_fd, generated, strlen(generated), 0);
-		sprintf(generated, "Content-Range: bytes %d-%d\r\n", (int)start, (int)end);
+		sprintf(generated, "Content-Range: bytes %d-%d/%d\r\n", (int)start, (int)end, size);
 		send(client_fd, generated, strlen(generated), 0);
 		sprintf(generated, "Content-Length: %d\r\n\n", s);
 		sprintf(logBuff+strlen(logBuff), "%d ", s);
@@ -213,7 +217,7 @@ void send_file(struct virtual_server* serv, struct sockaddr_in* client, char* pa
 	char generated[BUFFER_SIZE];
 	memset(generated, '\0', BUFFER_SIZE);
 
-	send_ok(generated, path, client_fd, type, logBuff);
+	
 	int fd = -1;
 	fd = open(path, O_RDONLY);
 	if(fd == -1){
@@ -228,8 +232,10 @@ void send_file(struct virtual_server* serv, struct sockaddr_in* client, char* pa
 	
 	char* range = extract_header_token(buff, "Range: ");
 	if(range != NULL){
+		send_ok(generated, path, client_fd, type, logBuff, true);
 		send_file_range(client_fd, range, fd, size, generated, logBuff);
 	} else {
+		send_ok(generated, path, client_fd, type, logBuff, false);
 		sprintf(generated, "Content-Length: %d\r\n\n", size);
 		sprintf(logBuff+strlen(logBuff), "%d ", size);
 		send(client_fd, generated, strlen(generated), 0);
@@ -251,7 +257,7 @@ void generate_files(struct virtual_server* serv, struct sockaddr_in* client, int
 	char generated[BUFFER_SIZE];
 	char links[BUFFER_SIZE];
 	memset(links, '\0', BUFFER_SIZE);
-	send_ok(generated, actualPath, client_fd, "text/html", logBuff);
+	send_ok(generated, actualPath, client_fd, "text/html", logBuff, false);
 	sprintf(links+strlen(links), "<html>\n<body>\r\n");
 	while(true){
 		entry = readdir(dir);
